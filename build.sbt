@@ -16,4 +16,4 @@ libraryDependencies in ThisBuild ++= Seq(
 
 retrieveManaged := true
 
-initialCommands in console := """import at.iem.point.eh.sketches.midi"""
+initialCommands in console := """import at.iem.point.eh.sketches._"""

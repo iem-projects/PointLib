@@ -8,4 +8,7 @@ object Sequencer {
 trait Sequencer {
   def play(sequence: Sequence): Unit
   def stop() : Unit
+  def isPlaying: Boolean
+
+  def close() : Unit
 }

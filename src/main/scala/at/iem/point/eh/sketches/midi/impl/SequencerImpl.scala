@@ -26,5 +26,7 @@ private[midi] object SequencerImpl {
     def stop() {
       peer.stop()
     }
+
+    def close() { peer.close() }
   }
 }
