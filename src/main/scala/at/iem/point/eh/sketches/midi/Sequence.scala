@@ -31,4 +31,6 @@ trait Sequence {
    * All tracks of the sequence.
    */
   def tracks: IIdxSeq[Track]
+
+  def toJava: j.Sequence
 }

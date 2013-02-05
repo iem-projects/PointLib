@@ -6,13 +6,13 @@ import collection.immutable.{IndexedSeq => IIdxSeq}
 import collection.breakOut
 
 private[midi] object SequenceImpl {
-  def fromJava(seq: j.Sequence): Sequence = {
-    val tsj = seq.getTracks
-    val ts: IIdxSeq[Track] = tsj.map(TrackImpl.fromJava)(breakOut)
-    new Impl(ts)
-  }
+  def fromJava(sj: j.Sequence): Sequence = new Impl(sj)
 
-  private final class Impl(val tracks: IIdxSeq[Track]) extends Sequence {
-    override def toString = s"midi.Sequence(# tracks = ${tracks.size})@${hashCode().toHexString}"
+  private final class Impl(val peer: j.Sequence) extends Sequence {
+    override def toString = s"midi.Sequence(# tracks = ${peer.getTracks.length})@${hashCode().toHexString}"
+
+    lazy val tracks: IIdxSeq[Track] = peer.getTracks.map(TrackImpl.fromJava)(breakOut)
+
+    def toJava: j.Sequence = peer
   }
 }
