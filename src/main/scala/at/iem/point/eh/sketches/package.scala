@@ -2,6 +2,7 @@ package at.iem.point.eh
 
 import java.io.{IOException, File}
 import annotation.tailrec
+import java.awt.EventQueue
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -21,7 +22,7 @@ package object sketches {
   }
 
   var recPath = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
-  lazy val snippets: Map[Int, File] = {
+  lazy val snippetFiles: Map[Int, File] = {
     val b   = Map.newBuilder[Int, File]
     val Pat = "snippet (\\d+).mid".r
     def loop(d: File) {
@@ -34,5 +35,32 @@ package object sketches {
     }
     loop(recPath)
     b.result()
+  }
+
+  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
+
+  implicit final class RichIterable[A](val it: Iterable[A]) extends AnyVal {
+//    def histogram(implicit ord: Numeric[A]): Map[A, Int] = histogram(ord.zero)
+//    def histogram(tolerance: A)(implicit ord: Numeric[A]): Map[A, Int] = {
+//      val b = Map.newBuilder[A, Int]
+//      @tailrec def loop(xs: IIdxSeq[A]) {
+//        if (xs.isEmpty) return
+//        val h = xs.head
+//        val (bin)
+//      }
+//      b.result()
+//    }
+
+    def histogram: Map[A, Int] = {
+      var res = Map.empty[A, Int] withDefaultValue 0
+      it.foreach { elem =>
+        res += elem -> (res(elem) + 1)
+      }
+      res
+    }
+  }
+
+  def defer(thunk: => Unit) {
+    if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
   }
 }

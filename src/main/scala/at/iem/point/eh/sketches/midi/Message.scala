@@ -72,21 +72,21 @@ object Message {
 sealed trait Message {
   def toJava: j.MidiMessage
 }
-final case class NoteOn(channel: Int, key: Int, velocity: Int) extends Message {
-  override def toString = s"${productPrefix}(channel = ${channel}, key = ${key} / ${key.pitchString()}, velocity = ${velocity})"
+final case class NoteOn(channel: Int, pitch: Int, velocity: Int) extends Message {
+  override def toString = s"${productPrefix}(channel = ${channel}, pitch = ${pitch} : ${pitch.pitchString()}, velocity = ${velocity})"
 
   def toJava: j.MidiMessage = {
     val res = new j.ShortMessage
-    res.setMessage(NOTE_ON, channel, key, velocity)
+    res.setMessage(NOTE_ON, channel, pitch, velocity)
     res
   }
 }
-final case class NoteOff(channel: Int, key: Int, velocity: Int) extends Message {
-  override def toString = s"${productPrefix}(channel = ${channel}, key = ${key} / ${key.pitchString()}, velocity = ${velocity})"
+final case class NoteOff(channel: Int, pitch: Int, velocity: Int) extends Message {
+  override def toString = s"${productPrefix}(channel = ${channel}, pitch = ${pitch} : ${pitch.pitchString()}, velocity = ${velocity})"
 
   def toJava: j.MidiMessage = {
     val res = new j.ShortMessage
-    res.setMessage(NOTE_OFF, channel, key, velocity)
+    res.setMessage(NOTE_OFF, channel, pitch, velocity)
     res
   }
 }

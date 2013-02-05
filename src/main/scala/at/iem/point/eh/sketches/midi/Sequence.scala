@@ -32,5 +32,12 @@ trait Sequence {
    */
   def tracks: IIdxSeq[Track]
 
+  /**
+   * Collects all notes across all tracks.
+   */
+  def notes: IIdxSeq[OffsetNote]
+
+  def tickRate: TickRate
+
   def toJava: j.Sequence
 }
