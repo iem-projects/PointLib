@@ -37,28 +37,28 @@ final case class Chord(notes: IIdxSeq[OffsetNote]) {
    *
    * @return  the pitches in ascending order
    */
-  def pitches: IIdxSeq[Int] = notes.map(_.pitch)
+  def pitches: IIdxSeq[Pitch] = notes.map(_.pitch)
 
   /**
    * Returns the framing interval which is the interval between lowest and highest pitch in the chord.
    */
-  def frameInterval: Int = notes.last.pitch - notes.head.pitch
+  def frameInterval: Interval = notes.last.pitch interval notes.head.pitch
 
   /**
    * Returns a sequence of subsequent intervals
    */
-  def layeredIntervals: IIdxSeq[Int] =
-    pitches.sliding(2,1).map({ case Seq(low, high) => high - low }).toIndexedSeq
+  def layeredIntervals: IIdxSeq[Interval] =
+    pitches.sliding(2,1).map({ case Seq(low, high) => high interval low }).toIndexedSeq
 
   /**
    * Returns a sequence of all intervals between all pairs of pitches
    */
-  def allIntervals: IIdxSeq[Int] = {
-    val b = IIdxSeq.newBuilder[Int]
-    @tailrec def loop(sq: List[Int]) {
+  def allIntervals: IIdxSeq[Interval] = {
+    val b = IIdxSeq.newBuilder[Interval]
+    @tailrec def loop(sq: List[Pitch]) {
       sq match {
         case head :: tail =>
-          tail.foreach(t => b += t - head)
+          tail.foreach(t => b += t interval head)
           loop(tail)
         case _ =>
       }

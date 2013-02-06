@@ -22,7 +22,7 @@ object FrameIntervalExample extends App {
    * or a free improvisation. In the case of the improv,
    * whether to filter particular chords or include all.
    */
-  lazy val _mode: Mode    = Improvisation(Some(4))
+  lazy val _mode: Mode    = Improvisation(Some(3))
   /**
    * Whether to just look at the frame intervals (`false`) or to
    * calculate the histogram of all internal intervals (`true`)
@@ -44,7 +44,7 @@ object FrameIntervalExample extends App {
       frameIntervalHisto(snippetIdx = idx, constrainSize = mode.filter, lowTolerance = mode.isImprov)
     )
     val infos       = if (sumSnippets && infos0.size > 1) infos0.reduce(sumInfos) :: Nil else infos0
-    val maxX        = infos.map(_.histo.keys.max).max + 1 // plus one, because otherwise last bar is shown truncated
+    val maxX        = infos.map(_.histo.keys.max).max.semitones + 1 // plus one, because otherwise last bar is shown truncated
     val maxY        = infos.map(_.histo.values.max).max
     val charts      = infos.map(mkChart(_))
     charts.foreach { c =>
@@ -88,7 +88,7 @@ object FrameIntervalExample extends App {
          allIntervals = a.allIntervals)
   }
 
-  final case class Info(snippets: List[Int], numChords: Int, histo: Map[Int, Int], voices: List[Int], allIntervals: Boolean)
+  final case class Info(snippets: List[Int], numChords: Int, histo: Map[Interval, Int], voices: List[Int], allIntervals: Boolean)
 
   /**
    * Calculates the histogram of the frame intervals in a chord snippet.
@@ -108,9 +108,9 @@ object FrameIntervalExample extends App {
     val numChords = chords.size
 //    val fi        = chords.map(_.frameInterval)
     val fi        = if (allIntervals) {
-      chords.flatMap(_.layeredIntervals.map(_ % 12))
+      chords.flatMap(_.layeredIntervals.map(_.modOctave))
     } else {
-      chords.map(_.frameInterval % 12)
+      chords.map(_.frameInterval.modOctave)
     }
     val fih       = fi.histogram
     val voices = {
@@ -132,6 +132,7 @@ object FrameIntervalExample extends App {
   }
 
   def mkChart(info: Info): XYChart = {
+    implicit val semitones = (i: Interval) => i.semitones.asInstanceOf[Integer]
     val fihData = info.histo.toXYSeriesCollection(s"Freq. of ${if (info.allIntervals) "interval layers" else "frame intervals"}")
     val voicesTxt = info.voices match {
       case single :: Nil => single.toString

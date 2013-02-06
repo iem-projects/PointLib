@@ -53,6 +53,10 @@ package object sketches {
   // snippet indices of free improvisation sets
   lazy val improvSnippets = 9 :: 48 :: Nil
 
+  implicit final class RichInt(val i: Int) extends AnyVal {
+    def asPitch: Pitch = new Pitch(i)
+  }
+
   implicit final class RichIterable[A](val it: Iterable[A]) extends AnyVal {
 //    def histogram(implicit ord: Numeric[A]): Map[A, Int] = histogram(ord.zero)
 //    def histogram(tolerance: A)(implicit ord: Numeric[A]): Map[A, Int] = {
@@ -82,8 +86,8 @@ package object sketches {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
   }
 
-  final val german  = Language.German
-  final val english = Language.English
+//  final val german  = Language.German
+//  final val english = Language.English
 
   // cf. http://www.sengpielaudio.com/Rechner-notennamen.htm
   private final val pcStrings_en = Array("C","C#","D","D#","E","F","F#","G","G#","A","A#","B")
@@ -148,7 +152,7 @@ package object sketches {
         case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) =>
           val stopTime  = tick / r.ticksPerSecond
           wait.remove(ch -> pitch).foreach { case (startTime, on) =>
-            b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch, duration = stopTime - startTime,
+            b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch.asPitch, duration = stopTime - startTime,
               velocity = on.velocity /*, release = off.velocity */)
           }
 

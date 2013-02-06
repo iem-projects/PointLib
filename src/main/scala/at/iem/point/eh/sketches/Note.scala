@@ -9,7 +9,7 @@ sealed trait NoteLike {
   /**
    * MIDI pitch number
    */
-  def pitch: Int
+  def pitch: Pitch
 
   /**
    * Duration __in seconds__
@@ -31,8 +31,8 @@ sealed trait NoteLike {
    */
   final def durationString: String = s"${duration.roundSecondsToMillis}s"
 
-  final def noteOn(channel: Int):  midi.NoteOn   = midi.NoteOn (channel, pitch, velocity)
-  final def noteOff(channel: Int): midi.NoteOff  = midi.NoteOff(channel, pitch, 0)
+  final def noteOn(channel: Int):  midi.NoteOn   = midi.NoteOn (channel, pitch.midi, velocity)
+  final def noteOff(channel: Int): midi.NoteOff  = midi.NoteOff(channel, pitch.midi, 0)
 }
 
 /**
@@ -42,9 +42,9 @@ sealed trait NoteLike {
  * @param duration  the duration __in seconds__
  * @param velocity    the attack velocity
  */
-final case class Note(/* channel: Int, */ pitch: Int, duration: Double, velocity: Int /*, release: Int = 0 */) extends NoteLike {
+final case class Note(/* channel: Int, */ pitch: Pitch, duration: Double, velocity: Int /*, release: Int = 0 */) extends NoteLike {
   override def toString = {
-    s"${productPrefix}(${pitch.pitchString()}, dur = ${durationString}, vel = $velocity})"
+    s"${productPrefix}(${pitch}, dur = ${durationString}, vel = $velocity})"
   }
 
   def withOffset(offset: Double): OffsetNote =
@@ -52,11 +52,11 @@ final case class Note(/* channel: Int, */ pitch: Int, duration: Double, velocity
       duration = duration, velocity = velocity /*, release = release */)
 }
 
-final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Int, duration: Double, velocity: Int /*, release: Int = 0 */)
+final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, duration: Double, velocity: Int /*, release: Int = 0 */)
   extends NoteLike {
 
   override def toString = {
-    s"${productPrefix}(${pitch} : ${pitch.pitchString()}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
+    s"${productPrefix}(${pitch} : ${pitch}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
   }
 
   def offsetString: String = s"${offset.roundSecondsToMillis}s"
