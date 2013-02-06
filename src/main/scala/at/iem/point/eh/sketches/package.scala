@@ -39,6 +39,18 @@ package object sketches {
 
   def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
 
+  // maps voices to snippet indices
+  lazy val staticChords = Map(
+    2 -> List(11, 12, 13),
+    3 -> List(14, 15, 16),
+    4 -> List(18, 19, 20),
+    5 -> List(46),
+    6 -> List(21, 22, 23)
+  )
+
+  // snippet indices of free improvisation sets
+  lazy val improvSnippets = 9 :: 48 :: Nil
+
   implicit final class RichIterable[A](val it: Iterable[A]) extends AnyVal {
 //    def histogram(implicit ord: Numeric[A]): Map[A, Int] = histogram(ord.zero)
 //    def histogram(tolerance: A)(implicit ord: Numeric[A]): Map[A, Int] = {
