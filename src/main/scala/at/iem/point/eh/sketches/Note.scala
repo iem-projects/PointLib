@@ -56,7 +56,7 @@ final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, du
   extends NoteLike {
 
   override def toString = {
-    s"${productPrefix}(${pitch} : ${pitch}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
+    s"${productPrefix}(${pitch}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
   }
 
   def offsetString: String = s"${offset.roundSecondsToMillis}s"

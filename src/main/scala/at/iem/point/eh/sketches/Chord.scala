@@ -42,13 +42,12 @@ final case class Chord(notes: IIdxSeq[OffsetNote]) {
   /**
    * Returns the framing interval which is the interval between lowest and highest pitch in the chord.
    */
-  def frameInterval: Interval = notes.last.pitch interval notes.head.pitch
+  def frameInterval: UndirectedInterval = (notes.last.pitch interval notes.head.pitch).undirected
 
   /**
    * Returns a sequence of subsequent intervals
    */
-  def layeredIntervals: IIdxSeq[Interval] =
-    pitches.sliding(2,1).map({ case Seq(low, high) => high interval low }).toIndexedSeq
+  def layeredIntervals: IIdxSeq[UndirectedInterval] = pitches.intervals.map(_.undirected)
 
   /**
    * Returns a sequence of all intervals between all pairs of pitches

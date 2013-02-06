@@ -16,7 +16,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "com.itextpdf" % "itextpdf" % "5.3.2"
 )
 
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:implicitConversions")
 
 retrieveManaged := true
 
