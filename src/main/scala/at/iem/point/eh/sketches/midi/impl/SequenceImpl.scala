@@ -17,7 +17,7 @@ private[midi] object SequenceImpl {
 
     def tickRate = TickRate(ticks = peer.getTickLength, micros = peer.getMicrosecondLength)
 
-    def notes: IIdxSeq[OffsetNote] = tracks.flatMap(_.notes)
+//    def notes: IIdxSeq[OffsetNote] = tracks.flatMap(_.notes)
 
     def toJava: j.Sequence = peer
   }

@@ -5,7 +5,8 @@ import collection.immutable.{IndexedSeq => IIdxSeq}
 trait Track {
   def ticks: Long
   def events: IIdxSeq[Event]
-  def notes: IIdxSeq[OffsetNote]
+//  def notes: IIdxSeq[OffsetNote]
+  def sequence: Sequence
 
   def schoko =
     """

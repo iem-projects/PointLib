@@ -1,6 +1,5 @@
 package at.iem.point.eh.sketches
 
-import midi.OffsetNote
 import annotation.tailrec
 
 object ChordUtil {

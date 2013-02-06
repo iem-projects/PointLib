@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches.midi
+package at.iem.point.eh.sketches
 
 object Language {
   case object English extends Language

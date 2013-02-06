@@ -1,8 +1,10 @@
 package at.iem.point.eh
 
 import java.io.{IOException, File}
-import annotation.tailrec
 import java.awt.EventQueue
+import java.text.DecimalFormat
+import java.math.RoundingMode
+import collection.mutable
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -63,6 +65,10 @@ package object sketches {
 //      b.result()
 //    }
 
+    def isSortedBy[B](fun: A => B)(implicit ord: Ordering[B]): Boolean = {
+      it.sliding(2, 1).forall { case Seq(a, b) => ord.lteq(fun(a), fun(b)) }
+    }
+
     def histogram: Map[A, Int] = {
       var res = Map.empty[A, Int] withDefaultValue 0
       it.foreach { elem =>
@@ -74,5 +80,84 @@ package object sketches {
 
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
+  }
+
+  final val german  = Language.German
+  final val english = Language.English
+
+  // cf. http://www.sengpielaudio.com/Rechner-notennamen.htm
+  private final val pcStrings_en = Array("C","C#","D","D#","E","F","F#","G","G#","A","A#","B")
+  private final val pcStrings_de = Array("c","cis","d","dis","e","f","fis","g","gis","a","ais","h")
+
+  private lazy val dfRound3 = {
+    val res = new DecimalFormat("#.###")
+    res.setRoundingMode(RoundingMode.HALF_UP)
+    res
+  }
+
+  implicit final class RichSeconds(val sec: Double) extends AnyVal {
+    def roundSecondsToMillis: String = dfRound3.format(sec)
+  }
+
+  implicit final class RichKey(val key: Int) extends AnyVal {
+    def pitchClassString(lang: Language = Language.English, caps: Boolean = false): String = {
+      val pc = key % 12
+      lang match {
+        case Language.English => pcStrings_en(pc)
+        case Language.German =>
+          val s = pcStrings_de(pc)
+          if (caps) s.capitalize else s
+      }
+   	}
+
+   	def pitchString(lang: Language = Language.English): String = {
+      val register  = key / 12
+      lang match {
+        case Language.English =>
+          pitchClassString(lang) + register
+        case Language.German =>
+          val caps  = register <= 3
+          val pc    = pitchClassString(lang, caps)
+          if (register <= 2) {
+            val ticks = 3 - register
+            ("," * ticks) + pc
+          } else if (register >= 5) {
+            val ticks = register - 4
+            pc + ("'" * ticks)
+          } else {
+            pc
+          }
+      }
+   	}
+  }
+
+  implicit final class RichSequence(val sq: midi.Sequence) extends AnyVal {
+    def notes: IIdxSeq[OffsetNote] = sq.tracks.flatMap(_.notes)
+  }
+
+  implicit final class RichTrack(val t: midi.Track) extends AnyVal {
+    def notes: IIdxSeq[OffsetNote] = {
+      val r     = t.sequence.tickRate
+      val b     = IIdxSeq.newBuilder[OffsetNote]
+      val wait  = mutable.Map.empty[(Int, Int), (Double, midi.NoteOn)]
+      t.events.foreach {
+        case midi.Event(tick, on @ midi.NoteOn(ch, pitch, _)) =>
+          val startTime = tick / r.ticksPerSecond
+          wait += (ch, pitch) -> (startTime, on)
+
+        case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) =>
+          val stopTime  = tick / r.ticksPerSecond
+          wait.remove(ch -> pitch).foreach { case (startTime, on) =>
+            b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch, duration = stopTime - startTime,
+              velocity = on.velocity /*, release = off.velocity */)
+          }
+
+        case _ =>
+      }
+      if (wait.nonEmpty) {
+        println(s"Warning: pending notes ${wait.mkString("(", ",", ")")}")
+      }
+      b.result()
+    }
   }
 }

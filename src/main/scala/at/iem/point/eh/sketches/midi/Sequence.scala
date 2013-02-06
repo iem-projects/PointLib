@@ -32,10 +32,10 @@ trait Sequence {
    */
   def tracks: IIdxSeq[Track]
 
-  /**
-   * Collects all notes across all tracks.
-   */
-  def notes: IIdxSeq[OffsetNote]
+//  /**
+//   * Collects all notes across all tracks.
+//   */
+//  def notes: IIdxSeq[OffsetNote]
 
   def tickRate: TickRate
 

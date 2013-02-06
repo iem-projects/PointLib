@@ -18,7 +18,7 @@ object FrameIntervalExample extends App {
   case class Improvisation(filter: Option[Int]) extends Mode { def isImprov = true }
 
   /**
-   * Whether to look at one particular chord type snipped
+   * Whether to look at one particular chord type snippet
    * or a free improvisation. In the case of the improv,
    * whether to filter particular chords or include all.
    */
@@ -108,7 +108,7 @@ object FrameIntervalExample extends App {
     val numChords = chords.size
 //    val fi        = chords.map(_.frameInterval)
     val fi        = if (allIntervals) {
-      chords.flatMap(_.intervals.map(_ % 12))
+      chords.flatMap(_.layeredIntervals.map(_ % 12))
     } else {
       chords.map(_.frameInterval % 12)
     }

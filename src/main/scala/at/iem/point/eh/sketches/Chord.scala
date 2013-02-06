@@ -1,6 +1,6 @@
 package at.iem.point.eh.sketches
 
-import midi.OffsetNote
+import annotation.tailrec
 
 /**
  * A chord made of a sequence of notes. Notes must be in ascending order with respect to their
@@ -45,8 +45,25 @@ final case class Chord(notes: IIdxSeq[OffsetNote]) {
   def frameInterval: Int = notes.last.pitch - notes.head.pitch
 
   /**
-   * Returns a sequence of intervals, sorted by ascending interval size
+   * Returns a sequence of subsequent intervals
    */
-  def intervals: IIdxSeq[Int] =
-    notes.map(_.pitch).sliding(2,1).map({ case Seq(low, high) => high - low }).toIndexedSeq.sorted
+  def layeredIntervals: IIdxSeq[Int] =
+    pitches.sliding(2,1).map({ case Seq(low, high) => high - low }).toIndexedSeq
+
+  /**
+   * Returns a sequence of all intervals between all pairs of pitches
+   */
+  def allIntervals: IIdxSeq[Int] = {
+    val b = IIdxSeq.newBuilder[Int]
+    @tailrec def loop(sq: List[Int]) {
+      sq match {
+        case head :: tail =>
+          tail.foreach(t => b += t - head)
+          loop(tail)
+        case _ =>
+      }
+    }
+    loop(pitches.toList)
+    b.result().sorted
+  }
 }
