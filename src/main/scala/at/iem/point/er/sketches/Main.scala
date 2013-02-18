@@ -5,12 +5,13 @@ import annotation.tailrec
 import de.sciss.sonogram.{SimpleSonogramView, SimpleSonogramOverviewManager}
 import scala.Some
 import javax.swing.BorderFactory
-import swing.{Orientation, BoxPanel, MainFrame, Component, TextField, Frame, SimpleSwingApplication, Swing}
+import swing.{Button, Orientation, BoxPanel, MainFrame, Component, TextField, Frame, SimpleSwingApplication, Swing}
 import Swing._
 import java.awt.Point
 import swing.event.{MouseMoved, MouseEntered}
 import de.sciss.synth
 import de.sciss.dsp.ConstQ
+import util.Success
 
 object Main extends SimpleSwingApplication {
   lazy val top: Frame = {
@@ -37,6 +38,26 @@ object Main extends SimpleSwingApplication {
       maximumSize = preferredSize
     }
 
+    val ggPitch = Button("Pitch Analysis...") {
+      import synth._
+      val pchCfg        = PitchAnalysis.Config()
+      pchCfg.input      = f
+      pchCfg.inputGain  = 6.dbamp
+      pchCfg.ampThresh  = -48.dbamp
+      pchCfg.peakThresh = -6.dbamp
+      pchCfg.median     = 12
+      pchCfg.stepSize   = 256 // 512
+      pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
+      pchCfg.trajMinDur = 25.0f
+
+      PitchAnalysis(pchCfg) {
+        case PitchAnalysis.Result(Success(seq)) =>
+          jView.pitchOverlay = seq
+      }
+    }
+    ggPitch.focusable = false
+    ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
+
 //    def sonaMouse(pt: Point, mod: Int) {
 //      import synth._
 //      val spc   = ov.fileSpec
@@ -55,7 +76,10 @@ object Main extends SimpleSwingApplication {
 
     val box = new BoxPanel(Orientation.Vertical) {
       contents += view
-      contents += ggStatus
+      contents += new BoxPanel(Orientation.Horizontal) {
+        contents += ggStatus
+        contents += ggPitch
+      }
     }
 
     new MainFrame {
