@@ -1,4 +1,4 @@
-name := "er-sketches"
+name := "er_sketches"
 
 version := "0.0.1-SNAPSHOT"
 
@@ -11,6 +11,7 @@ homepage := Some(url("https://github.com/iem-projects/PointLib"))
 licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
 libraryDependencies ++= Seq(
+  "de.sciss" %% "scalacollider" % "1.4.1+",
   "de.sciss" %% "scalacolliderswing" % "1.4.+",
   "de.sciss" %% "sonogramoverview" % "1.4.+",
   "de.sciss" %% "strugatzki" % "1.5.+",

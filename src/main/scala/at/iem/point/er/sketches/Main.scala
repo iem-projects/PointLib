@@ -140,8 +140,8 @@ object Main extends SimpleSwingApplication {
         contents += HStrut(16)
         contents += HGlue
         contents += ggExport
-        contents += ggPitch
         contents += ggMix
+        contents += ggPitch
       }
     }
 

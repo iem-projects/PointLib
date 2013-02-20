@@ -40,6 +40,11 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   def pitches = _pitches
   def pitches_=(seq: PitchAnalysis.PayLoad) {
     _pitches = seq
+    val p = playing.isDefined
+    if (p) {
+      stop()
+      play()
+    }
   }
 
   private final case class Playing(synth: Synth, pitchBuf: Buffer)
@@ -158,7 +163,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
         }
         val start = math.min(position, numFrames - 32768).toInt
         val pchEnv = mkPitchEnv(start)
-println(pchEnv)
+//println(pchEnv)
         val envBuf  = Buffer(s)
 //println("PATH = " + inputFile.getAbsolutePath)
         val newMsg    = syn.newMsg(df.name, args = Seq(
@@ -196,6 +201,7 @@ println(pchEnv)
     import ugen._
     val numFr   = "numFrames".ir
     val phasor  = (Phasor.ar(hi = numFr) + "startFrame".ir) % numFr // sucky resetVal doesn't work
+//    val phasImp = Impulse.ar(SampleRate.ir/numFr)
     val pTrig   = Impulse.kr(20)
     val disk0   = DiskIn.ar(numChannels, "diskBuf".ir, loop = 1)
     val disk    = Mix.mono(disk0) * "diskAmp".kr(1)
@@ -204,15 +210,20 @@ println(pchEnv)
 
     val envBuf    = "envBuf".ir
     val envSz     = "envSz".ir
-    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, envSz))  // def!
-    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, envSz))
-    val envClar   = Dbufrd(envBuf, Dseries(2, 3, envSz))
-    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = stepShape.id)
-    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id)
-    freq.poll(2, label = "f")
-    clar.poll(2, label = "c")
+//    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, envSz))  // def!
+//    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, envSz))
+//    val envClar   = Dbufrd(envBuf, Dseries(2, 3, envSz))
+    val envSz3 = envSz * 3
+    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, inf) % envSz3)  // def!
+    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, inf) % envSz3)
+    val envClar   = Dbufrd(envBuf, Dseries(2, 3, inf) % envSz3)
+    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = stepShape.id) // , reset = phasImp
+    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id) // , reset = phasImp
+//    freq.poll(2, label = "f")
+//    clar.poll(2, label = "c")
 
-    val piano = pianoFunc(440) // freq) * clar
+    val freqL = Lag.ar(Latch.ar(freq, clar))
+    val piano = pianoFunc(freqL) * LagUD.ar(clar, 0.02, 0.1)
     val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
 
     val sig: GE = Seq(disk, resyn)
