@@ -1,6 +1,6 @@
 package at.iem.point.er.sketches
 
-import swing.{Swing, Orientation, BoxPanel, Button, BorderPanel}
+import swing.{Component, Swing, Orientation, BoxPanel, Button, BorderPanel}
 import de.sciss.synth
 import synth.io.AudioFileSpec
 import util.Success
@@ -8,9 +8,7 @@ import Swing._
 import javax.swing.BorderFactory
 
 class PitchAnalysisSettingsView(sono: SonogramView, inputSpec: AudioFileSpec,
-                                init: PitchAnalysis.Config = PitchAnalysis.Config.default)
-  extends BorderPanel {
-
+                                init: PitchAnalysis.Config = PitchAnalysis.Config.default) {
   import synth._
 
   private val b = PitchAnalysis.ConfigBuilder(init)
@@ -67,6 +65,8 @@ class PitchAnalysisSettingsView(sono: SonogramView, inputSpec: AudioFileSpec,
     contents += ggRun
   }
 
-  add(GUI.Setting.vertical(settings), BorderPanel.Position.Center)
-  add(butPanel, BorderPanel.Position.South)
+  lazy val component: Component = new BorderPanel {
+    add(GUI.Setting.vertical(settings), BorderPanel.Position.Center)
+    add(butPanel, BorderPanel.Position.South)
+  }
 }

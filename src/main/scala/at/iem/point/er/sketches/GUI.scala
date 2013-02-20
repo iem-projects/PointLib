@@ -107,6 +107,9 @@ object GUI {
 
   object Implicits {
     implicit final class RichWindow(val w: Window) extends AnyVal {
+      def placeLeftOf(that: Window) {
+        w.location = (that.location.x - w.size.width) -> that.location.y
+      }
       def placeRightOf(that: Window) {
         w.location = (that.location.x + that.size.width) -> that.location.y
       }

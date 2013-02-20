@@ -1,6 +1,6 @@
 package at.iem.point.er.sketches
 
-import scala.swing.{Label, Swing, Panel, Orientation, BoxPanel, BorderPanel}
+import scala.swing.{Component, Label, Swing, Panel, Orientation, BoxPanel, BorderPanel}
 import de.sciss.audiowidgets.{LCDPanel, Transport, Axis}
 import java.io.File
 import java.awt.{RenderingHints, Color, Graphics2D}
@@ -19,7 +19,22 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
 
   private var position = 0L
 
-  private var playing = Option.empty[Playing]
+  private var playing   = Option.empty[Playing]
+  private var _diskAmp  = 1.0f
+
+  def diskAmp: Float = _diskAmp
+  def diskAmp_=(value: Float) {
+    _diskAmp = value
+    playing.foreach(_.synth.set("diskAmp" -> value))
+  }
+
+  private var _resynthAmp = 1.0f
+
+  def resynthAmp: Float = _resynthAmp
+  def resynthAmp_=(value: Float) {
+    _resynthAmp = value
+    playing.foreach(_.synth.set("resynthAmp" -> value))
+  }
 
   private final case class Playing(synth: Synth /* , resp: osc.Responder */)
 
@@ -93,7 +108,8 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
         val start = math.min(position, numFrames - 32768).toInt
 //println("PATH = " + inputFile.getAbsolutePath)
         val newMsg    = syn.newMsg(df.name, args = Seq(
-          "buf" -> buf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat)
+          "buf" -> buf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
+          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp)
         )
         val cueMsg    = buf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = newMsg)
         val allocMsg  = buf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
@@ -117,11 +133,18 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     val numFr   = "numFrames".ir
     val phasor  = (Phasor.ar(hi = numFr) + "startFrame".ir) % numFr // sucky resetVal doesn't work
     val pTrig   = Impulse.kr(20)
-    val disk    = DiskIn.ar(numChannels, "buf".ir, loop = 1)
-    val mix     = Mix.mono(disk) * "diskAmp".kr(1)
+    val disk0   = DiskIn.ar(numChannels, "buf".ir, loop = 1)
+    val disk    = Mix.mono(disk0) * "diskAmp".kr(1)
     val pSmp    = A2K.kr(phasor)
     SendTrig.kr(pTrig, id = 0, value = pSmp)
-    Out.ar(0, mix)
+
+    val pch   = Pitch.kr(disk) \ 0  // XXX TODO
+    val piano = pianoFunc(pch)
+    val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
+
+    val sig: GE = Seq(disk, resyn)
+
+    Out.ar(0, sig)
   }
 
   private def updateStopPlay() {
@@ -144,10 +167,49 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     Play(play())
   ))
 
-  lazy val transport: Panel = new BoxPanel(Orientation.Horizontal) {
-    contents += transportStrip
-    contents += HStrut(16)
+  lazy val transport: Component = /* new BoxPanel(Orientation.Horizontal) {
+    contents += */
+    transportStrip
+/*    contents += HStrut(16)
+  }
+*/
+  stop()
+
+  private def pianoFunc(freq: GE): GE = {
+    import ugen._
+    val exc   = BrownNoise.ar(0.007 /* Seq(0.007,0.007) */) * LFNoise1.kr(ExpRand(0.125,0.5)).madd(0.6, 0.4).max(0)
+//    val specs = KlangSpec.tabulate(12) { i =>
+//      (freq * (i + 1), Rand(0.7, 0.9), Rand(1.0, 3.0))
+//    }
+//    (Klank.ar(specs = specs, in = exc) * 0.1).softclip
+//    Mix.tabulate(12) { i =>
+//      Ringz.ar(in = exc, freq = freq * (i + 1), attack = Rand(1.0, 3.0), decay = Rand(0.7, 0.9))
+//    }
+    DC.ar(0)
   }
 
-  stop()
+  private def verb(in: GE): GE = {
+    import ugen._
+    val roomSize    = 100
+    val revTime     = 4
+    val damping     = 0.62
+    val inputBW     = 0.48
+    val spread      = 15
+    val dryLevel    = -12
+    val earlyLevel  = -11
+    val tailLevel   = -6
+
+    val a = Mix.mono(in)
+    val v = GVerb.ar(in = a,
+        roomSize      = roomSize,
+        revTime       = revTime,
+        damping       = damping,
+        inputBW       = inputBW,
+        spread        = spread,
+        dryLevel      = dryLevel.dbamp,
+        earlyRefLevel = earlyLevel.dbamp,
+        tailLevel     = tailLevel.dbamp,
+        maxRoomSize   = roomSize)
+    v * 0.3 + a
+  }
 }

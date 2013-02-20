@@ -40,7 +40,8 @@ object Main extends SimpleSwingApplication {
     jView.boost  = 4f
     jView.sono   = Some(ov)
 
-    val playerView = new PlayerView(f, fileSpec)
+    val playerView  = new PlayerView(f, fileSpec)
+    val mixView     = new MixView(playerView)
 
     lazy val pitchSettingsFrame = {
       import synth._
@@ -54,18 +55,30 @@ object Main extends SimpleSwingApplication {
       pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
       pchCfg.trajMinDur = 25.0f
 
-      val view = new PitchAnalysisSettingsView(jView, inputSpec = fileSpec, init = pchCfg)
+      val pitchView = new PitchAnalysisSettingsView(jView, inputSpec = fileSpec, init = pchCfg)
       new Frame {
         title = "Pitch Analysis Settings"
         peer.getRootPane.putClientProperty("Window.style", "small")
         peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
-        contents = view
+        contents = pitchView.component
         pack()
         resizable = false
         this.placeRightOf(top)
         open()
       }
     }
+
+    lazy val mixFrame = new Frame {
+      title = "Mixer"
+      peer.getRootPane.putClientProperty("Window.style", "small")
+      peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+      contents = mixView.component
+      pack()
+      resizable = false
+      this.placeLeftOf(top)
+      open()
+    }
+
 
 //    val ggStatus  = new TextField(60) {
 //      editable    = false
@@ -78,6 +91,12 @@ object Main extends SimpleSwingApplication {
     }
     ggPitch.focusable = false
     ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
+
+    val ggMix = Button("Mixer...") {
+      mixFrame.open()
+    }
+    ggMix.focusable = false
+    ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
 
 //    def sonaMouse(pt: Point, mod: Int) {
 //      import synth._
@@ -104,6 +123,7 @@ object Main extends SimpleSwingApplication {
         contents += HStrut(16)
         contents += HGlue
         contents += ggPitch
+        contents += ggMix
       }
     }
 
