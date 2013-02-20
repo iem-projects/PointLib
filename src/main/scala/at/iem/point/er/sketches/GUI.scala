@@ -1,6 +1,6 @@
 package at.iem.point.er.sketches
 
-import java.awt.FileDialog
+import java.awt.{EventQueue, FileDialog}
 import java.io.{File, FilenameFilter}
 import de.sciss.synth.io.{AudioFileType, AudioFile}
 import de.sciss.synth.Optional
@@ -100,6 +100,10 @@ object GUI {
 
     var value: A
   }
+
+//  def defer(thunk: => Unit) {
+//    if (EventQueue.isDispatchThread) thunk else Swing.onEDT(thunk)
+//  }
 
   object Implicits {
     implicit final class RichWindow(val w: Window) extends AnyVal {

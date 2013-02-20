@@ -2,11 +2,12 @@ package at.iem.point.er.sketches
 
 import swing.{Swing, Orientation, BoxPanel, Button, BorderPanel}
 import de.sciss.synth
+import synth.io.AudioFileSpec
 import util.Success
 import Swing._
 import javax.swing.BorderFactory
 
-class PitchAnalysisSettingsView(sono: SonogramView, sampleRate: Double,
+class PitchAnalysisSettingsView(sono: SonogramView, inputSpec: AudioFileSpec,
                                 init: PitchAnalysis.Config = PitchAnalysis.Config.default)
   extends BorderPanel {
 
@@ -14,10 +15,10 @@ class PitchAnalysisSettingsView(sono: SonogramView, sampleRate: Double,
 
   private val b = PitchAnalysis.ConfigBuilder(init)
   private def timeRes: Float = {
-    (b.stepSize / sampleRate * 1000).toFloat
+    (b.stepSize / inputSpec.sampleRate * 1000).toFloat
   }
   private def timeRes_=(value: Float) {
-    b.stepSize = ((value * sampleRate / 1000 + 0.5).toInt).nextPowerOfTwo
+    b.stepSize = ((value * inputSpec.sampleRate / 1000 + 0.5).toInt).nextPowerOfTwo
     val t = timeRes
     if (math.abs(t - timeRes) > 1) setTimeRes.value = t
   }

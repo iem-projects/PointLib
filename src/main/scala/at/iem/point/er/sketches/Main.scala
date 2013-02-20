@@ -10,6 +10,7 @@ import Swing._
 import de.sciss.dsp.ConstQ
 import GUI.Implicits._
 import de.sciss.synth
+import synth.io.AudioFile
 
 object Main extends SimpleSwingApplication {
   val name = "PointLib"
@@ -27,6 +28,7 @@ object Main extends SimpleSwingApplication {
     }
 
     val f       = loop()
+    val fileSpec  = AudioFile.readSpec(f)
     val mgr     = new SimpleSonogramOverviewManager
     val cfg     = ConstQ.Config()
     cfg.maxFFTSize  = 8192
@@ -37,6 +39,8 @@ object Main extends SimpleSwingApplication {
     val jView   = new SonogramView
     jView.boost  = 4f
     jView.sono   = Some(ov)
+
+    val playerView = new PlayerView(f, fileSpec)
 
     lazy val pitchSettingsFrame = {
       import synth._
@@ -50,7 +54,7 @@ object Main extends SimpleSwingApplication {
       pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
       pchCfg.trajMinDur = 25.0f
 
-      val view = new PitchAnalysisSettingsView(jView, sampleRate = ov.fileSpec.sampleRate, init = pchCfg)
+      val view = new PitchAnalysisSettingsView(jView, inputSpec = fileSpec, init = pchCfg)
       new Frame {
         title = "Pitch Analysis Settings"
         peer.getRootPane.putClientProperty("Window.style", "small")
@@ -63,11 +67,11 @@ object Main extends SimpleSwingApplication {
       }
     }
 
-    val ggStatus  = new TextField(60) {
-      editable    = false
-      border      = BorderFactory.createEmptyBorder()
-      maximumSize = preferredSize
-    }
+//    val ggStatus  = new TextField(60) {
+//      editable    = false
+//      border      = BorderFactory.createEmptyBorder()
+//      maximumSize = preferredSize
+//    }
 
     val ggPitch = Button("Pitch Analysis...") {
       pitchSettingsFrame.open()
@@ -92,9 +96,13 @@ object Main extends SimpleSwingApplication {
 //    }
 
     val box = new BoxPanel(Orientation.Vertical) {
+      contents += playerView.axis
       contents += view
       contents += new BoxPanel(Orientation.Horizontal) {
-        contents += ggStatus
+//        contents += ggStatus
+        contents += playerView.transport
+        contents += HStrut(16)
+        contents += HGlue
         contents += ggPitch
       }
     }
