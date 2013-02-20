@@ -30,8 +30,10 @@ class MixView(player: PlayerView) {
     max         = 12
 //    value       = 0
     paintTicks  = true
+    minorTickSpacing  = 2
+    majorTickSpacing  = 12
     paintLabels = true
-
+    peer.setLabelTable(peer.createStandardLabels(12))
     peer.putClientProperty("JComponent.sizeVariant", "small")
 
     value = (init.ampdb + 0.5f).toInt

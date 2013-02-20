@@ -19,6 +19,17 @@ object Main extends SimpleSwingApplication {
     AudioSystem.instance.start()
   }
 
+  private lazy val sono   = new SonogramView
+  private var playerViewOption = Option.empty[PlayerView]
+
+  private var _pitches: PitchAnalysis.PayLoad = Vector.empty
+  def pitches = _pitches
+  def pitches_=(seq: PitchAnalysis.PayLoad) {
+    _pitches = seq
+    sono.pitchOverlay = seq
+    playerViewOption.foreach(_.pitches = seq)
+  }
+
   lazy val top: Frame = {
     boot()
 
@@ -36,12 +47,12 @@ object Main extends SimpleSwingApplication {
     cfg.bandsPerOct = 48
     val ov      = mgr.fromFile(f, cfg)
 //    println(ov.fileSpec.sono)
-    val jView   = new SonogramView
-    jView.boost  = 4f
-    jView.sono   = Some(ov)
+    sono.boost  = 4f
+    sono.sono   = Some(ov)
 
-    val playerView  = new PlayerView(f, fileSpec)
-    val mixView     = new MixView(playerView)
+    val playerView    = new PlayerView(f, fileSpec)
+    playerViewOption  = Some(playerView)
+    val mixView       = new MixView(playerView)
 
     lazy val pitchSettingsFrame = {
       import synth._
@@ -49,13 +60,13 @@ object Main extends SimpleSwingApplication {
       pchCfg.input      = f
       pchCfg.inputGain  = 6.dbamp
       pchCfg.ampThresh  = -48.dbamp
-      pchCfg.peakThresh = -6.dbamp
+      pchCfg.peakThresh = -12.dbamp
       pchCfg.median     = 12
       pchCfg.stepSize   = 256 // 512
       pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
       pchCfg.trajMinDur = 25.0f
 
-      val pitchView = new PitchAnalysisSettingsView(jView, inputSpec = fileSpec, init = pchCfg)
+      val pitchView = new PitchAnalysisSettingsView(inputSpec = fileSpec, init = pchCfg)
       new Frame {
         title = "Pitch Analysis Settings"
         peer.getRootPane.putClientProperty("Window.style", "small")
@@ -86,7 +97,7 @@ object Main extends SimpleSwingApplication {
 //      maximumSize = preferredSize
 //    }
 
-    val ggPitch = Button("Pitch Analysis...") {
+    val ggPitch = Button("Pitch...") {
       pitchSettingsFrame.open()
     }
     ggPitch.focusable = false
@@ -98,6 +109,12 @@ object Main extends SimpleSwingApplication {
     ggMix.focusable = false
     ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
 
+    val ggExport = Button("Export...") {
+      println("TODO....")
+    }
+    ggExport.focusable = false
+    ggExport.peer.putClientProperty("JComponent.sizeVariant", "small")
+
 //    def sonaMouse(pt: Point, mod: Int) {
 //      import synth._
 //      val spc   = ov.fileSpec
@@ -106,7 +123,7 @@ object Main extends SimpleSwingApplication {
 //      ggStatus.text = f"time: $time%1.3f s, freq: $freq%1.1f Hz, pitch = ${freq.cpsmidi}%1.2f mid"
 //    }
 
-    val view = Component.wrap(jView)
+    val view = Component.wrap(sono)
     view.preferredSize = (600, 400)
 //    view.listenTo(view.mouse.moves)
 //    view.reactions += {
@@ -122,6 +139,7 @@ object Main extends SimpleSwingApplication {
         contents += playerView.transport
         contents += HStrut(16)
         contents += HGlue
+        contents += ggExport
         contents += ggPitch
         contents += ggMix
       }

@@ -12,7 +12,7 @@ import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
 import scala.swing.event.MouseClicked
-import de.sciss.osc.Message
+import de.sciss.osc.{Bundle, Packet, Message}
 
 class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   private val sys = AudioSystem.instance
@@ -36,7 +36,55 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     playing.foreach(_.synth.set("resynthAmp" -> value))
   }
 
-  private final case class Playing(synth: Synth /* , resp: osc.Responder */)
+  private var _pitches: PitchAnalysis.PayLoad = Main.pitches
+  def pitches = _pitches
+  def pitches_=(seq: PitchAnalysis.PayLoad) {
+    _pitches = seq
+  }
+
+  private final case class Playing(synth: Synth, pitchBuf: Buffer)
+
+  private def mkPitchEnv(pos: Long): (Vector[Float], Int) = {
+    val p0         = pitches
+    val numFr     = inputSpec.numFrames
+    // make sure we begin at frame zero
+    val p1        = if (p0.nonEmpty && p0.head.start == 0L) p0 else {
+      PitchAnalysis.Sample(0L, p0.headOption.map(_.start).getOrElse(numFr), 0f, 0f) +: p0
+    }
+    // make sure we end at numFrames
+    val p         = if (p1.last.stop >= numFr) p1 else {
+      PitchAnalysis.Sample(p1.last.stop, numFr, 0f, 0f) +: p1
+    }
+    val seqB      = Vector.newBuilder[Float]
+    var lastStop  = 0L
+    var seqSz     = 0
+    val sr        = inputSpec.sampleRate
+
+    def add(dur: Long, freq: Float, clarity: Float) {
+      seqB  += (dur / sr).toFloat
+      seqB  += freq
+      seqB  += clarity
+      seqSz += 1
+    }
+
+    var posIdx  = -1
+    p.foreach { smp =>
+      if (smp.start == pos) posIdx = seqSz
+      if (smp.start > lastStop) {
+        if (pos > lastStop && pos < smp.start) {  // insert dummy break point at current start frame
+          add(pos - lastStop, 0f, 0f)
+          add(smp.start - pos, 0f, 0f)
+          posIdx = seqSz
+        } else {
+          add(smp.start - lastStop, 0f, 0f)
+        }
+      }
+      add(smp.stop - smp.start, smp.freq, smp.clarity)
+      lastStop = smp.stop
+    }
+    val seq       = seqB.result()
+    (seq, posIdx)
+  }
 
   lazy val axis: Axis = new Axis {
     format  = Axis.Format.Time(hours = false, millis = true)
@@ -83,7 +131,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     if (sys.isRunning) {
       playing.foreach { p =>
         p.synth.free()
-//        p.resp.remove()
+        p.pitchBuf.free()
       }
     }
     playing = None
@@ -95,30 +143,40 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
 
     sys.server match {
       case Some(s: Server) =>
-        val buf   = Buffer(s)
+        val diskBuf = Buffer(s)
         import inputSpec.{numChannels, numFrames}
-        val df    = synthDef(numChannels)
-        val syn   = Synth(s)
-        val resp  = osc.Responder(s) {
+        val df      = synthDef(numChannels)
+        val syn     = Synth(s)
+        val resp    = osc.Responder(s) {
           case Message("/tr", syn.id, 0, pos: Float) => Swing.onEDT {
             position = (pos + 0.5).toLong
             axis.repaint()
           }
         }
         val start = math.min(position, numFrames - 32768).toInt
+        val (pchEnv, envIdx) = mkPitchEnv(start)
+        val envBuf  = Buffer(s)
 //println("PATH = " + inputFile.getAbsolutePath)
         val newMsg    = syn.newMsg(df.name, args = Seq(
-          "buf" -> buf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
-          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp)
+          "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
+          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp, "envBuf" -> envBuf.id, "envIdx" -> envIdx)
         )
-        val cueMsg    = buf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = newMsg)
-        val allocMsg  = buf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
+        // stupid dummy generation because of buffer state being checked in setnMsg...
+        envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
+
+        val allocEMsg = envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1, completion = Bundle.now(
+          envBuf.setnMsg(pchEnv),
+          newMsg
+        ))
+//        val syncMsgs  = Bundle.now(setEMsg, newMsg)
+        val cueMsg    = diskBuf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = allocEMsg)
+        val allocMsg  = diskBuf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
         val recvMsg   = df.recvMsg(completion = allocMsg)
         syn.onEnd {
-          buf.close(); buf.free()
+          diskBuf.close(); diskBuf.free()
           resp.remove()
         }
-        playing = Some(Playing(syn))
+        playing = Some(Playing(syn, envBuf))
         s ! recvMsg
         resp.add()
 
@@ -133,13 +191,20 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     val numFr   = "numFrames".ir
     val phasor  = (Phasor.ar(hi = numFr) + "startFrame".ir) % numFr // sucky resetVal doesn't work
     val pTrig   = Impulse.kr(20)
-    val disk0   = DiskIn.ar(numChannels, "buf".ir, loop = 1)
+    val disk0   = DiskIn.ar(numChannels, "diskBuf".ir, loop = 1)
     val disk    = Mix.mono(disk0) * "diskAmp".kr(1)
     val pSmp    = A2K.kr(phasor)
     SendTrig.kr(pTrig, id = 0, value = pSmp)
 
-    val pch   = Pitch.kr(disk) \ 0  // XXX TODO
-    val piano = pianoFunc(pch)
+    val envIdx    = "envIdx".ir
+    val envBuf    = "envBuf".ir
+    def envDur    = Dbufrd(envBuf, Dseries(envIdx,     3, inf ))  // def!
+    val envFreq   = Dbufrd(envBuf, Dseries(envIdx + 1, 3, inf ))
+    val envClar   = Dbufrd(envBuf, Dseries(envIdx + 1, 3, inf ))
+    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur, shapes = stepShape.id)
+    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur, shapes = stepShape.id)
+
+    val piano = pianoFunc(freq) * clar
     val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
 
     val sig: GE = Seq(disk, resyn)
@@ -182,10 +247,9 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
 //      (freq * (i + 1), Rand(0.7, 0.9), Rand(1.0, 3.0))
 //    }
 //    (Klank.ar(specs = specs, in = exc) * 0.1).softclip
-//    Mix.tabulate(12) { i =>
-//      Ringz.ar(in = exc, freq = freq * (i + 1), attack = Rand(1.0, 3.0), decay = Rand(0.7, 0.9))
-//    }
-    DC.ar(0)
+    Mix.tabulate(12) { i =>
+      Ringz.ar(in = exc, freq = freq.max(30) * (i + 1), attack = Rand(1.0, 3.0), decay = Rand(0.7, 0.9))
+    }
   }
 
   private def verb(in: GE): GE = {

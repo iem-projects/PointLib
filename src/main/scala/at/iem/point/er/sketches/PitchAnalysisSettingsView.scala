@@ -7,7 +7,7 @@ import util.Success
 import Swing._
 import javax.swing.BorderFactory
 
-class PitchAnalysisSettingsView(sono: SonogramView, inputSpec: AudioFileSpec,
+class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
                                 init: PitchAnalysis.Config = PitchAnalysis.Config.default) {
   import synth._
 
@@ -55,7 +55,8 @@ class PitchAnalysisSettingsView(sono: SonogramView, inputSpec: AudioFileSpec,
   private val ggRun = Button("Run...") {
     PitchAnalysis(config) {
       case PitchAnalysis.Result(Success(seq)) =>
-        sono.pitchOverlay = seq
+//        sono.pitchOverlay = seq
+      Main.pitches = seq
     }
   }
 
