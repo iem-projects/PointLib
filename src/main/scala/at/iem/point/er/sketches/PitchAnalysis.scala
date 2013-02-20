@@ -70,6 +70,13 @@ object PitchAnalysis extends ProcessorCompanion {
     /** Minimum trajectory duration in milliseconds. */
     def trajMinDur: Float
   }
+  object ConfigBuilder {
+    def apply(config: Config): ConfigBuilder = {
+      val b = new ConfigBuilder
+      b.read(config)
+      b
+    }
+  }
   final class ConfigBuilder extends ConfigLike {
     var input       = new File("input.aif")
 
@@ -91,6 +98,20 @@ object PitchAnalysis extends ProcessorCompanion {
       maxFreqDev = maxFreqDev, trajMinDur = trajMinDur
     )
 
+    def read(config: Config) {
+      input       = config.input
+      minFreq     = config.minFreq
+      maxFreq     = config.maxFreq
+      stepSize    = config.stepSize
+      binsPerOct  = config.binsPerOct
+      median      = config.median
+      ampThresh   = config.ampThresh
+      peakThresh  = config.peakThresh
+      inputGain   = config.inputGain
+      maxFreqDev  = config.maxFreqDev
+      trajMinDur  = config.trajMinDur
+    }
+
     private final case class Impl(input: File, minFreq: Float, maxFreq: Float, stepSize: Int, binsPerOct: Int,
                                   ampThresh: Float, peakThresh: Float, median: Int, inputGain: Float,
                                   maxFreqDev: Float, trajMinDur: Float) extends Config {
@@ -98,6 +119,7 @@ object PitchAnalysis extends ProcessorCompanion {
     }
   }
   object Config {
+    def default = apply().build
     def apply() = new ConfigBuilder
 
     implicit def build(b: ConfigBuilder): Config = b.build

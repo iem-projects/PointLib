@@ -2,19 +2,25 @@ package at.iem.point.er.sketches
 
 import java.io.File
 import annotation.tailrec
-import de.sciss.sonogram.{SimpleSonogramView, SimpleSonogramOverviewManager}
+import de.sciss.sonogram.SimpleSonogramOverviewManager
 import scala.Some
-import javax.swing.BorderFactory
+import javax.swing.{WindowConstants, BorderFactory}
 import swing.{Button, Orientation, BoxPanel, MainFrame, Component, TextField, Frame, SimpleSwingApplication, Swing}
 import Swing._
-import java.awt.Point
-import swing.event.{MouseMoved, MouseEntered}
-import de.sciss.synth
 import de.sciss.dsp.ConstQ
-import util.Success
+import GUI.Implicits._
+import de.sciss.synth
 
 object Main extends SimpleSwingApplication {
+  val name = "PointLib"
+
+  def boot() {
+    AudioSystem.instance.start()
+  }
+
   lazy val top: Frame = {
+    boot()
+
     @tailrec def loop(): File = GUI.openAudioFileDialog() match {
       case Some(_f) => _f
       case _ => loop()
@@ -32,13 +38,7 @@ object Main extends SimpleSwingApplication {
     jView.boost  = 4f
     jView.sono   = Some(ov)
 
-    val ggStatus  = new TextField(60) {
-      editable    = false
-      border      = BorderFactory.createEmptyBorder()
-      maximumSize = preferredSize
-    }
-
-    val ggPitch = Button("Pitch Analysis...") {
+    lazy val pitchSettingsFrame = {
       import synth._
       val pchCfg        = PitchAnalysis.Config()
       pchCfg.input      = f
@@ -50,10 +50,27 @@ object Main extends SimpleSwingApplication {
       pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
       pchCfg.trajMinDur = 25.0f
 
-      PitchAnalysis(pchCfg) {
-        case PitchAnalysis.Result(Success(seq)) =>
-          jView.pitchOverlay = seq
+      val view = new PitchAnalysisSettingsView(jView, sampleRate = ov.fileSpec.sampleRate, init = pchCfg)
+      new Frame {
+        title = "Pitch Analysis Settings"
+        peer.getRootPane.putClientProperty("Window.style", "small")
+        peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+        contents = view
+        pack()
+        resizable = false
+        this.placeRightOf(top)
+        open()
       }
+    }
+
+    val ggStatus  = new TextField(60) {
+      editable    = false
+      border      = BorderFactory.createEmptyBorder()
+      maximumSize = preferredSize
+    }
+
+    val ggPitch = Button("Pitch Analysis...") {
+      pitchSettingsFrame.open()
     }
     ggPitch.focusable = false
     ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")

@@ -9,7 +9,12 @@ package object sketches {
   implicit val global = ExecutionContext.Implicits.global
 
   implicit final class RichIntPoint(val i: Int) extends AnyVal {
-    def isPowerOfTwo = (i & (i-1)) == 0
+    def isPowerOfTwo: Boolean = (i & (i-1)) == 0
+    def nextPowerOfTwo: Int = {
+   		var j = 1
+   		while( j < i ) j <<= 1
+   		j
+   	}
   }
 
   implicit final class RichDoublePoint(val d: Double) extends AnyVal {
