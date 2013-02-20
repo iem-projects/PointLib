@@ -12,7 +12,7 @@ import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
 import scala.swing.event.MouseClicked
-import de.sciss.osc.{Bundle, Packet, Message}
+import de.sciss.osc.{Dump, Bundle, Packet, Message}
 
 class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   private val sys = AudioSystem.instance
@@ -44,7 +44,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
 
   private final case class Playing(synth: Synth, pitchBuf: Buffer)
 
-  private def mkPitchEnv(pos: Long): (Vector[Float], Int) = {
+  private def mkPitchEnv(pos: Long): Vector[Float] = {
     val p0         = pitches
     val numFr     = inputSpec.numFrames
     // make sure we begin at frame zero
@@ -53,8 +53,10 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
     // make sure we end at numFrames
     val p         = if (p1.last.stop >= numFr) p1 else {
-      PitchAnalysis.Sample(p1.last.stop, numFr, 0f, 0f) +: p1
+      p1 :+ PitchAnalysis.Sample(p1.last.stop, numFr, 0f, 0f)
     }
+//p.foreach(println)
+
     val seqB      = Vector.newBuilder[Float]
     var lastStop  = 0L
     var seqSz     = 0
@@ -82,8 +84,9 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
       add(smp.stop - smp.start, smp.freq, smp.clarity)
       lastStop = smp.stop
     }
-    val seq       = seqB.result()
-    (seq, posIdx)
+    val seq0 = seqB.result()
+    require(posIdx >= 0)
+    if (posIdx == 0) seq0 else seq0.drop(posIdx * 3) ++ seq0.take(posIdx *3)  // "rotate"
   }
 
   lazy val axis: Axis = new Axis {
@@ -154,13 +157,15 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
           }
         }
         val start = math.min(position, numFrames - 32768).toInt
-        val (pchEnv, envIdx) = mkPitchEnv(start)
+        val pchEnv = mkPitchEnv(start)
+println(pchEnv)
         val envBuf  = Buffer(s)
 //println("PATH = " + inputFile.getAbsolutePath)
         val newMsg    = syn.newMsg(df.name, args = Seq(
           "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
-          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp, "envBuf" -> envBuf.id, "envIdx" -> envIdx)
-        )
+          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp,
+          "envBuf" -> envBuf.id, "envSz" -> (pchEnv.size/3)
+        ))
         // stupid dummy generation because of buffer state being checked in setnMsg...
         envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
 
@@ -177,6 +182,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
           resp.remove()
         }
         playing = Some(Playing(syn, envBuf))
+//        s.dumpOSC(Dump.Text)
         s ! recvMsg
         resp.add()
 
@@ -196,15 +202,17 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     val pSmp    = A2K.kr(phasor)
     SendTrig.kr(pTrig, id = 0, value = pSmp)
 
-    val envIdx    = "envIdx".ir
     val envBuf    = "envBuf".ir
-    def envDur    = Dbufrd(envBuf, Dseries(envIdx,     3, inf ))  // def!
-    val envFreq   = Dbufrd(envBuf, Dseries(envIdx + 1, 3, inf ))
-    val envClar   = Dbufrd(envBuf, Dseries(envIdx + 1, 3, inf ))
-    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur, shapes = stepShape.id)
-    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur, shapes = stepShape.id)
+    val envSz     = "envSz".ir
+    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, envSz))  // def!
+    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, envSz))
+    val envClar   = Dbufrd(envBuf, Dseries(2, 3, envSz))
+    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = stepShape.id)
+    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id)
+    freq.poll(2, label = "f")
+    clar.poll(2, label = "c")
 
-    val piano = pianoFunc(freq) * clar
+    val piano = pianoFunc(440) // freq) * clar
     val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
 
     val sig: GE = Seq(disk, resyn)
