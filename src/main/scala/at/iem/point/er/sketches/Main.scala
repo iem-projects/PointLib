@@ -3,14 +3,14 @@ package at.iem.point.er.sketches
 import java.io.File
 import annotation.tailrec
 import de.sciss.sonogram.SimpleSonogramOverviewManager
-import scala.Some
-import javax.swing.{WindowConstants, BorderFactory}
-import swing.{Button, Orientation, BoxPanel, MainFrame, Component, TextField, Frame, SimpleSwingApplication, Swing}
+import javax.swing.WindowConstants
+import swing.{Button, MainFrame, Orientation, BoxPanel, BorderPanel, Component, Frame, SimpleSwingApplication, Swing}
 import Swing._
 import de.sciss.dsp.ConstQ
 import GUI.Implicits._
 import de.sciss.synth
 import synth.io.AudioFile
+import scala.Some
 
 object Main extends SimpleSwingApplication {
   val name = "PointLib"
@@ -131,10 +131,10 @@ object Main extends SimpleSwingApplication {
 //      case MouseEntered(_, pt, mod) => sonaMouse(pt, mod)
 //    }
 
-    val box = new BoxPanel(Orientation.Vertical) {
-      contents += playerView.axis
-      contents += view
-      contents += new BoxPanel(Orientation.Horizontal) {
+    val box = new BorderPanel {
+      add(playerView.axis, BorderPanel.Position.North)
+      add(view, BorderPanel.Position.Center)
+      add(new BoxPanel(Orientation.Horizontal) {
 //        contents += ggStatus
         contents += playerView.transport
         contents += HStrut(16)
@@ -142,7 +142,7 @@ object Main extends SimpleSwingApplication {
         contents += ggExport
         contents += ggMix
         contents += ggPitch
-      }
+      }, BorderPanel.Position.South)
     }
 
     new MainFrame {

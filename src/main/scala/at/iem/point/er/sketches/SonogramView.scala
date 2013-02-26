@@ -1,17 +1,19 @@
 package at.iem.point.er.sketches
 
 import de.sciss.sonogram.{SonogramOverview, SimpleSonogramView}
-import java.awt.{Graphics2D, Point, Color, Graphics}
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
 import collection.immutable.{IndexedSeq => IIdxSeq}
-import java.awt.geom.{GeneralPath, Rectangle2D, Line2D}
+import java.awt.geom.{GeneralPath, Rectangle2D}
+import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
 
 final class SonogramView extends SimpleSonogramView {
   private val colrCrosshair = new Color(0xFF, 0xFF, 0xFF, 0x40)
 //  private val colrPitch     = new Color(0x40, 0x40, 0xFF, 0x80)
-  private val colrPitch     = new Color(0xE0, 0xE0, 0x00, 0x80)
+  private val colrPitch     = new Color(0xFF, 0xFF, 0x00, 0xA0)
+  private val colrPitchOut  = new Color(0x00, 0x00, 0xFF, 0xA0)
+  private val strkPitchOut  = new BasicStroke(2f)
 
   private var mousePt = Option.empty[Point]
 
@@ -97,7 +99,10 @@ final class SonogramView extends SimpleSonogramView {
     val g2 = g.asInstanceOf[Graphics2D]
 
     if (_pitch.nonEmpty) {
-      g.setColor(colrPitch)
+//      g.setColor(colrPitch)
+//      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+//      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE)
+      g2.setStroke(strkPitchOut)
       sono.foreach { ovr =>
         _pitch.foreach { smp =>
           val x1  = frameToScreen(smp.start, ovr)
@@ -108,10 +113,10 @@ final class SonogramView extends SimpleSonogramView {
               shpRect.setRect(x1 - 1, y - 3, x2 - x1 + 2, 6)
               shpRect
 
-            case lf @ CurveFitting.LinearFit(_, _) =>
+            case lf @ CurveFitting.LinearFit(_, startFreq) =>
               shpPath.reset()
-              val y1  = freqToScreen(lf(smp.start).toFloat, ovr)
-              val y2  = freqToScreen(lf(smp.stop-1).toFloat, ovr)
+              val y1  = freqToScreen(startFreq.toFloat, ovr)
+              val y2  = freqToScreen(lf(smp.stop-smp.start-1).toFloat, ovr)
               shpPath.reset()
               shpPath.moveTo(x1 - 1, y1 - 3)
               shpPath.lineTo(x2 + 1, y2 - 3)
@@ -123,8 +128,10 @@ final class SonogramView extends SimpleSonogramView {
 //            case CurveFitting.QuadraticFit(_, _, _, _) =>
 
           }
-          g2.fill(shp)
+          g2.setColor(colrPitchOut)
           g2.draw(shp)
+          g2.setColor(colrPitch)
+          g2.fill(shp)
         }
       }
     }
