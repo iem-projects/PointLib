@@ -64,11 +64,17 @@ object PitchAnalysis extends ProcessorCompanion {
     /** Linear gain to apply to input signal before feeding into pitch tracker. */
     def inputGain:  Float
 
-    /** Maximum frequency deviation factor within trajectory. */
-    def maxFreqDev: Float
+    /** Maximum frequency spread factor within the whole trajectory. */
+    def maxFreqSpread: Float
+
+    /** Maximum frequency slope factor between adjacent samples of the trajectory. */
+    def maxFreqSlope: Float
 
     /** Minimum trajectory duration in milliseconds. */
     def trajMinDur: Float
+
+    /** Order of the polynomial trajectory curve fitting function (0, 1, or 2) */
+    def trajFitOrder: Int
   }
   object ConfigBuilder {
     def apply(config: Config): ConfigBuilder = {
@@ -78,43 +84,132 @@ object PitchAnalysis extends ProcessorCompanion {
     }
   }
   final class ConfigBuilder extends ConfigLike {
-    var input       = new File("input.aif")
+    var input = new File("input.aif")
 
-    var minFreq     = 60f
-    var maxFreq     = 4000f
-    var stepSize    = 256
-    var binsPerOct  = 16
-    var median      = 10
-    var ampThresh   = 0.01f
-    var peakThresh  = 0.5f
-    var inputGain   = 1f
+    private var _minFreq        = 60f
+    private var _maxFreq        = 4000f
+    private var _stepSize       = 256
+    private var _binsPerOct     = 16
+    private var _median         = 10
+    private var _ampThresh      = 0.01f
+    private var _peakThresh     = 0.5f
+    private var _inputGain      = 1f
 
-    var maxFreqDev  = math.pow(2,1.0/10).toFloat
-    var trajMinDur  = 30.0f
+    private var _maxFreqSpread  = math.pow(2,1.0/6).toFloat
+    private var _maxFreqSlope   = math.pow(2,1.0/24).toFloat
+    private var _trajFitOrder   = 1
+    private var _trajMinDur     = 30.0f
+
+    def minFreq: Float = _minFreq
+    def minFreq_=(value: Float) {
+      require(value >= 0f && value <= 48000f)
+      if (value > _maxFreq) {
+        _minFreq  = _maxFreq
+        _maxFreq  = value
+      } else {
+        _minFreq  = value
+      }
+    }
+
+    def maxFreq: Float = _maxFreq
+    def maxFreq_=(value: Float) {
+      require(value >= 0f && value <= 48000f)
+      if (value < _minFreq) {
+        _maxFreq  = _minFreq
+        _minFreq  = value
+      } else {
+        _maxFreq  = value
+      }
+    }
+
+    def stepSize: Int = _stepSize
+    def stepSize_=(value: Int) {
+      require(value > 0 && value <= 65536)
+      _stepSize = value
+    }
+
+    def binsPerOct: Int = _binsPerOct
+    def binsPerOct_=(value: Int) {
+      require(value > 0 && value <= 192)
+      _binsPerOct = value
+    }
+
+    def median: Int = _median
+    def median_=(value: Int) {
+      require (value >= 0 && value <= 8192)
+      _median = value
+    }
+
+    def ampThresh: Float = _ampThresh
+    def ampThresh_=(value: Float) {
+      require(value >= 0f)
+      _ampThresh = value
+    }
+
+    def peakThresh: Float = _peakThresh
+    def peakThresh_=(value: Float) {
+      require(value >= 0f)
+      _peakThresh = value
+    }
+
+    def inputGain: Float = _inputGain
+    def inputGain_=(value: Float) {
+      require(value > 0f)
+      _inputGain = value
+    }
+
+    def maxFreqSpread: Float = _maxFreqSpread
+    def maxFreqSpread_=(value: Float) {
+      require(value >= 1f)
+      _maxFreqSpread = value
+    }
+
+    def maxFreqSlope: Float = _maxFreqSlope
+    def maxFreqSlope_=(value: Float) {
+      require(value >= 1f)
+      _maxFreqSlope = value
+    }
+
+    def trajFitOrder: Int = _trajFitOrder
+    def trajFitOrder(value: Int) {
+      require(value >= 0 && value <= 2)
+      _trajFitOrder = value
+    }
+
+    def trajMinDur: Float = _trajMinDur
+    def trajMinDur_=(value: Float) {
+      require(value >= 0f && value <= 60000f)
+      _trajMinDur = value
+    }
 
     def build: Config = Impl(input = input,
-      minFreq = minFreq, maxFreq = maxFreq, stepSize = stepSize, binsPerOct = binsPerOct,
-      median = median, ampThresh = ampThresh, peakThresh = peakThresh, inputGain = inputGain,
-      maxFreqDev = maxFreqDev, trajMinDur = trajMinDur
+      minFreq = _minFreq, maxFreq = _maxFreq, stepSize = _stepSize, binsPerOct = _binsPerOct,
+      median = _median, ampThresh = _ampThresh, peakThresh = _peakThresh, inputGain = _inputGain,
+      maxFreqSpread = _maxFreqSpread, maxFreqSlope = _maxFreqSlope, trajFitOrder = _trajFitOrder,
+      trajMinDur = _trajMinDur
     )
 
     def read(config: Config) {
-      input       = config.input
-      minFreq     = config.minFreq
-      maxFreq     = config.maxFreq
-      stepSize    = config.stepSize
-      binsPerOct  = config.binsPerOct
-      median      = config.median
-      ampThresh   = config.ampThresh
-      peakThresh  = config.peakThresh
-      inputGain   = config.inputGain
-      maxFreqDev  = config.maxFreqDev
-      trajMinDur  = config.trajMinDur
+      input           = config.input
+      _minFreq        = config.minFreq
+      _maxFreq        = config.maxFreq
+      _stepSize       = config.stepSize
+      _binsPerOct     = config.binsPerOct
+      _median         = config.median
+      _ampThresh      = config.ampThresh
+      _peakThresh     = config.peakThresh
+      _inputGain      = config.inputGain
+      _maxFreqSpread  = config.maxFreqSpread
+      _maxFreqSlope   = config.maxFreqSlope
+      _trajFitOrder   = config.trajFitOrder
+      _trajMinDur     = config.trajMinDur
     }
 
     private final case class Impl(input: File, minFreq: Float, maxFreq: Float, stepSize: Int, binsPerOct: Int,
                                   ampThresh: Float, peakThresh: Float, median: Int, inputGain: Float,
-                                  maxFreqDev: Float, trajMinDur: Float) extends Config {
+                                  maxFreqSpread: Float, maxFreqSlope: Float, trajFitOrder: Int, trajMinDur: Float)
+      extends Config {
+
       override def productPrefix = "Config"
     }
   }
@@ -138,7 +233,7 @@ object PitchAnalysis extends ProcessorCompanion {
     new Proc(config, observer, promise)
   }
 
-  final case class Sample(start: Long, stop: Long, freq: Float, clarity: Float)
+  final case class Sample(start: Long, stop: Long, freq: CurveFitting.Fit, clarity: Float)
 
   private final class Proc(val config: Config, val observer: Observer, val promise: Promise[PayLoad])
                           (implicit val executionContext: ExecutionContext)
@@ -197,23 +292,25 @@ object PitchAnalysis extends ProcessorCompanion {
       val numFrames   = af.numFrames
       var trajActive  = false
       var trajStart   = 0L
-      var trajFreq    = 0f
-      var trajFreqSum = 0.0
+      import CurveFitting.Point
+      var traj        = Vector.empty[Point]
+      var trajMinFreq = 0.0
+      var trajMaxFreq = 0.0
       var trajClarSum = 0.0
-      val trajMinSize = (config.trajMinDur * af.sampleRate / 1000 + 0.5).toInt
+      val trajMinSize = (config.trajMinDur * af.sampleRate / 1000 + 0.5).toInt  // full rate
       val stepSize    = config.stepSize
 
       if (verbose) println(f"at ${af.sampleRate/1000}%1.1f kHz, a trajMinDur of ${config.trajMinDur}ms equals $trajMinSize frames" )
 
       def endTraj() {
         if (trajActive) {
-          if (off - trajStart >= trajMinSize) {
-            val trajSize  = off - trajStart
-            val meanFreq  = (trajFreqSum / trajSize).toFloat  // XXX TODO: should use geometric mean
+          val start     = trajStart * stepSize
+          val stop      = off * stepSize
+          val trajSize  = stop - start // full rate
+          if (trajSize >= trajMinSize) {
+            val fit       = CurveFitting.solve(points = traj, order = config.trajFitOrder)
             val meanClar  = (trajClarSum / trajSize).toFloat
-            val start     = trajStart * stepSize
-            val stop      = off       * stepSize
-            val smp       = Sample(start = start, stop = stop, freq = meanFreq, clarity = meanClar)
+            val smp       = Sample(start = start, stop = stop, freq = fit, clarity = meanClar)
             seq += smp
           }
           trajActive = false
@@ -230,20 +327,36 @@ object PitchAnalysis extends ProcessorCompanion {
 
           def beginTraj() {
             trajActive  = true
-            trajStart   = off
-            trajFreq    = freq
-            trajFreqSum = freq
+            trajStart   = off     // control rate
+            traj        = Vector(Point(0.0, freq))
+            trajMinFreq = freq
+            trajMaxFreq = freq
             trajClarSum = clarity
           }
 
           if (trajActive) {
             if (hasFreq) {
-              val ff = if (freq >= trajFreq) freq / trajFreq else trajFreq / freq
-              if (ff <= config.maxFreqDev) { // trajectory still valid
-                trajFreqSum += freq
+              val prev      = traj.last
+              val prevOff   = prev.x / stepSize           // control rate
+              val prevFreq  = prev.y
+              val off0      = (off - trajStart).toDouble  // control rate
+              val freqRatio = if (freq < prevFreq) prevFreq / freq else freq / prevFreq
+              val freqSlope = math.pow(freqRatio, off0 - prevOff)
+
+              if (freqSlope <= config.maxFreqSlope && {
+                val freqSpread  = if (freq < trajMinFreq)
+                  trajMinFreq / freq
+                else if (freq < trajMaxFreq)
+                  math.max(trajMaxFreq / freq, freq / trajMinFreq)
+                else
+                  freq / trajMaxFreq
+
+                freqSpread <= config.maxFreqSpread
+              }) {      // trajectory still valid
+                traj       :+= Point(off0 * stepSize, freq)
                 trajClarSum += clarity
 
-              } else {                // frequency jump, start new traj
+              } else {  // frequency jump, start new traj
                 endTraj()
                 beginTraj()
               }

@@ -54,11 +54,11 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     val numFr     = inputSpec.numFrames
     // make sure we begin at frame zero
     val p1        = if (p0.nonEmpty && p0.head.start == 0L) p0 else {
-      PitchAnalysis.Sample(0L, p0.headOption.map(_.start).getOrElse(numFr), 0f, 0f) +: p0
+      PitchAnalysis.Sample(0L, p0.headOption.map(_.start).getOrElse(numFr), CurveFitting.PointFit(0f), 0f) +: p0
     }
     // make sure we end at numFrames
     val p         = if (p1.last.stop >= numFr) p1 else {
-      p1 :+ PitchAnalysis.Sample(p1.last.stop, numFr, 0f, 0f)
+      p1 :+ PitchAnalysis.Sample(p1.last.stop, numFr, CurveFitting.PointFit(0f), 0f)
     }
 //p.foreach(println)
 
@@ -86,7 +86,8 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
           add(smp.start - lastStop, 0f, 0f)
         }
       }
-      add(smp.stop - smp.start, smp.freq, smp.clarity)
+      ???
+//      add(smp.stop - smp.start, smp.freq, smp.clarity)
       lastStop = smp.stop
     }
     val seq0 = seqB.result()

@@ -1,11 +1,12 @@
 package at.iem.point.er.sketches
 
 import de.sciss.sonogram.{SonogramOverview, SimpleSonogramView}
-import java.awt.{Point, Color, Graphics}
+import java.awt.{Graphics2D, Point, Color, Graphics}
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
 import collection.immutable.{IndexedSeq => IIdxSeq}
+import java.awt.geom.{GeneralPath, Rectangle2D, Line2D}
 
 final class SonogramView extends SimpleSonogramView {
   private val colrCrosshair = new Color(0xFF, 0xFF, 0xFF, 0x40)
@@ -88,19 +89,42 @@ final class SonogramView extends SimpleSonogramView {
   addMouseListener(mouse)
   addMouseMotionListener(mouse)
 
+  private val shpRect = new Rectangle2D.Float()
+  private val shpPath = new GeneralPath()
+
   override def paintComponent(g: Graphics) {
     super.paintComponent(g)
-//    val g2 = g.asInstanceOf[Graphics2D]
+    val g2 = g.asInstanceOf[Graphics2D]
 
     if (_pitch.nonEmpty) {
       g.setColor(colrPitch)
       sono.foreach { ovr =>
         _pitch.foreach { smp =>
-          val x1  = (frameToScreen(smp.start, ovr) + 0.5f).toInt
-          val x2  = (frameToScreen(smp.stop,  ovr) + 0.5f).toInt
-          val y   = (freqToScreen(smp.freq, ovr) + 0.5f).toInt
-          g.fillRect(x1, y - 4, x2 - x1, 8)
-          g.drawRect(x1, y - 4, x2 - x1, 8)
+          val x1  = frameToScreen(smp.start, ovr)
+          val x2  = frameToScreen(smp.stop,  ovr)
+          val shp = smp.freq match {
+            case CurveFitting.PointFit(freq)  =>
+              val y   = freqToScreen(freq.toFloat, ovr)
+              shpRect.setRect(x1 - 1, y - 3, x2 - x1 + 2, 6)
+              shpRect
+
+            case lf @ CurveFitting.LinearFit(_, _) =>
+              shpPath.reset()
+              val y1  = freqToScreen(lf(smp.start).toFloat, ovr)
+              val y2  = freqToScreen(lf(smp.stop-1).toFloat, ovr)
+              shpPath.reset()
+              shpPath.moveTo(x1 - 1, y1 - 3)
+              shpPath.lineTo(x2 + 1, y2 - 3)
+              shpPath.lineTo(x2 + 1, y2 + 3)
+              shpPath.lineTo(x1 - 1, y1 + 3)
+              shpPath.closePath()
+              shpPath
+
+//            case CurveFitting.QuadraticFit(_, _, _, _) =>
+
+          }
+          g2.fill(shp)
+          g2.draw(shp)
         }
       }
     }

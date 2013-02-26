@@ -30,8 +30,11 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
   private def inputGain: Float = b.inputGain.ampdb
   private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
 
-  private def maxGliss: Float = b.maxFreqDev * 100
-  private def maxGliss_=(value: Float) { b.maxFreqDev = value / 100 }
+  private def maxSpread: Float = b.maxFreqSpread * 100
+  private def maxSpread_=(value: Float) { b.maxFreqSpread = value / 100 }
+
+  private def maxSlope: Float = b.maxFreqSlope * 100
+  private def maxSlope_=(value: Float) { b.maxFreqSlope = value / 100 }
 
   private val setTimeRes = GUI.Setting.float("Time resolution:", "ms")(timeRes _)(timeRes = _)
 
@@ -44,8 +47,9 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
       int("Median:")(b.median _)(b.median = _),
       float("Amplitude threshold:", "dB")(ampThresh  _)(ampThresh  = _),
       float("Peak threshold:",      "dB")(peakThresh _)(peakThresh = _),
-      float("Input gain:",          "dB")(inputGain  _)(inputGain = _),
-      float("Maximum glissando:",   "%") (maxGliss _)(maxGliss = _),
+      float("Input gain:",          "dB")(inputGain  _)(inputGain  = _),
+      float("Maximum freq spread:", "%") (maxSpread  _)(maxSpread  = _),
+      float("Maximum freq slope:",  "%") (maxSlope   _)(maxSlope   = _),
       float("Minimum duration:",    "ms")(b.trajMinDur _)(b.trajMinDur = _)
     )
   }

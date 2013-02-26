@@ -63,7 +63,7 @@ object Main extends SimpleSwingApplication {
       pchCfg.peakThresh = -12.dbamp
       pchCfg.median     = 12
       pchCfg.stepSize   = 256 // 512
-      pchCfg.maxFreqDev = math.pow(2, 3.0/12).toFloat
+      pchCfg.maxFreqSpread = math.pow(2, 3.0/12).toFloat
       pchCfg.trajMinDur = 25.0f
 
       val pitchView = new PitchAnalysisSettingsView(inputSpec = fileSpec, init = pchCfg)
