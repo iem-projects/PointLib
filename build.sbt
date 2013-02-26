@@ -13,9 +13,10 @@ licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 libraryDependencies ++= Seq(
   "de.sciss" %% "scalacollider" % "1.4.1+",
   "de.sciss" %% "scalacolliderswing" % "1.4.+",
-  "de.sciss" %% "sonogramoverview" % "1.4.+",
-  "de.sciss" %% "strugatzki" % "1.5.+",
-  "com.github.benhutchison" % "scalaswingcontrib" % "1.4"
+  "de.sciss" %% "sonogramoverview" % "1.4.+",                               // Sonogram View
+  "de.sciss" %% "strugatzki" % "1.5.+",                                     // Offline Feature Extraction
+  "com.github.benhutchison" % "scalaswingcontrib" % "1.4",                  // Tree component for Scala-Swing
+  "com.github.wookietreiber" %% "scala-chart" % "latest.integration"        // JFreeChart integration
 )
 
 retrieveManaged := true
@@ -29,4 +30,6 @@ initialCommands in console :=
   |import de.sciss.synth._
   |import ugen._
   |import Ops._
+  |import scalax.chart._
+  |import Charting._
 """.stripMargin
