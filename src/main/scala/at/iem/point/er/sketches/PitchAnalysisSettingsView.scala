@@ -44,13 +44,14 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
       float("Minimum frequency:", "Hz")(b.minFreq _)(b.minFreq = _),
       float("Maximum frequency:", "Hz")(b.maxFreq _)(b.maxFreq = _),
       setTimeRes,
-      int("Median:")(b.median _)(b.median = _),
-      float("Amplitude threshold:", "dB")(ampThresh  _)(ampThresh  = _),
-      float("Peak threshold:",      "dB")(peakThresh _)(peakThresh = _),
-      float("Input gain:",          "dB")(inputGain  _)(inputGain  = _),
-      float("Maximum freq spread:", "%") (maxSpread  _)(maxSpread  = _),
-      float("Maximum freq slope:",  "%") (maxSlope   _)(maxSlope   = _),
-      float("Minimum duration:",    "ms")(b.trajMinDur _)(b.trajMinDur = _)
+      int("Median:")                     (b.median     _)(b.median     = _),
+      float("Amplitude threshold:", "dB")(ampThresh    _)(ampThresh    = _),
+      float("Peak threshold:",      "dB")(peakThresh   _)(peakThresh   = _),
+      float("Input gain:",          "dB")(inputGain    _)(inputGain    = _),
+      float("Maximum freq spread:", "%") (maxSpread    _)(maxSpread    = _),
+      float("Maximum freq slope:",  "%") (maxSlope     _)(maxSlope     = _),
+      float("Minimum duration:",    "ms")(b.trajMinDur _)(b.trajMinDur = _),
+      float("Maximum gap:",         "ms")(b.trajMaxGap _)(b.trajMaxGap = _)
     )
   }
 

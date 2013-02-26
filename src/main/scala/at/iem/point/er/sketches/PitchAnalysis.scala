@@ -73,6 +73,9 @@ object PitchAnalysis extends ProcessorCompanion {
     /** Minimum trajectory duration in milliseconds. */
     def trajMinDur: Float
 
+    /** Maximum trajectory gap duration in milliseconds. */
+    def trajMaxGap: Float
+
     /** Order of the polynomial trajectory curve fitting function (0, 1, or 2) */
     def trajFitOrder: Int
   }
@@ -99,6 +102,7 @@ object PitchAnalysis extends ProcessorCompanion {
     private var _maxFreqSlope   = math.pow(2,1.0/24).toFloat
     private var _trajFitOrder   = 1
     private var _trajMinDur     = 30.0f
+    private var _trajMaxGap     = 5f
 
     def minFreq: Float = _minFreq
     def minFreq_=(value: Float) {
@@ -183,11 +187,17 @@ object PitchAnalysis extends ProcessorCompanion {
       _trajMinDur = value
     }
 
+    def trajMaxGap: Float = _trajMaxGap
+    def trajMaxGap_=(value: Float) {
+      require(value >= 0f && value <= 10000f, "Requires 0 <= trajMaxGap <= 10000")
+      _trajMaxGap = value
+    }
+
     def build: Config = Impl(input = input,
       minFreq = _minFreq, maxFreq = _maxFreq, stepSize = _stepSize, binsPerOct = _binsPerOct,
       median = _median, ampThresh = _ampThresh, peakThresh = _peakThresh, inputGain = _inputGain,
       maxFreqSpread = _maxFreqSpread, maxFreqSlope = _maxFreqSlope, trajFitOrder = _trajFitOrder,
-      trajMinDur = _trajMinDur
+      trajMinDur = _trajMinDur, trajMaxGap = _trajMaxGap
     )
 
     def read(config: Config) {
@@ -204,11 +214,13 @@ object PitchAnalysis extends ProcessorCompanion {
       _maxFreqSlope   = config.maxFreqSlope
       _trajFitOrder   = config.trajFitOrder
       _trajMinDur     = config.trajMinDur
+      _trajMaxGap     = config.trajMaxGap
     }
 
     private final case class Impl(input: File, minFreq: Float, maxFreq: Float, stepSize: Int, binsPerOct: Int,
                                   ampThresh: Float, peakThresh: Float, median: Int, inputGain: Float,
-                                  maxFreqSpread: Float, maxFreqSlope: Float, trajFitOrder: Int, trajMinDur: Float)
+                                  maxFreqSpread: Float, maxFreqSlope: Float, trajFitOrder: Int,
+                                  trajMinDur: Float, trajMaxGap: Float)
       extends Config {
 
       override def productPrefix = "Config"
@@ -292,12 +304,14 @@ object PitchAnalysis extends ProcessorCompanion {
       val numFrames   = af.numFrames
       var trajActive  = false
       var trajStart   = 0L
+      var trajLast    = 0L
       import CurveFitting.Point
       var traj        = Vector.empty[Point]
       var trajMinFreq = 0.0
       var trajMaxFreq = 0.0
       var trajClarSum = 0.0
       val trajMinSize = math.max(config.trajFitOrder, (config.trajMinDur * af.sampleRate / 1000 + 0.5).toInt)  // control rate
+      val trajMaxGap  = (config.trajMaxGap * af.sampleRate / 1000 + 0.5).toInt  // control rate
       val stepSize    = config.stepSize
 
       if (verbose) {
@@ -309,11 +323,11 @@ object PitchAnalysis extends ProcessorCompanion {
       def endTraj() {
         if (trajActive) {
           val start     = trajStart * stepSize
-          val stop      = off * stepSize
-          val trajSize  = off - trajStart // control rate
+          val stop      = (trajLast + 1) * stepSize
+          val trajSize  = (trajLast + 1) - trajStart // control rate
 
           if (verbose) {
-            println(f"time = ${off / af.sampleRate}%1.2fs (frame = $off%d), freq = ${traj.last.y}%1.1fHz")
+            println(f"time = ${trajLast / af.sampleRate}%1.2fs (frame = $trajLast%d), freq = ${traj.last.y}%1.1fHz")
           }
 
           if (trajSize >= trajMinSize) {
@@ -343,6 +357,7 @@ object PitchAnalysis extends ProcessorCompanion {
           def beginTraj() {
             trajActive  = true
             trajStart   = off     // control rate
+            trajLast    = off
             traj        = Vector(Point(0.0, freq))
             trajMinFreq = freq
             trajMaxFreq = freq
@@ -357,7 +372,7 @@ object PitchAnalysis extends ProcessorCompanion {
           if (trajActive) {
             if (hasFreq) {
               val prev      = traj.last
-              val prevOff   = prev.x / stepSize           // control rate
+              val prevOff   = trajLast // prev.x / stepSize           // control rate
               val prevFreq  = prev.y
               val off0      = (off - trajStart).toDouble  // control rate
               val freqRatio = if (freq < prevFreq) prevFreq / freq else freq / prevFreq
@@ -374,6 +389,7 @@ object PitchAnalysis extends ProcessorCompanion {
                 freqSpread <= config.maxFreqSpread
               }) {      // trajectory still valid
                 traj       :+= Point(off0 * stepSize, freq)
+                trajLast     = off
                 trajClarSum += clarity
 
                 if (freq < trajMinFreq) trajMinFreq = freq
@@ -383,8 +399,8 @@ object PitchAnalysis extends ProcessorCompanion {
                 endTraj()
                 beginTraj()
               }
-            } else {
-              endTraj()
+            } else {  // no pitch found
+              if (off - trajLast >= trajMaxGap) endTraj()
             }
           } else {
             if (hasFreq) {
