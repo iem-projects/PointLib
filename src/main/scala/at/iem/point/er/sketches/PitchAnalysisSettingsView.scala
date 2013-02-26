@@ -57,6 +57,7 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
   def config: PitchAnalysis.Config = b.build
 
   private val ggRun = Button("Run...") {
+    PitchAnalysis.verbose = true
     PitchAnalysis(config) {
       case PitchAnalysis.Result(Success(seq)) =>
 //        sono.pitchOverlay = seq

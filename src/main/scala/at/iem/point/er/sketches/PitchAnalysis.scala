@@ -102,7 +102,7 @@ object PitchAnalysis extends ProcessorCompanion {
 
     def minFreq: Float = _minFreq
     def minFreq_=(value: Float) {
-      require(value >= 0f && value <= 48000f)
+      require(value >= 0f && value <= 48000f, "Requires 0 <= minFreq <= 48000")
       if (value > _maxFreq) {
         _minFreq  = _maxFreq
         _maxFreq  = value
@@ -113,7 +113,7 @@ object PitchAnalysis extends ProcessorCompanion {
 
     def maxFreq: Float = _maxFreq
     def maxFreq_=(value: Float) {
-      require(value >= 0f && value <= 48000f)
+      require(value >= 0f && value <= 48000f, "Requires 0 <= maxFreq <= 48000")
       if (value < _minFreq) {
         _maxFreq  = _minFreq
         _minFreq  = value
@@ -124,61 +124,62 @@ object PitchAnalysis extends ProcessorCompanion {
 
     def stepSize: Int = _stepSize
     def stepSize_=(value: Int) {
-      require(value > 0 && value <= 65536)
+      require(value > 0 && value <= 65536 && value.isPowerOfTwo,
+        "Requires 0 < stepSize <= 65536, and stepSize being a power of two")
       _stepSize = value
     }
 
     def binsPerOct: Int = _binsPerOct
     def binsPerOct_=(value: Int) {
-      require(value > 0 && value <= 192)
+      require(value > 0 && value <= 192, "Requires 0 < binsPerOct <= 192")
       _binsPerOct = value
     }
 
     def median: Int = _median
     def median_=(value: Int) {
-      require (value >= 0 && value <= 8192)
+      require (value >= 0 && value <= 8192, "Requires 0 <= median <= 8192")
       _median = value
     }
 
     def ampThresh: Float = _ampThresh
     def ampThresh_=(value: Float) {
-      require(value >= 0f)
+      require(value >= 0f, "Requires ampThresh >= 0")
       _ampThresh = value
     }
 
     def peakThresh: Float = _peakThresh
     def peakThresh_=(value: Float) {
-      require(value >= 0f)
+      require(value >= 0f, "Requires peakThresh >= 0")
       _peakThresh = value
     }
 
     def inputGain: Float = _inputGain
     def inputGain_=(value: Float) {
-      require(value > 0f)
+      require(value > 0f, "Requires inputGain > 0")
       _inputGain = value
     }
 
     def maxFreqSpread: Float = _maxFreqSpread
     def maxFreqSpread_=(value: Float) {
-      require(value >= 1f)
+      require(value >= 1f, "Requires maxFreqSpread >= 1")
       _maxFreqSpread = value
     }
 
     def maxFreqSlope: Float = _maxFreqSlope
     def maxFreqSlope_=(value: Float) {
-      require(value >= 1f)
+      require(value >= 1f, "Requires maxFreqSlope >= 1")
       _maxFreqSlope = value
     }
 
     def trajFitOrder: Int = _trajFitOrder
     def trajFitOrder(value: Int) {
-      require(value >= 0 && value <= 2)
+      require(value >= 0 && value <= 2, "Requires trajFitOrder to be either 0, 1, or 2")
       _trajFitOrder = value
     }
 
     def trajMinDur: Float = _trajMinDur
     def trajMinDur_=(value: Float) {
-      require(value >= 0f && value <= 60000f)
+      require(value >= 0f && value <= 60000f, "Requires 0 <= trajMinDur <= 60000")
       _trajMinDur = value
     }
 
@@ -229,7 +230,6 @@ object PitchAnalysis extends ProcessorCompanion {
 
   protected def create(config: Config, observer: Observer, promise: Promise[PayLoad])
                       (implicit exec: ExecutionContext): Processor[PayLoad, Config] = {
-    require(config.stepSize.isPowerOfTwo)
     new Proc(config, observer, promise)
   }
 
@@ -254,7 +254,7 @@ object PitchAnalysis extends ProcessorCompanion {
         inFile        = config.input,
         inSpec        = spec,
         numFeatures   = 2,  // (freq, clarity)
-        stepSize      = 256,
+        stepSize      = config.stepSize,
 //        blockSize = 64,
         progress      = progress(_),
         checkAborted  = () => checkAborted()
@@ -297,23 +297,38 @@ object PitchAnalysis extends ProcessorCompanion {
       var trajMinFreq = 0.0
       var trajMaxFreq = 0.0
       var trajClarSum = 0.0
-      val trajMinSize = (config.trajMinDur * af.sampleRate / 1000 + 0.5).toInt  // full rate
+      val trajMinSize = math.max(config.trajFitOrder, (config.trajMinDur * af.sampleRate / 1000 + 0.5).toInt)  // control rate
       val stepSize    = config.stepSize
 
-      if (verbose) println(f"at ${af.sampleRate/1000}%1.1f kHz, a trajMinDur of ${config.trajMinDur}ms equals $trajMinSize frames" )
+      if (verbose) {
+        println(f"pitch file at stepSize $stepSize%d has length $numFrames%d")
+        println(f"at ${af.sampleRate/1000}%1.1f kHz, a trajMinDur of ${config.trajMinDur}ms equals $trajMinSize frames" )
+        println(f"spread = ${config.maxFreqSpread}%1.3f, slope = ${config.maxFreqSlope}%1.3f")
+      }
 
       def endTraj() {
         if (trajActive) {
           val start     = trajStart * stepSize
           val stop      = off * stepSize
-          val trajSize  = stop - start // full rate
+          val trajSize  = off - trajStart // control rate
+
+          if (verbose) {
+            println(f"time = ${off / af.sampleRate}%1.2fs (frame = $off%d), freq = ${traj.last.y}%1.1fHz")
+          }
+
           if (trajSize >= trajMinSize) {
             val fit       = CurveFitting.solve(points = traj, order = config.trajFitOrder)
             val meanClar  = (trajClarSum / trajSize).toFloat
             val smp       = Sample(start = start, stop = stop, freq = fit, clarity = meanClar)
             seq += smp
+
+            if (verbose) println(":::: END ::::\n")
+          } else {
+
+            if (verbose) println(":::: CANCEL ::::\n")
           }
           trajActive = false
+
         }
       }
 
@@ -332,6 +347,11 @@ object PitchAnalysis extends ProcessorCompanion {
             trajMinFreq = freq
             trajMaxFreq = freq
             trajClarSum = clarity
+
+            if (verbose) {
+              println(":::: BEGIN ::::")
+              println(f"time = ${trajStart / af.sampleRate}%1.2fs (frame = $off%d), freq = $freq%1.1fHz")
+            }
           }
 
           if (trajActive) {
@@ -345,16 +365,19 @@ object PitchAnalysis extends ProcessorCompanion {
 
               if (freqSlope <= config.maxFreqSlope && {
                 val freqSpread  = if (freq < trajMinFreq)
-                  trajMinFreq / freq
+                  trajMaxFreq / freq
                 else if (freq < trajMaxFreq)
                   math.max(trajMaxFreq / freq, freq / trajMinFreq)
                 else
-                  freq / trajMaxFreq
+                  freq / trajMinFreq
 
                 freqSpread <= config.maxFreqSpread
               }) {      // trajectory still valid
                 traj       :+= Point(off0 * stepSize, freq)
                 trajClarSum += clarity
+
+                if (freq < trajMinFreq) trajMinFreq = freq
+                if (freq > trajMaxFreq) trajMaxFreq = freq
 
               } else {  // frequency jump, start new traj
                 endTraj()
@@ -372,7 +395,9 @@ object PitchAnalysis extends ProcessorCompanion {
       }
 
       endTraj()
-      seq.result()
+      val r = seq.result()
+//      if (verbose) r.foreach(println)
+      r
     }
   }
 }
