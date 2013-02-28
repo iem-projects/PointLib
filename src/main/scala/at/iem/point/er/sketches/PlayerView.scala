@@ -62,37 +62,72 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
 //p.foreach(println)
 
+    // (startFreq, startClar) followed by flat tuple4 sequence (dur, shape, segFreq, segClar)
     val seqB      = Vector.newBuilder[Float]
     var lastStop  = 0L
     var seqSz     = 0
     val sr        = inputSpec.sampleRate
+    seqB += 0f  // initial frequency
+    seqB += 0f  // initial clarity
 
-    def add(dur: Long, freq: Float, clarity: Float) {
-      seqB  += (dur / sr).toFloat
-      seqB  += freq
-      seqB  += clarity
-      seqSz += 1
+    def add(smp: PitchAnalysis.Sample) {
+      val start     = if (smp.start <= lastStop) lastStop + 1 else smp.start
+      val stop      = math.max(start + 1, smp.stop)
+      val gapFrames = start - 1 - lastStop
+      if (gapFrames > 0) { // insert 'gap'
+        seqB += (gapFrames / sr).toFloat
+        seqB += stepShape.id
+        seqB += 0f
+        seqB += 0f
+        seqSz += 1
+        lastStop += gapFrames
+      }
+      smp.freq match {
+        case CurveFitting.PointFit(freq) =>
+          val pitchFrames = stop - lastStop
+          seqB += (pitchFrames / sr).toFloat
+          seqB += stepShape.id
+          seqB += freq.toFloat
+          seqB += smp.clarity
+          seqSz += 1
+          lastStop += pitchFrames
+
+        case lin @ CurveFitting.LinearFit(_, startFreq) =>
+          val pitchFrames = stop - start
+          val stopFreq    = lin(smp.stop - smp.start)
+          seqB += (1 / sr).toFloat
+          seqB += stepShape.id
+          seqB += startFreq.toFloat
+          seqB += smp.clarity
+          seqSz += 1
+          lastStop += 1
+
+          seqB += (pitchFrames / sr).toFloat
+          seqB += linShape.id
+          seqB += stopFreq.toFloat
+          seqB += smp.clarity
+          seqSz += 1
+          lastStop += pitchFrames
+
+        case CurveFitting.QuadraticFit(_, _, _, _) => ???
+      }
     }
 
     var posIdx  = -1
     p.foreach { smp =>
       if (smp.start == pos) posIdx = seqSz
-      if (smp.start > lastStop) {
-        if (pos > lastStop && pos < smp.start) {  // insert dummy break point at current start frame
-          add(pos - lastStop, 0f, 0f)
-          add(smp.start - pos, 0f, 0f)
-          posIdx = seqSz
-        } else {
-          add(smp.start - lastStop, 0f, 0f)
-        }
-      }
-      ???
-//      add(smp.stop - smp.start, smp.freq, smp.clarity)
-      lastStop = smp.stop
+//      if (pos > lastStop && pos < smp.start) {  // insert dummy break point at current start frame
+////        add(pos - lastStop, 0f, 0f)
+////        add(smp.start - pos, 0f, 0f)
+//        posIdx = seqSz
+//      } else {
+        add(smp)
+//      }
     }
     val seq0 = seqB.result()
+posIdx = 0  // XXX TODO
     require(posIdx >= 0)
-    if (posIdx == 0) seq0 else seq0.drop(posIdx * 3) ++ seq0.take(posIdx *3)  // "rotate"
+    if (posIdx == 0) seq0 else seq0.drop(posIdx * 4) ++ seq0.take(posIdx * 4)  // "rotate"
   }
 
   lazy val axis: Axis = new Axis {
@@ -170,7 +205,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
         val newMsg    = syn.newMsg(df.name, args = Seq(
           "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
           "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp,
-          "envBuf" -> envBuf.id, "envSz" -> (pchEnv.size/3)
+          "envBuf" -> envBuf.id /*, "envSz" -> (pchEnv.size/4) */
         ))
         // stupid dummy generation because of buffer state being checked in setnMsg...
         envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
@@ -210,20 +245,18 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     SendTrig.kr(pTrig, id = 0, value = pSmp)
 
     val envBuf    = "envBuf".ir
-    val envSz     = "envSz".ir
-//    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, envSz))  // def!
-//    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, envSz))
-//    val envClar   = Dbufrd(envBuf, Dseries(2, 3, envSz))
-    val envSz3 = envSz * 3
-    def envDur()  = Dbufrd(envBuf, Dseries(0, 3, inf) % envSz3)  // def!
-    val envFreq   = Dbufrd(envBuf, Dseries(1, 3, inf) % envSz3)
-    val envClar   = Dbufrd(envBuf, Dseries(2, 3, inf) % envSz3)
-    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = stepShape.id) // , reset = phasImp
-    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id) // , reset = phasImp
+//    val envSz4 = envSz * 4
+
+    val envFreq   = Dbufrd(envBuf, Dseries(0, 4, inf))
+    val envClar   = Dbufrd(envBuf, Dseries(1, 4, inf))
+    def envDur()  = Dbufrd(envBuf, Dseries(2, 4, inf))  // def!
+    val envShp    = Dbufrd(envBuf, Dseries(3, 4, inf))
+    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = envShp)
+    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id)
 //    freq.poll(2, label = "f")
 //    clar.poll(2, label = "c")
 
-    val freqL = Lag.ar(Latch.ar(freq, clar))
+    val freqL = Latch.ar(freq, clar)
     val piano = pianoFunc(freqL) * LagUD.ar(clar, 0.02, 0.1)
     val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
 
