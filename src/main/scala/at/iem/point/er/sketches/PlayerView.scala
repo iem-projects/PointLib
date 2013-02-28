@@ -1,18 +1,18 @@
 package at.iem.point.er.sketches
 
-import scala.swing.{Component, Label, Swing, Panel, Orientation, BoxPanel, BorderPanel}
-import de.sciss.audiowidgets.{LCDPanel, Transport, Axis}
+import scala.swing.{Component, Swing}
+import de.sciss.audiowidgets.{Transport, Axis}
 import java.io.File
 import java.awt.{RenderingHints, Color, Graphics2D}
 import de.sciss.synth
 import synth._
-import io.AudioFileSpec
+import io.{SampleFormat, AudioFileSpec}
 import java.awt.geom.GeneralPath
 import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
 import scala.swing.event.MouseClicked
-import de.sciss.osc.{Dump, Bundle, Packet, Message}
+import de.sciss.osc.{Dump, Bundle, Message}
 
 class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   private val sys = AudioSystem.instance
@@ -184,53 +184,94 @@ posIdx = 0  // XXX TODO
 
   def play() {
     stop()
-
     sys.server match {
       case Some(s: Server) =>
-        val diskBuf = Buffer(s)
-        import inputSpec.{numChannels, numFrames}
-        val df      = synthDef(numChannels)
-        val syn     = Synth(s)
-        val resp    = osc.Responder(s) {
-          case Message("/tr", syn.id, 0, pos: Float) => Swing.onEDT {
-            position = (pos + 0.5).toLong
-            axis.repaint()
-          }
-        }
-        val start = math.min(position, numFrames - 32768).toInt
-        val pchEnv = mkPitchEnv(start)
-//println(pchEnv)
-        val envBuf  = Buffer(s)
-//println("PATH = " + inputFile.getAbsolutePath)
-        val newMsg    = syn.newMsg(df.name, args = Seq(
-          "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
-          "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp,
-          "envBuf" -> envBuf.id /*, "envSz" -> (pchEnv.size/4) */
-        ))
-        // stupid dummy generation because of buffer state being checked in setnMsg...
-        envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
+        val (_, msg) = play(s, loop = true)
+        s ! msg
+      case _ =>
+    }
+    updateStopPlay()
+  }
 
-        val allocEMsg = envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1, completion = Bundle.now(
-          envBuf.setnMsg(pchEnv),
-          newMsg
-        ))
-//        val syncMsgs  = Bundle.now(setEMsg, newMsg)
-        val cueMsg    = diskBuf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = allocEMsg)
-        val allocMsg  = diskBuf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
-        val recvMsg   = df.recvMsg(completion = allocMsg)
-        syn.onEnd {
-          diskBuf.close(); diskBuf.free()
-          resp.remove()
+  def capture(f: File) {
+    stop()
+    goToBegin()
+    sys.server match {
+      case Some(s: Server) =>
+        val (syn, playMsg) = play(s, loop = false)
+
+        val diskBuf   = Buffer(s)
+        val diskAlloc = diskBuf.allocMsg(numFrames = 32768, numChannels = 2)
+        val diskWrite = diskBuf.writeMsg(f.getAbsolutePath,
+          sampleFormat = SampleFormat.Int16, numFrames = 0, leaveOpen = true)
+
+        val recDf = SynthDef("$point_rec") {
+          import ugen._
+          val sig = Limiter.ar(In.ar(0, 2))
+          DiskOut.ar("buf".kr, sig)
         }
-        playing = Some(Playing(syn, envBuf))
+
+        val diskSyn = Synth(s)
+
+        val diskNew = diskSyn.newMsg(recDf.name, target = s, addAction = addToTail, args = Seq("buf" -> diskBuf.id))
+        val recDfRcv = recDf.recvMsg(diskNew)
+
+        syn.onEnd {
+          diskSyn.free()
+          diskBuf.close()
+          diskBuf.free()
+        }
+
 //        s.dumpOSC(Dump.Text)
-        s ! recvMsg
-        resp.add()
+        s ! Bundle.now(diskAlloc, diskWrite, recDfRcv, playMsg)
 
       case _ =>
     }
-
     updateStopPlay()
+  }
+
+  private def play(s: Server, loop: Boolean): (Synth, Message) = {
+    val diskBuf = Buffer(s)
+    import inputSpec.{numChannels, numFrames}
+    val df      = synthDef(numChannels)
+    val syn     = Synth(s)
+    val resp    = message.Responder(s) {
+      case Message("/tr", syn.id, 0, pos: Float) => Swing.onEDT {
+        position = (pos + 0.5).toLong
+        axis.repaint()
+      }
+    }
+    val start = math.min(position, numFrames - 32768).toInt
+    val pchEnv = mkPitchEnv(start)
+//println(pchEnv)
+    val envBuf  = Buffer(s)
+//println("PATH = " + inputFile.getAbsolutePath)
+    val newMsg    = syn.newMsg(df.name, args = Seq(
+      "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
+      "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp,
+      "envBuf" -> envBuf.id, "loop" -> (if (loop) 1f else 0f) /*, "envSz" -> (pchEnv.size/4) */
+    ))
+    // stupid dummy generation because of buffer state being checked in setnMsg...
+    envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
+
+    val allocEMsg = envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1, completion = Bundle.now(
+      envBuf.setnMsg(pchEnv),
+      newMsg
+    ))
+//        val syncMsgs  = Bundle.now(setEMsg, newMsg)
+    val cueMsg    = diskBuf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = allocEMsg)
+    val allocMsg  = diskBuf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
+    val recvMsg   = df.recvMsg(completion = allocMsg)
+    syn.onEnd {
+      diskBuf.close(); diskBuf.free()
+      resp.remove()
+    }
+    playing = Some(Playing(syn, envBuf))
+//        s.dumpOSC(Dump.Text)
+
+//    s ! recvMsg
+    resp.add()
+    (syn, recvMsg)
   }
 
   private def synthDef(numChannels: Int) = SynthDef("disk_" + numChannels) {
@@ -247,11 +288,14 @@ posIdx = 0  // XXX TODO
     val envBuf    = "envBuf".ir
 //    val envSz4 = envSz * 4
 
-    val envFreq   = Dbufrd(envBuf, Dseries(0, 4, inf))
-    val envClar   = Dbufrd(envBuf, Dseries(1, 4, inf))
-    def envDur()  = Dbufrd(envBuf, Dseries(2, 4, inf))  // def!
-    val envShp    = Dbufrd(envBuf, Dseries(3, 4, inf))
-    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = envShp)
+    val loop        = "loop".ir
+    val doneAction  = loop.linlin(0, 1, freeSelf.id, doNothing.id)
+
+    val envFreq   = Dbufrd(envBuf, Dseries(0, 4, inf), loop = loop)
+    val envClar   = Dbufrd(envBuf, Dseries(1, 4, inf), loop = loop)
+    def envDur()  = Dbufrd(envBuf, Dseries(2, 4, inf), loop = loop)  // def!
+    val envShp    = Dbufrd(envBuf, Dseries(3, 4, inf), loop = loop)
+    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = envShp, doneAction = doneAction)
     val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id)
 //    freq.poll(2, label = "f")
 //    clar.poll(2, label = "c")

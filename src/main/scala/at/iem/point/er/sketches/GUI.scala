@@ -30,6 +30,20 @@ object GUI {
     Some(f)
   }
 
+  def saveFileDialog(tpe: String = "Audio", init: Option[File] = None): Option[File] = {
+    val dlg = new FileDialog(null: java.awt.Frame, s"Save $tpe File", FileDialog.SAVE)
+    init.foreach { f =>
+      dlg.setDirectory(f.getParent)
+      dlg.setFile(f.getName)
+    }
+    dlg.setVisible(true)
+    val parent  = dlg.getDirectory
+    val name    = dlg.getFile
+    if (parent == null || name == null) return None
+    val f = new File(parent, name)
+    Some(f)
+  }
+
   object Setting {
     def float(name: String, unit: Optional[String] = None)(getter: () => Float)(setter: Float => Unit): Setting[Float] = {
       new Impl(name, unit, getter, setter)(_.toFloat)

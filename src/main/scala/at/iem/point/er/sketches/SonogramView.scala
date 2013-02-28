@@ -125,7 +125,7 @@ final class SonogramView extends SimpleSonogramView {
               shpPath.closePath()
               shpPath
 
-//            case CurveFitting.QuadraticFit(_, _, _, _) =>
+            case CurveFitting.QuadraticFit(_, _, _, _) => ???
 
           }
           g2.setColor(colrPitchOut)

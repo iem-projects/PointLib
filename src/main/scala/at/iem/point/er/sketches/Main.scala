@@ -110,7 +110,18 @@ object Main extends SimpleSwingApplication {
     ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
 
     val ggExport = Button("Export...") {
-      println("TODO....")
+      val nameIn = f.getName
+      val i = nameIn.lastIndexOf('.')
+      val nameInP = if (i < 0) nameIn else nameIn.substring(0, i)
+
+      @tailrec def loop(cnt: Int): File = {
+        val fOut = new File(f.getParentFile, s"${nameInP}_Pitch${if (cnt == 0) "" else cnt.toString}.aif")
+        if (!fOut.exists) fOut else loop(cnt + 1)
+      }
+      val init = Some(loop(0))
+      GUI.saveFileDialog(init = init).foreach { f =>
+        playerView.capture(f)
+      }
     }
     ggExport.focusable = false
     ggExport.peer.putClientProperty("JComponent.sizeVariant", "small")
