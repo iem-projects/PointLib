@@ -16,7 +16,7 @@ object Main extends SimpleSwingApplication {
   val name = "PointLib"
 
   def boot() {
-    AudioSystem.instance.start()
+    AudioSystem.start()
   }
 
   private lazy val sono   = new SonogramView

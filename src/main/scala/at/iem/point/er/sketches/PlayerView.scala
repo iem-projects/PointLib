@@ -256,7 +256,7 @@ posIdx = 0  // XXX TODO
 //    freq.poll(2, label = "f")
 //    clar.poll(2, label = "c")
 
-    val freqL = Latch.ar(freq, clar)
+    val freqL = Gate.ar(freq, clar)
     val piano = pianoFunc(freqL) * LagUD.ar(clar, 0.02, 0.1)
     val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
 
