@@ -4,8 +4,13 @@ import javax.sound.{midi => j}
 import j.ShortMessage._
 import annotation.switch
 import collection.immutable.{IndexedSeq => IIdxSeq}
+import util.control.NonFatal
 
 object Message {
+  def fromJavaOption(m: j.MidiMessage): Option[Message] = {
+    try { Some(fromJava(m)) } catch { case NonFatal(_) => None }
+  }
+
   def fromJava(m: j.MidiMessage): Message = {
     m match {
       case sm: j.ShortMessage =>

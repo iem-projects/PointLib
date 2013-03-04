@@ -9,9 +9,10 @@ private[midi] object TrackImpl {
     val sz    = t.size()
     val evts  = IIdxSeq.tabulate(sz) { i =>
       val evj = t.get(i)
-      Event(evj.getTick, Message.fromJava(evj.getMessage))
+      val j = Message.fromJavaOption(evj.getMessage)
+      j.map(m => Event(evj.getTick, m))
     }
-    new Impl(sq, evts, t.ticks())
+    new Impl(sq, evts.collect { case Some(m) => m}, t.ticks())
   }
 
   private final class Impl(val sequence: Sequence, val events: IIdxSeq[Event], val ticks: Long) extends Track {

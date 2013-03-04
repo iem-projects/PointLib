@@ -22,7 +22,7 @@ object FrameIntervalExample extends App {
    * or a free improvisation. In the case of the improv,
    * whether to filter particular chords or include all.
    */
-  lazy val _mode: Mode    = Improvisation(Some(3))
+  lazy val _mode: Mode    = StaticChords(5)
   /**
    * Whether to just look at the frame intervals (`false`) or to
    * calculate the histogram of all internal intervals (`true`)
@@ -30,7 +30,7 @@ object FrameIntervalExample extends App {
    */
   lazy val _allIntervals  = false
   
-  lazy val _sumSnippets   = false
+  lazy val _sumSnippets   = true
 
   def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets) { defer {
     ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
