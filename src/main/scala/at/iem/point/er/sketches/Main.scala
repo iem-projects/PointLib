@@ -30,6 +30,14 @@ object Main extends SimpleSwingApplication {
     playerViewOption.foreach(_.pitches = seq)
   }
 
+  private var _onsets: OnsetsAnalysis.PayLoad = Vector.empty
+  def onsets = _onsets
+  def onsets_=(seq: OnsetsAnalysis.PayLoad) {
+    _onsets = seq
+    sono.onsetsOverlay = seq
+//    playerViewOption.foreach(_.onsets = seq)
+  }
+
   lazy val top: Frame = {
     boot()
 
@@ -79,6 +87,24 @@ object Main extends SimpleSwingApplication {
       }
     }
 
+    lazy val onsetsSettingsFrame = {
+      import synth._
+      val oCfg = OnsetsAnalysis.Config()
+      oCfg.input = f
+
+      val oView = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
+      new Frame {
+        title = "Onsets Analysis Settings"
+        peer.getRootPane.putClientProperty("Window.style", "small")
+        peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+        contents = oView.component
+        pack()
+        resizable = false
+        this.placeRightOf(top)
+        open()
+      }
+    }
+
     lazy val mixFrame = new Frame {
       title = "Mixer"
       peer.getRootPane.putClientProperty("Window.style", "small")
@@ -102,6 +128,12 @@ object Main extends SimpleSwingApplication {
     }
     ggPitch.focusable = false
     ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
+
+    val ggOnsets = Button("Onsets...") {
+      onsetsSettingsFrame.open()
+    }
+    ggOnsets.focusable = false
+    ggOnsets.peer.putClientProperty("JComponent.sizeVariant", "small")
 
     val ggMix = Button("Mixer...") {
       mixFrame.open()
@@ -153,6 +185,7 @@ object Main extends SimpleSwingApplication {
         contents += ggExport
         contents += ggMix
         contents += ggPitch
+        contents += ggOnsets
       }, BorderPanel.Position.South)
     }
 

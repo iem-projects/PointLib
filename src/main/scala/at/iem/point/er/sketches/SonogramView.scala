@@ -14,14 +14,22 @@ final class SonogramView extends SimpleSonogramView {
   private val colrPitch     = new Color(0xFF, 0xFF, 0x00, 0xA0)
   private val colrPitchOut  = new Color(0x00, 0x00, 0xFF, 0xA0)
   private val strkPitchOut  = new BasicStroke(2f)
+  private val strkOnsets    = new BasicStroke(1f)
 
   private var mousePt = Option.empty[Point]
 
-  private var _pitch = IIdxSeq.empty[PitchAnalysis.Sample]
+  private var _pitch  = IIdxSeq.empty[PitchAnalysis.Sample]
+  private var _onsets = IIdxSeq.empty[Long]
 
   def pitchOverlay = _pitch
   def pitchOverlay_=(value: PitchAnalysis.PayLoad) {
     _pitch = value
+    repaint()
+  }
+
+  def onsetsOverlay = _onsets
+  def onsetsOverlay_=(value: OnsetsAnalysis.PayLoad) {
+    _onsets = value
     repaint()
   }
 
@@ -98,12 +106,12 @@ final class SonogramView extends SimpleSonogramView {
     super.paintComponent(g)
     val g2 = g.asInstanceOf[Graphics2D]
 
-    if (_pitch.nonEmpty) {
+    sono.foreach { ovr =>
+      if (_pitch.nonEmpty) {
 //      g.setColor(colrPitch)
 //      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
 //      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE)
       g2.setStroke(strkPitchOut)
-      sono.foreach { ovr =>
         _pitch.foreach { smp =>
           val x1  = frameToScreen(smp.start, ovr)
           val x2  = frameToScreen(smp.stop,  ovr)
@@ -132,6 +140,18 @@ final class SonogramView extends SimpleSonogramView {
           g2.draw(shp)
           g2.setColor(colrPitch)
           g2.fill(shp)
+        }
+      }
+
+      if (_onsets.nonEmpty) {
+        g2.setStroke(strkOnsets)
+        _onsets.foreach { frame =>
+          val x = frameToScreen(frame, ovr).toInt
+          val h1 = getHeight - 1
+          g2.setColor(colrPitch)
+          g2.drawLine(x, 0, x, h1)
+          g2.setColor(colrPitchOut)
+          g2.drawLine(x+1, 0, x+1, h1)
         }
       }
     }
