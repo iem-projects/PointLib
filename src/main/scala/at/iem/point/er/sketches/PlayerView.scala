@@ -11,6 +11,8 @@ import java.awt.geom.GeneralPath
 import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
+import collection.breakOut
+import collection.immutable.{IndexedSeq => IIdxSeq}
 import scala.swing.event.MouseClicked
 import de.sciss.osc.{Dump, Bundle, Message}
 
@@ -47,9 +49,27 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
   }
 
-  private final case class Playing(synth: Synth, pitchBuf: Buffer)
+  private var _onsets: OnsetsAnalysis.PayLoad = Main.onsets
+  def onsets = _onsets
+  def onsets_=(seq: OnsetsAnalysis.PayLoad) {
+    _onsets = seq
+    val p = playing.isDefined
+    if (p) {
+      stop()
+      play()
+    }
+  }
 
-  private def mkPitchEnv(pos: Long): Vector[Float] = {
+  private final case class Playing(synth: Synth, pitchBuf: Buffer, onsetsBuf: Buffer)
+
+  private def mkOnsetsEnv(pos: Long): IIdxSeq[Float] = {
+    // XXX TODO: forgot about pos right now....
+    val sr = inputSpec.sampleRate
+    val frameDurs = (0L +: onsets :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start, stop) => stop - start }
+    frameDurs.map(fr => (fr / sr).toFloat).toIndexedSeq
+  }
+
+  private def mkPitchEnv(pos: Long): IIdxSeq[Float] = {
     val p0         = pitches
     val numFr     = inputSpec.numFrames
     // make sure we begin at frame zero
@@ -175,7 +195,8 @@ posIdx = 0  // XXX TODO
     if (sys.isRunning) {
       playing.foreach { p =>
         p.synth.free()
-        p.pitchBuf.free()
+//        p.pitchBuf.free()
+//        p.onsetsBuf.free()
       }
     }
     playing = None
@@ -241,33 +262,40 @@ posIdx = 0  // XXX TODO
         axis.repaint()
       }
     }
-    val start = math.min(position, numFrames - 32768).toInt
-    val pchEnv = mkPitchEnv(start)
+    val start   = math.min(position, numFrames - 32768).toInt
+    val pchEnv  = mkPitchEnv(start)
+    val onsEnv  = mkOnsetsEnv(start)
 //println(pchEnv)
-    val envBuf  = Buffer(s)
+    val pitchBuf  = Buffer(s)
+    val onsetsBuf = Buffer(s)
 //println("PATH = " + inputFile.getAbsolutePath)
     val newMsg    = syn.newMsg(df.name, args = Seq(
       "diskBuf" -> diskBuf.id, "numFrames" -> numFrames.toFloat, "startFrame" -> start.toFloat,
       "diskAmp" -> diskAmp, "resynthAmp" -> resynthAmp,
-      "envBuf" -> envBuf.id, "loop" -> (if (loop) 1f else 0f) /*, "envSz" -> (pchEnv.size/4) */
+      "pitchBuf" -> pitchBuf.id, "onsetsBuf" -> onsetsBuf.id, "loop" -> (if (loop) 1f else 0f)
     ))
-    // stupid dummy generation because of buffer state being checked in setnMsg...
-    envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
+//    // stupid dummy generation because of buffer state being checked in setnMsg...
+//    pitchBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1)
 
-    val allocEMsg = envBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1, completion = Bundle.now(
-      envBuf.setnMsg(pchEnv),
+    val onsetsAllocMsg = onsetsBuf.allocMsg(numFrames = onsEnv.size, numChannels = 1, completion = Bundle.now(
+      onsetsBuf.setnMsg(onsEnv),
       newMsg
     ))
+
+    val pitchAllocMsg = pitchBuf.allocMsg(numFrames = pchEnv.size, numChannels = 1, completion = onsetsAllocMsg)
+
 //        val syncMsgs  = Bundle.now(setEMsg, newMsg)
-    val cueMsg    = diskBuf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = allocEMsg)
-    val allocMsg  = diskBuf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = cueMsg)
-    val recvMsg   = df.recvMsg(completion = allocMsg)
+    val diskCueMsg    = diskBuf.cueMsg(path = inputFile.getAbsolutePath, startFrame = start, completion = pitchAllocMsg)
+    val diskAllocMsg  = diskBuf.allocMsg(numFrames = 32768, numChannels = numChannels, completion = diskCueMsg)
+    val recvMsg       = df.recvMsg(completion = diskAllocMsg)
     syn.onEnd {
       diskBuf.close(); diskBuf.free()
+      pitchBuf.free(); onsetsBuf.free()
       resp.remove()
     }
-    playing = Some(Playing(syn, envBuf))
-//        s.dumpOSC(Dump.Text)
+    playing = Some(Playing(syn, pitchBuf = pitchBuf, onsetsBuf = onsetsBuf))
+
+//    s.dumpOSC(Dump.Text)
 
 //    s ! recvMsg
     resp.add()
@@ -285,24 +313,32 @@ posIdx = 0  // XXX TODO
     val pSmp    = A2K.kr(phasor)
     SendTrig.kr(pTrig, id = 0, value = pSmp)
 
-    val envBuf    = "envBuf".ir
+    val pitchBuf = "pitchBuf".ir
 //    val envSz4 = envSz * 4
 
     val loop        = "loop".ir
     val doneAction  = loop.linlin(0, 1, freeSelf.id, doNothing.id)
 
-    val envFreq   = Dbufrd(envBuf, Dseries(0, 4, inf), loop = loop)
-    val envClar   = Dbufrd(envBuf, Dseries(1, 4, inf), loop = loop)
-    def envDur()  = Dbufrd(envBuf, Dseries(2, 4, inf), loop = loop)  // def!
-    val envShp    = Dbufrd(envBuf, Dseries(3, 4, inf), loop = loop)
-    val freq      = DemandEnvGen.ar(levels = envFreq, durs = envDur(), shapes = envShp, doneAction = doneAction)
-    val clar      = DemandEnvGen.ar(levels = envClar, durs = envDur(), shapes = stepShape.id)
+    val pitchFreq = Dbufrd(pitchBuf, Dseries(0, 4, inf), loop = loop)
+    val pitchClar = Dbufrd(pitchBuf, Dseries(1, 4, inf), loop = loop)
+    def pitchDur()= Dbufrd(pitchBuf, Dseries(2, 4, inf), loop = loop)  // def!
+    val pitchShp  = Dbufrd(pitchBuf, Dseries(3, 4, inf), loop = loop)
+    val freq      = DemandEnvGen.ar(levels = pitchFreq, durs = pitchDur(), shapes = pitchShp, doneAction = doneAction)
+    val clar      = DemandEnvGen.ar(levels = pitchClar, durs = pitchDur(), shapes = stepShape.id)
 //    freq.poll(2, label = "f")
 //    clar.poll(2, label = "c")
 
-    val freqL = Gate.ar(freq, clar)
-    val piano = pianoFunc(freqL) * LagUD.ar(clar, 0.02, 0.1)
-    val resyn = Mix.mono(verb(piano)) * "resynthAmp".kr(1)
+    val onsetsBuf = "onsetsBuf".ir
+    val onsetsDur = Dbufrd(onsetsBuf, Dseries(0, 1, inf), loop = loop)
+    val onsetsEnv = DemandEnvGen.ar(levels = Dseq(Seq(1, 0), inf), durs = onsetsDur, shapes = stepShape.id)
+// onsetsEnv.poll(10)
+    val onsets    = onsetsEnv absdif Delay1.ar(onsetsEnv)
+
+    val freqL         = Gate.ar(freq, clar)
+    val piano         = pianoFunc(freqL) * LagUD.ar(clar, 0.02, 0.1)
+    val pitchResynth  = Mix.mono(verb(piano))
+    val onsetsResynth = Mix.mono(clickFunc(onsets))
+    val resyn = (pitchResynth + onsetsResynth) * "resynthAmp".kr(1)
 
     val sig: GE = Seq(disk, resyn)
 
@@ -348,6 +384,20 @@ posIdx = 0  // XXX TODO
       Ringz.ar(in = exc, freq = freq.max(30) * (i + 1), attack = Rand(1.0, 3.0), decay = Rand(0.7, 0.9))
     }
   }
+
+  private def clickFunc(trig: GE): GE = {
+    import ugen._
+    val p = 15 // number of partials per channel per 'cymbal'.
+    val f1 = 1433 * 0.5f // 555; // 500 + 2000.0.rand;
+    val f2 = 311 * 0.5f // 3555; // 8000.0.rand;
+    Vector.fill(2) {
+      val spec = KlangSpec.fill(p) {
+        (Constant(f1) + (math.random * f2), 1.0, 1.0)
+      }
+      Klank.ar(spec, Decay.ar(trig, 0.004) * WhiteNoise.ar(0.03))
+    }
+  }
+
 
   private def verb(in: GE): GE = {
     import ugen._

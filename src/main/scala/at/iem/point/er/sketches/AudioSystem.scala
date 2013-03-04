@@ -20,6 +20,7 @@ object AudioSystem {
   lazy val defaultConfig = {
     val cfg       = synth.Server.Config()
     cfg.transport = TCP
+    cfg.port      = 57109
     cfg.build
   }
 }

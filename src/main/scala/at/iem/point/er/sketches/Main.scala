@@ -4,13 +4,13 @@ import java.io.File
 import annotation.tailrec
 import de.sciss.sonogram.SimpleSonogramOverviewManager
 import javax.swing.WindowConstants
-import swing.{Button, MainFrame, Orientation, BoxPanel, BorderPanel, Component, Frame, SimpleSwingApplication, Swing}
+import swing.{MainFrame, Slider, BorderPanel, BoxPanel, Orientation, Component, Button, Frame, Swing, SimpleSwingApplication}
 import Swing._
 import de.sciss.dsp.ConstQ
 import GUI.Implicits._
 import de.sciss.synth
 import synth.io.AudioFile
-import scala.Some
+import swing.event.ValueChanged
 
 object Main extends SimpleSwingApplication {
   val name = "PointLib"
@@ -35,7 +35,7 @@ object Main extends SimpleSwingApplication {
   def onsets_=(seq: OnsetsAnalysis.PayLoad) {
     _onsets = seq
     sono.onsetsOverlay = seq
-//    playerViewOption.foreach(_.onsets = seq)
+    playerViewOption.foreach(_.onsets = seq)
   }
 
   lazy val top: Frame = {
@@ -88,7 +88,6 @@ object Main extends SimpleSwingApplication {
     }
 
     lazy val onsetsSettingsFrame = {
-      import synth._
       val oCfg = OnsetsAnalysis.Config()
       oCfg.input = f
 
@@ -174,8 +173,26 @@ object Main extends SimpleSwingApplication {
 //      case MouseEntered(_, pt, mod) => sonaMouse(pt, mod)
 //    }
 
+    val ggBoost = new Slider {
+      orientation = Orientation.Vertical
+      min   = 0
+      max   = 200
+      value = 100
+//      paintTicks = true
+      peer.putClientProperty("JComponent.sizeVariant", "small")
+      listenTo(this)
+      reactions += {
+        case ValueChanged(_) =>
+          import synth._
+          sono.boost = value.linlin(0, 200, -24, 24).dbamp
+      }
+    }
+
     val box = new BorderPanel {
-      add(playerView.axis, BorderPanel.Position.North)
+      add(new BoxPanel(Orientation.Horizontal) {
+        contents += playerView.axis
+        contents += HStrut(ggBoost.preferredSize.width)
+      }, BorderPanel.Position.North)
       add(view, BorderPanel.Position.Center)
       add(new BoxPanel(Orientation.Horizontal) {
 //        contents += ggStatus
@@ -187,6 +204,7 @@ object Main extends SimpleSwingApplication {
         contents += ggPitch
         contents += ggOnsets
       }, BorderPanel.Position.South)
+      add(ggBoost, BorderPanel.Position.East)
     }
 
     new MainFrame {
