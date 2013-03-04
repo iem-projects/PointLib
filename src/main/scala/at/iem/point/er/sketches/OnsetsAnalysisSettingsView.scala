@@ -41,10 +41,13 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
 //
 //  private def peakThresh: Float = b.peakThresh.ampdb
 //  private def peakThresh_=(value: Float) { b.peakThresh = value.dbamp }
-//
-//  private def inputGain: Float = b.inputGain.ampdb
-//  private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
-//
+
+  private def inputGain: Float = b.inputGain.ampdb
+  private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
+
+  private def noiseFloor: Float = b.noiseFloor.ampdb
+  private def noiseFloor_=(value: Float) { b.noiseFloor = value.dbamp }
+
 //  private def maxSpread: Float = b.maxFreqSpread * 100
 //  private def maxSpread_=(value: Float) { b.maxFreqSpread = value / 100 }
 //
@@ -59,14 +62,12 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     List(
       float("Threshold:", "dB")(b.thresh _)(b.thresh = _),
       setTimeRes,
-      setFFTSize
-//      int("Median:")                     (b.median     _)(b.median     = _),
-//      float("Amplitude threshold:", "dB")(ampThresh    _)(ampThresh    = _),
-//      float("Input gain:",          "dB")(inputGain    _)(inputGain    = _),
-//      float("Maximum freq spread:", "%") (maxSpread    _)(maxSpread    = _),
-//      float("Maximum freq slope:",  "%") (maxSlope     _)(maxSlope     = _),
-//      float("Minimum duration:",    "ms")(b.trajMinDur _)(b.trajMinDur = _),
-//      float("Maximum gap:",         "ms")(b.trajMaxGap _)(b.trajMaxGap = _)
+      setFFTSize,
+      int("Median:")               (b.median   _)(b.median   = _),
+      int("Min Gap:")              (b.minGap   _)(b.minGap   = _),
+      float("Input gain:",    "dB")(inputGain  _)(inputGain  = _),
+      float("Noise floor:",   "dB")(noiseFloor _)(noiseFloor = _),
+      float("Decay:",         "s") (b.decay    _)(b.decay    = _)
     )
   }
 
