@@ -1,4 +1,4 @@
-name := "eh-sketches"
+name := "ms-sketches"
 
 version := "0.0.1-SNAPSHOT"
 
@@ -21,7 +21,7 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:impli
 retrieveManaged := true
 
 initialCommands in console :=
-"""import at.iem.point.eh.sketches._
+"""import at.iem.point.ms.sketches._
   |import scalax.chart._
   |import scalax.chart.Charting._
 """.stripMargin

@@ -3,9 +3,7 @@ package at.iem.point.eh.sketches
 import annotation.tailrec
 
 object ChordUtil {
-  /**
-   * Tries to find the chords by clustering a given sequence of notes.
-   */
+  /** Tries to find the chords by clustering a given sequence of notes. */
   def findChords(notes: IIdxSeq[OffsetNote], minPoly: Int = 2, offsetTolerance: Double = 0.1,
                  stopTolerance: Double = 10.0): IIdxSeq[Chord] = {
     val b = IIdxSeq.newBuilder[Chord]
@@ -18,7 +16,7 @@ object ChordUtil {
       // includes the head note itself.
       val (fit1, rest1) = ns.span(n => math.abs(n.offset - h.offset) <= offsetTolerance && n.offset < h.stop)
       // then from those notes that fit wrt offset, filter those which satisfy the
-      // stop tolerance.                                                                                                                            s, dur =
+      // stop tolerance.
       val (fit, rest2)  = fit1.span(n => math.abs(n.stop - h.stop ) <= stopTolerance  )
       // if the minimum polyphony is found, add a new chord, and glue the two rest bins together
       val next = if (fit.size >= minPoly) {
@@ -30,5 +28,13 @@ object ChordUtil {
     }
     loop(notes)
     b.result()
+  }
+
+  /** Tries to find harmonic constellations which are vertical structures of a minimum
+    * number of voices and duration
+    */
+  def findHarmonicFields(notes: IIdxSeq[OffsetNote], minPoly: Int = 2, minDuration: Double = 0.1): IIdxSeq[Chord] = {
+
+    ???
   }
 }

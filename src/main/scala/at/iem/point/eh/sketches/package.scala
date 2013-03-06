@@ -103,7 +103,7 @@ package object sketches {
   }
 
   implicit final class RichSequence(val sq: midi.Sequence) extends AnyVal {
-    def notes: IIdxSeq[OffsetNote] = sq.tracks.flatMap(_.notes)
+    def notes: IIdxSeq[OffsetNote] = sq.tracks.flatMap(_.notes).sortBy(_.offset)
   }
 
   implicit final class RichTrack(val t: midi.Track) extends AnyVal {
