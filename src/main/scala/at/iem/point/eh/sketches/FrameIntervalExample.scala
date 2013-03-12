@@ -32,50 +32,52 @@ object FrameIntervalExample extends App {
   
   lazy val _sumSnippets   = true
 
-  def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets) { defer {
-    ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
-
-    val snippetSet  = mode match {
-      case StaticChords(sz) => staticChords(sz)
-      case Improvisation(_) => improvSnippets.last :: Nil
-    }
-    val numSnippets = if (sumSnippets) 1 else snippetSet.size
-    val infos0      = snippetSet.map(idx =>
-      frameIntervalHisto(snippetIdx = idx, constrainSize = mode.filter, lowTolerance = mode.isImprov)
-    )
-    val infos       = if (sumSnippets && infos0.size > 1) infos0.reduce(sumInfos) :: Nil else infos0
-    val maxX        = infos.map(_.histo.keys.max).max.semitones + 1 // plus one, because otherwise last bar is shown truncated
-    val maxY        = infos.map(_.histo.values.max).max
-    val charts      = infos.map(mkChart(_))
-    charts.foreach { c =>
-      setMaxX(c, maxX)
-      setMaxY(c, maxY)
-    }
-    val numCols     = math.ceil(math.sqrt(numSnippets)).toInt
-    val numRows     = (numSnippets + numCols - 1) / numCols
-
-    val panel = new GridPanel(numRows, numCols) {
-      vGap  = 24
-      hGap  = 24
-      contents ++= charts.map(c => Component.wrap(new ChartPanel(c.peer, false))) // useBuffer = false for PDF export
-    }
-
-    val intervalTitle = if (allIntervals) "Interval Layer" else "Frame Interval"
-
-    val chordTitle = mode match {
-      case StaticChords(sz)         => s"static chords of size ${sz}"
-      case Improvisation(None)      => s"all chords in an improvisation"
-      case Improvisation(Some(sz))  => s"chords of size ${sz} in an improvisation"
-    }
-
-    val frame = new Frame {
-      title = s"${intervalTitle} Histograms for ${chordTitle}"
-      contents = panel
-      PDFSupport.addMenu(peer, panel.peer :: Nil)
-      pack().centerOnScreen()
-      open()
-    }
-  }}
+  def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets) {
+//    defer {
+//      ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
+//
+//      val snippetSet  = mode match {
+//        case StaticChords(sz) => staticChords(sz)
+//        case Improvisation(_) => improvSnippets.last :: Nil
+//      }
+//      val numSnippets = if (sumSnippets) 1 else snippetSet.size
+//      val infos0      = snippetSet.map(idx =>
+//        frameIntervalHisto(snippetIdx = idx, constrainSize = mode.filter, lowTolerance = mode.isImprov)
+//      )
+//      val infos       = if (sumSnippets && infos0.size > 1) infos0.reduce(sumInfos) :: Nil else infos0
+//      val maxX        = infos.map(_.histo.keys.max).max.semitones + 1 // plus one, because otherwise last bar is shown truncated
+//      val maxY        = infos.map(_.histo.values.max).max
+//      val charts      = infos.map(mkChart(_))
+//      charts.foreach { c =>
+//        setMaxX(c, maxX)
+//        setMaxY(c, maxY)
+//      }
+//      val numCols     = math.ceil(math.sqrt(numSnippets)).toInt
+//      val numRows     = (numSnippets + numCols - 1) / numCols
+//
+//      val panel = new GridPanel(numRows, numCols) {
+//        vGap  = 24
+//        hGap  = 24
+//        contents ++= charts.map(c => Component.wrap(new ChartPanel(c.peer, false))) // useBuffer = false for PDF export
+//      }
+//
+//      val intervalTitle = if (allIntervals) "Interval Layer" else "Frame Interval"
+//
+//      val chordTitle = mode match {
+//        case StaticChords(sz)         => s"static chords of size ${sz}"
+//        case Improvisation(None)      => s"all chords in an improvisation"
+//        case Improvisation(Some(sz))  => s"chords of size ${sz} in an improvisation"
+//      }
+//
+//      val frame = new Frame {
+//        title = s"${intervalTitle} Histograms for ${chordTitle}"
+//        contents = panel
+//        PDFSupport.addMenu(peer, panel.peer :: Nil)
+//        pack().centerOnScreen()
+//        open()
+//      }
+//    }
+  }
   
   def sumInfos(a: Info, b: Info): Info = {
     require((a.snippets intersect b.snippets).isEmpty)
@@ -98,27 +100,28 @@ object FrameIntervalExample extends App {
    * @return                the calculated information
    */
   def frameIntervalHisto(snippetIdx: Int, constrainSize: Option[Int], allIntervals: Boolean = false, lowTolerance: Boolean = false): Info = {
-    val notes     = loadSnippet(snippetIdx).notes
-    val chords0   = ChordUtil.findChords(notes, offsetTolerance = if (lowTolerance) 0.03 else 0.1,
-                                                stopTolerance   = if (lowTolerance) 0.5 else 10.0)
-    val chords    = constrainSize match {
-      case Some(sz) => chords0.filter(_.size == sz)
-      case _ => chords0
-    }
-    val numChords = chords.size
-//    val fi        = chords.map(_.frameInterval)
-    val fi        = if (allIntervals) {
-      chords.flatMap(_.layeredIntervals.map(_.modOctave))
-    } else {
-      chords.map(_.frameInterval.modOctave)
-    }
-    val fih       = fi.histogram
-    val voices = {
-      val set = chords.map(_.size).toSet
-      if (set.size == 1) set.head :: Nil else set.toList.sorted
-    }
-    Info(snippets = snippetIdx :: Nil, numChords = numChords, histo = fih, voices = voices,
-      allIntervals = allIntervals)
+//    val notes     = loadSnippet(snippetIdx).notes
+//    val chords0   = ChordUtil.findChords(notes, offsetTolerance = if (lowTolerance) 0.03 else 0.1,
+//                                                stopTolerance   = if (lowTolerance) 0.5 else 10.0)
+//    val chords    = constrainSize match {
+//      case Some(sz) => chords0.filter(_.size == sz)
+//      case _ => chords0
+//    }
+//    val numChords = chords.size
+////    val fi        = chords.map(_.frameInterval)
+//    val fi        = if (allIntervals) {
+//      chords.flatMap(_.layeredIntervals.map(_.modOctave))
+//    } else {
+//      chords.map(_.frameInterval.modOctave)
+//    }
+//    val fih       = fi.histogram
+//    val voices = {
+//      val set = chords.map(_.size).toSet
+//      if (set.size == 1) set.head :: Nil else set.toList.sorted
+//    }
+//    Info(snippets = snippetIdx :: Nil, numChords = numChords, histo = fih, voices = voices,
+//      allIntervals = allIntervals)
+    ???
   }
 
   def setMaxY(chart: XYChart, i: Int) {

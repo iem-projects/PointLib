@@ -16,9 +16,11 @@ object Message {
       case sm: j.ShortMessage =>
         val channel = sm.getChannel
         (sm.getCommand: @switch) match {
-          case NOTE_ON  =>
+          case NOTE_ON if sm.getData2 > 0 =>
             NoteOn (channel, sm.getData1, sm.getData2)
           case NOTE_OFF =>
+            NoteOff (channel, sm.getData1, sm.getData2)
+          case NOTE_ON /* if sm.getData2 == 0 */ =>   // retarded MIDI spec: NoteOn with velocity 0 replaces NoteOff
             NoteOff (channel, sm.getData1, sm.getData2)
           case _ => unknownMessage(m)
         }

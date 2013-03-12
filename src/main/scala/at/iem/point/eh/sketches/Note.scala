@@ -59,6 +59,16 @@ final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, du
     s"${productPrefix}(${pitch}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
   }
 
+  def replaceStart(newOffset: Double): OffsetNote = {
+    val newDuration = duration - (newOffset - offset)
+    copy(offset = newOffset, duration = newDuration)
+  }
+
+  def replaceStop(newStop: Double): OffsetNote = {
+    val newDuration = newStop - offset
+    copy(duration = newDuration)
+  }
+
   def offsetString: String = s"${offset.roundSecondsToMillis}s"
 
   def stop: Double = offset + duration

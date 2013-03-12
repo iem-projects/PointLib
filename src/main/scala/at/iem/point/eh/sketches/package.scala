@@ -23,35 +23,26 @@ package object sketches {
     def name: String = f.getName
   }
 
-  var recPath = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
-  lazy val snippetFiles: Map[Int, File] = {
-    val b   = Map.newBuilder[Int, File]
-    val Pat = "snippet (\\d+).mid".r
-    def loop(d: File) {
-      d.filesOption.getOrElse(Nil).foreach { f =>
-        if (f.isFile) f.name match {
-          case Pat(num) => b += num.toInt -> f
-          case _ =>
-        } else loop(f)
-      }
-    }
-    loop(recPath)
-    b.result()
-  }
+  var recPath = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "mattias_skoeld"
+//  lazy val snippetFiles: Map[Int, File] = {
+//    val b   = Map.newBuilder[Int, File]
+//    val Pat = "snippet (\\d+).mid".r
+//    def loop(d: File) {
+//      d.filesOption.getOrElse(Nil).foreach { f =>
+//        if (f.isFile) f.name match {
+//          case Pat(num) => b += num.toInt -> f
+//          case _ =>
+//        } else loop(f)
+//      }
+//    }
+//    loop(recPath)
+//    b.result()
+//  }
 
-  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
+//  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
 
-  // maps voices to snippet indices
-  lazy val staticChords = Map(
-    2 -> List(11, 12, 13),
-    3 -> List(14, 15, 16),
-    4 -> List(18, 19, 20),
-    5 -> List(46),
-    6 -> List(21, 22, 23)
-  )
-
-  // snippet indices of free improvisation sets
-  lazy val improvSnippets = 9 :: 48 :: Nil
+  def loadDefault(raw: Boolean = false): midi.Sequence =
+    midi.Sequence.read(recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid")
 
   implicit final class RichInt(val i: Int) extends AnyVal {
     def asPitch: Pitch = new Pitch(i)
