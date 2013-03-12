@@ -7,11 +7,12 @@ import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
 import java.awt.Color
 
 object HarmonicFields extends App {
+  val raw           = false
   val weighted      = true
   val allIntervals  = true
   val writeOut      = true
 
-  val f   = loadDefault(raw = false)
+  val f   = loadDefault(raw = raw)
   val n   = f.notes
   val nf  = ChordUtil.findHarmonicFields(n)
 

@@ -1,15 +1,12 @@
 package at.iem.point.eh.sketches.midi
 
+import impl.{TrackImpl => Impl}
 import collection.immutable.{IndexedSeq => IIdxSeq}
 
+object Track {
+  def apply(events: IIdxSeq[Event], tickRate: TickRate): Track = Impl(events, tickRate)
+}
 trait Track {
-  def ticks: Long
   def events: IIdxSeq[Event]
-//  def notes: IIdxSeq[OffsetNote]
-  def sequence: Sequence
-
-  def schoko =
-    """
-      |hallo
-    """.stripMargin
+  def tickRate: TickRate
 }

@@ -64,6 +64,11 @@ object Message {
             val microsPerQ  = ((arr(0) & 0xFF) << 16) | ((arr(1) & 0xFF) << 8) | (arr(2) & 0xFF)
             SetTempo(microsPerQ)
 
+//          case TrackName.tpe =>
+//            val arr = mm.getData
+//            require(arr(0) == arr.length - 1)
+
+
           case _ => unknownMessage(m)
         }
 
@@ -209,5 +214,12 @@ object MetaMessage {
       res
     }
   }
+
+//  object TrackName {
+//    final val tpe = 0x03
+//  }
+//  final case class TrackName(name: String) extends MetaMessage {
+//
+//  }
 }
 sealed trait MetaMessage extends Message

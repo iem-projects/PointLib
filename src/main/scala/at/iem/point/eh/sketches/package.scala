@@ -99,7 +99,7 @@ package object sketches {
 
   implicit final class RichTrack(val t: midi.Track) extends AnyVal {
     def notes: IIdxSeq[OffsetNote] = {
-      val r     = t.sequence.tickRate
+      val r     = t.tickRate
       val b     = IIdxSeq.newBuilder[OffsetNote]
       val wait  = mutable.Map.empty[(Int, Int), (Double, midi.NoteOn)]
       t.events.foreach {
