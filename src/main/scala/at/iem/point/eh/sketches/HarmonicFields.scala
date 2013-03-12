@@ -9,10 +9,15 @@ import java.awt.Color
 object HarmonicFields extends App {
   val weighted      = true
   val allIntervals  = true
+  val writeOut      = true
 
   val f   = loadDefault(raw = false)
   val n   = f.notes
   val nf  = ChordUtil.findHarmonicFields(n)
+
+  if (writeOut) {
+
+  }
 
   val iv  = nf.flatMap { ch =>
     val res = if (allIntervals) ch.allIntervals else ch.layeredIntervals

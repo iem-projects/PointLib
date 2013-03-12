@@ -25,6 +25,9 @@ object Sequence {
   def read(file: File): Sequence = {
     Impl.fromJava(j.MidiSystem.getSequence(file))
   }
+
+  /** Creates a new sequence from a given list of tracks */
+  def apply(tracks: IIdxSeq[Track]): Sequence = Impl(tracks)
 }
 trait Sequence {
   /**
