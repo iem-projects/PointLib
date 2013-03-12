@@ -94,20 +94,22 @@ package object sketches {
   }
 
   implicit final class RichSequence(val sq: midi.Sequence) extends AnyVal {
-    def notes: IIdxSeq[OffsetNote] = sq.tracks.flatMap(_.notes).sortBy(_.offset)
+    def notes: IIdxSeq[OffsetNote] = notes(-1)
+    def notes(channel: Int): IIdxSeq[OffsetNote] = sq.tracks.flatMap(_.notes(channel)).sortBy(_.offset)
   }
 
   implicit final class RichTrack(val t: midi.Track) extends AnyVal {
-    def notes: IIdxSeq[OffsetNote] = {
+    def notes: IIdxSeq[OffsetNote] = notes(-1)
+    def notes(channel: Int): IIdxSeq[OffsetNote] = {
       val r     = t.tickRate
       val b     = IIdxSeq.newBuilder[OffsetNote]
       val wait  = mutable.Map.empty[(Int, Int), (Double, midi.NoteOn)]
       t.events.foreach {
-        case midi.Event(tick, on @ midi.NoteOn(ch, pitch, _)) =>
+        case midi.Event(tick, on @ midi.NoteOn(ch, pitch, _)) if (channel == -1 || channel == ch) =>
           val startTime = tick / r.ticksPerSecond
           wait += (ch, pitch) -> (startTime, on)
 
-        case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) =>
+        case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) if (channel == -1 || channel == ch) =>
           val stopTime  = tick / r.ticksPerSecond
           wait.remove(ch -> pitch).foreach { case (startTime, on) =>
             b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch.asPitch, duration = stopTime - startTime,
