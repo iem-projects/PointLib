@@ -34,14 +34,17 @@ object ChordUtil {
   /** Tries to find harmonic constellations which are vertical structures of a minimum
     * number of voices and duration
     */
-  def findHarmonicFields(notes: IIdxSeq[OffsetNote], minPoly: Int = 2, minDuration: Double = 0.1): IIdxSeq[OffsetNote] = {
+  def findHarmonicFields(notes: IIdxSeq[OffsetNote], minPoly: Int = 2, minDuration: Double = 0.1): IIdxSeq[Chord] = {
     if (notes.isEmpty) return Vector.empty
 
     /*
     Algorithm:
     - place all notes in an interval tree according to their offsets and durations
-    - traverse tree and eliminate intervals which are too short
-
+    - traverse tree and eliminate intervals which are too short,
+      and truncate them to better align with neighbouring notes
+    - assume a segmentation of the timeline by all remaining note starts and ends
+    - collect the overlapping notes for the segments thus obtains
+    - convert to chords and keep those which satisfy the minimum polyphony
      */
 
 //    implicit def noteInterval(n: OffsetNote) = (n.offset, n.stop)
@@ -55,12 +58,11 @@ object ChordUtil {
 //    }
 
     val tAll = notes.filter(_.duration >= minDuration)
-    var pos = 0.0
-    var filter = Vector.empty[OffsetNote]
+    var tFlt = Vector.empty[OffsetNote]
     tAll.iterator.foreach { n =>
       val start   = n.offset
       val minStop = start + minDuration
-      filter      = filter.collect {
+      tFlt      = tFlt.collect {
         // no overlap, keep as is
         case n1 if n1.stop <= start => n1
 
@@ -76,9 +78,28 @@ object ChordUtil {
             n1.replaceStart(start) // truncate beginning to align with current note's offset
           }
       }
-      filter :+= n
+      tFlt :+= n
     }
 
-    filter
+    /*
+    - assume a segmentation of the timeline by all remaining note starts and ends
+    - collect the overlapping notes for the segments thus obtains
+    - convert to chords and keep those which satisfy the minimum polyphony
+    */
+
+    val stabs = tFlt.flatMap(n => n.offset :: n.stop :: Nil).toSet.toIndexedSeq.sorted
+    val res   = Vector.newBuilder[Chord]
+    val pairs = stabs.sliding(2, 1)
+    pairs.foreach {
+      case IIdxSeq(start, stop) =>
+        val segm = tFlt.filter(n => n.offset <= start && n.stop >= stop).map { n =>
+          n.replaceStart(start).replaceStop(stop)
+        }
+        if (segm.size >= minPoly) {
+          res += Chord(segm.sortBy(_.pitch))
+        }
+    }
+
+    res.result()
   }
 }
