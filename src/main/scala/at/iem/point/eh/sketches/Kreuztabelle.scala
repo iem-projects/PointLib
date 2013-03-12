@@ -8,7 +8,7 @@ import org.jfree.chart.renderer.xy.XYBlockRenderer
 import java.awt.{Font, Graphics2D, Color}
 import org.jfree.chart.axis.NumberAxis
 import scalax.chart.XYChart
-import swing.{Component, Frame, Swing}
+import swing.{GridPanel, Component, Frame, Swing}
 import Swing._
 import javax.swing.WindowConstants
 
@@ -28,7 +28,7 @@ object Kreuztabelle extends App {
 
     nf.foreach { ch =>
       val iv = if (allIntervals) ch.allIntervals else ch.layeredIntervals
-      for ((i,ii) <- iv.zipWithIndex; (j,jj) <- iv.zipWithIndex if ii != jj) {
+      for ((i,ii) <- iv.zipWithIndex; (j,jj) <- iv.zipWithIndex if ii < jj) {
         val x = i.semitones % 12
         val y = j.semitones % 12
 //        val c = m.get(y, x) + 1
@@ -71,7 +71,8 @@ object Kreuztabelle extends App {
     plot.setBackgroundPaint(Color.lightGray)
     plot.setDomainGridlinesVisible(false)
     plot.setRangeGridlinePaint(Color.white)
-    val chart     = new JFreeChart("Inner chord interval cross correlation", plot)
+    val title = s"File: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval cross corr."
+    val chart     = new JFreeChart(title, plot)
     chart.removeLegend()
     chart.setBackgroundPaint(Color.white)
     val wrap = new XYChart {
@@ -81,44 +82,59 @@ object Kreuztabelle extends App {
   }
 
   def run() {
-    val (chart, mp, m) = analyze()
-    val fnt = new Font("SansSerif", Font.BOLD, 18)
-    val panel = new Component {
-      override lazy val peer = new ChartPanel(chart.peer, false) with SuperMixin
-      override protected def paintComponent(g: Graphics2D) {
-        super.paintComponent(g)
-        // g.drawString("Schoko", 10, 30)
-        val xoff    = 49
-        val right   = 7
-        val yoff    = 28
-        val bottom  = 39
-        val w       = peer.getWidth - (xoff + right)
-        val h       = peer.getHeight - (yoff + bottom)
+    val panes = for {
+      raw          <- Seq(false, true)
+      allIntervals <- Seq(true, false)
+    } yield {
+      val (chart, mp, m) = analyze(raw = raw, allIntervals = allIntervals)
+      val fnt = new Font("SansSerif", Font.BOLD, 18)
+      val panel = new Component {
+        override lazy val peer = new ChartPanel(chart.peer, false) with SuperMixin
+        override protected def paintComponent(g: Graphics2D) {
+          super.paintComponent(g)
+          // g.drawString("Schoko", 10, 30)
+          val xoff    = 49
+          val right   = 7
+          val yoff    = 28
+          val bottom  = 39
+          val w       = peer.getWidth - (xoff + right)
+          val h       = peer.getHeight - (yoff + bottom)
 
-        if (DEBUG) {
-          g.setColor(Color.red)
-          g.drawLine(xoff, yoff, xoff + 100, yoff)
-          g.drawLine(xoff, yoff, xoff, yoff + 100)
-          g.drawLine(xoff + w - 1, yoff + h - 1, xoff + w - 100, yoff + h - 1)
-          g.drawLine(xoff + w - 1, yoff + h - 1, xoff + w - 1, yoff + h - 100)
-        }
+          if (DEBUG) {
+            g.setColor(Color.red)
+            g.drawLine(xoff, yoff, xoff + 100, yoff)
+            g.drawLine(xoff, yoff, xoff, yoff + 100)
+            g.drawLine(xoff + w - 1, yoff + h - 1, xoff + w - 100, yoff + h - 1)
+            g.drawLine(xoff + w - 1, yoff + h - 1, xoff + w - 1, yoff + h - 100)
+          }
 
-        g.setFont(fnt)
-        val fm = g.getFontMetrics
-        for (i <- 0 until 12) {
-          for (j <- 0 until 12) {
-            g.setColor(if (m.get(i, j) > 0.5) Color.black else Color.white)
-            val str = mp(i)(j).toString
-            val x   = (i + 0.5) / 12 * w - (fm.stringWidth(str) * 0.5) + xoff
-            val y   = (1.0 - ((j + 0.5) / 12)) * h + 6 /* + (fm.getAscent * 0.5) */ + yoff
-            g.drawString(str, x.toFloat, y.toFloat)
+          g.setFont(fnt)
+          val fm = g.getFontMetrics
+          for (i <- 0 until 12) {
+            for (j <- 0 until 12) {
+              g.setColor(if (m.get(i, j) > 0.5) Color.black else Color.white)
+              val cnt = mp(i)(j)
+              if (cnt > 0) {
+                val str = cnt.toString
+                val x   = (i + 0.5) / 12 * w - (fm.stringWidth(str) * 0.5) + xoff
+                val y   = (1.0 - ((j + 0.5) / 12)) * h + 6 /* + (fm.getAscent * 0.5) */ + yoff
+                g.drawString(str, x.toFloat, y.toFloat)
+              }
+            }
           }
         }
       }
+      panel
     }
+
+    val panel = new GridPanel(2, 2) {
+      contents ++= panes
+    }
+
     val fr = new Frame {
+      title = "Kreuztabelle"
       contents = panel
-      size = (800, 800)
+      size = (1000, 1000)
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
       centerOnScreen()
     }
