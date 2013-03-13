@@ -13,10 +13,11 @@ import javax.swing.WindowConstants
 object HarmonicFields extends App {
   Swing.onEDT(run())
 
-  def analyse(raw: Boolean = false, weighted: Boolean = false, allIntervals: Boolean = false): XYChart = {
+  def analyse(raw: Boolean = false, weighted: Boolean = false, allIntervals: Boolean = false, chordSize: Int = -1): XYChart = {
     val f   = loadDefault(raw = raw)
     val n   = f.notes
-    val nf  = ChordUtil.findHarmonicFields(n)
+    val nf0 = ChordUtil.findHarmonicFields(n)
+    val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)
 
     val iv  = nf.flatMap { ch =>
       val res = if (allIntervals) ch.allIntervals else ch.layeredIntervals
