@@ -11,9 +11,12 @@ import org.jfree.chart.title.TextTitle
 import javax.swing.WindowConstants
 
 object HarmonicFields extends App {
-  Swing.onEDT(run())
+  Swing.onEDT {
+    run(chordSize = -1, intervalClasses = true)
+  }
 
-  def analyse(raw: Boolean = false, weighted: Boolean = false, allIntervals: Boolean = false, chordSize: Int = -1): XYChart = {
+  def analyse(raw: Boolean = false, weighted: Boolean = false, allIntervals: Boolean = false,
+              intervalClasses: Boolean = false, chordSize: Int = -1): XYChart = {
     val f   = loadDefault(raw = raw)
     val n   = f.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
@@ -21,7 +24,11 @@ object HarmonicFields extends App {
 
     val iv  = nf.flatMap { ch =>
       val res = if (allIntervals) ch.allIntervals else ch.layeredIntervals
-      res.map(i => (i.semitones % 12, if (weighted) ch.avgDuration else 1.0))
+      res.map { i =>
+        val steps   = if (intervalClasses) i.`class`.steps else i.semitones % 12
+        val weight  = if (weighted) ch.avgDuration else 1.0
+        (steps, weight)
+      }
     }
 
     var ivm = Map.empty[Int, Double] withDefaultValue(0.0)
@@ -32,7 +39,7 @@ object HarmonicFields extends App {
     val data  = ivm.map { case (i, dur) => (i, dur) } .toXYSeriesCollection()
     val chart = XYBarChart(data, title =
       s"${if (raw) "Raw" else "Edited"} file: ${if (weighted) "weighted " else ""}" +
-      s"${if (allIntervals) "all" else "layered"} intervals"
+      s"${if (allIntervals) "all" else "layered"} ${if (intervalClasses) "interval classes" else "intervals"}"
     )
 
     chart.peer.removeLegend()
@@ -42,7 +49,7 @@ object HarmonicFields extends App {
     plot.getRenderer.setSeriesPaint(0, Color.darkGray)
 //    plot.getRenderer().setBarPainter(new StandardBarPainter())
     rangeX.setTickUnit(new NumberTickUnit(1))
-    rangeX.setRange(-0.5, 11.5)
+    rangeX.setRange(-0.5, (if (intervalClasses) 7 else 12) - 0.5)
     if (!weighted) {
       val rangeY  = plot.getRangeAxis.asInstanceOf[NumberAxis]
       rangeY.setTickUnit(new NumberTickUnit(1))
@@ -51,7 +58,7 @@ object HarmonicFields extends App {
     chart
   }
 
-  def run() {
+  def run(chordSize: Int = -1, intervalClasses: Boolean = false) {
     ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
 
     val charts = for {
@@ -60,7 +67,8 @@ object HarmonicFields extends App {
       weighted      <- Seq(false, true)
     }
     yield {
-      analyse(raw = raw, weighted = weighted, allIntervals = allIntervals)
+      analyse(raw = raw, weighted = weighted, allIntervals = allIntervals, intervalClasses = intervalClasses,
+        chordSize = chordSize)
     }
 
     val panel = new GridPanel(2, 4) {

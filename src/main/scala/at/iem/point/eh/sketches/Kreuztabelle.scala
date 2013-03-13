@@ -1,16 +1,18 @@
 package at.iem.point.eh.sketches
 
-import swing.{GridPanel, Component, Frame, Swing}
+import swing.{Component, Swing}
 import Swing._
-import javax.swing.WindowConstants
+import GUI._
 
 object Kreuztabelle extends App {
   val DEBUG = false
 
-  Swing.onEDT(run(-1))
+  Swing.onEDT {
+    run(chordSize = -1, intervalClasses = true)
+  }
 
   def analyze(raw: Boolean = false, allIntervals: Boolean = false,
-              chordSize: Int = -1): Component = {
+              intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
     val f   = loadDefault(raw = raw)
     val n   = f.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
@@ -22,11 +24,8 @@ object Kreuztabelle extends App {
     nf.foreach { ch =>
       val iv = if (allIntervals) ch.allIntervals else ch.layeredIntervals
       for ((i,ii) <- iv.zipWithIndex; (j,jj) <- iv.zipWithIndex if ii < jj) {
-        val x = i.semitones % 12
-        val y = j.semitones % 12
-//        val c = m.get(y, x) + 1
-//          if (c > max) max = c
-//        m.update(y, x, c)
+        val x = if (intervalClasses) i.`class`.steps else i.semitones % 12
+        val y = if (intervalClasses) j.`class`.steps else j.semitones % 12
         val xm = mp(x)
         val ym = mp(y)
         mp += x -> (xm + (y -> (xm(y) + 1)))
@@ -36,32 +35,21 @@ object Kreuztabelle extends App {
 
 //    println(mp)
 
-    val title0 = s"File: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval cross corr."
+    val title0 = s"File: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
     val title  = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
-    val panel  = ContinguencyChart(mp, 12, title)
+    val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel
   }
 
-  def run(chordSize: Int = -1) {
+  def run(chordSize: Int = -1, intervalClasses: Boolean = false) {
     val panes = for {
       raw          <- Seq(false, true)
       allIntervals <- Seq(true, false)
     } yield {
-      analyze(raw = raw, allIntervals = allIntervals, chordSize = chordSize)
+      analyze(raw = raw, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
     }
 
-    val panel = new GridPanel(2, 2) {
-      contents ++= panes
-    }
-
-    val fr = new Frame {
-      title = "Kreuztabelle"
-      contents = panel
-      size = (1000, 1000)
-      peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
-      centerOnScreen()
-    }
-    PDFSupport.addMenu(fr.peer, panel.peer :: Nil, usePrefSize = false)
-    fr.open()
+    val panel = panes.asGrid(2, 2)
+    frame("Kreuztabelle", panel, (1000, 1000))
   }
 }

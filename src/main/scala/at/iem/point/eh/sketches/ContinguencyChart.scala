@@ -13,6 +13,7 @@ object ContinguencyChart {
   private val DEBUG = false
 
   def apply(mp: Map[Int, Map[Int, Int]], size: Int, title: String): Component = {
+    val _size = size
     val m   = new MatrixSeries("Continguency", size, size)
 
     // normalize
@@ -74,14 +75,14 @@ object ContinguencyChart {
 
         g.setFont(fnt)
         val fm = g.getFontMetrics
-        for (i <- 0 until 12) {
-          for (j <- 0 until 12) {
+        for (i <- 0 until _size) {
+          for (j <- 0 until _size) {
             g.setColor(if (m.get(i, j) > 0.5) Color.black else Color.white)
             val cnt: Int = mp(i)(j)
             if (cnt > 0) {
               val str = cnt.toString
-              val x   = (i + 0.5) / 12 * w - (fm.stringWidth(str) * 0.5) + xoff
-              val y   = (1.0 - ((j + 0.5) / 12)) * h + 6 /* + (fm.getAscent * 0.5) */ + yoff
+              val x   = (i + 0.5) / _size * w - (fm.stringWidth(str) * 0.5) + xoff
+              val y   = (1.0 - ((j + 0.5) / _size)) * h + 6 /* + (fm.getAscent * 0.5) */ + yoff
               g.drawString(str, x.toFloat, y.toFloat)
             }
           }
