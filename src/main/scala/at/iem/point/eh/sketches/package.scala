@@ -4,9 +4,10 @@ import java.io.{IOException, File}
 import java.awt.EventQueue
 import java.text.DecimalFormat
 import java.math.RoundingMode
-import collection.{IterableLike, mutable}
+import collection.mutable
+import collection.generic.CanBuildFrom
+import de.sciss.midi
 import language.higherKinds
-import collection.generic.{CanBuildFrom, GenericTraversableTemplate}
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -44,7 +45,7 @@ package object sketches {
 //  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
 
   def loadDefault(raw: Boolean = false): midi.Sequence =
-    midi.Sequence.read(recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid")
+    midi.Sequence.readFile(recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid")
 
   implicit final class RichInt(val i: Int) extends AnyVal {
     def asPitch: Pitch = new Pitch(i)
@@ -139,16 +140,16 @@ package object sketches {
   implicit final class RichTrack(val t: midi.Track) extends AnyVal {
     def notes: IIdxSeq[OffsetNote] = notes(-1)
     def notes(channel: Int): IIdxSeq[OffsetNote] = {
-      val r     = t.tickRate
+      val r     = t.rate
       val b     = IIdxSeq.newBuilder[OffsetNote]
       val wait  = mutable.Map.empty[(Int, Int), (Double, midi.NoteOn)]
       t.events.foreach {
         case midi.Event(tick, on @ midi.NoteOn(ch, pitch, _)) if (channel == -1 || channel == ch) =>
-          val startTime = tick / r.ticksPerSecond
+          val startTime = tick / r.value
           wait += (ch, pitch) -> (startTime, on)
 
         case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) if (channel == -1 || channel == ch) =>
-          val stopTime  = tick / r.ticksPerSecond
+          val stopTime  = tick / r.value
           wait.remove(ch -> pitch).foreach { case (startTime, on) =>
             b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch.asPitch, duration = stopTime - startTime,
               velocity = on.velocity /*, release = off.velocity */)

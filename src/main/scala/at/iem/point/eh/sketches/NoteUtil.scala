@@ -1,5 +1,6 @@
 package at.iem.point.eh.sketches
 
+import de.sciss.midi
 import midi.{Track, TickRate}
 
 object NoteUtil {
@@ -9,7 +10,7 @@ object NoteUtil {
 
   def toTrack(notes: IIdxSeq[OffsetNote], channel: Int = 0)(implicit tickRate: TickRate): Track = {
     val events = notes.flatMap(_.toMIDI(channel))
-    Track(events, tickRate)
+    Track(events)
   }
 
   /** Cleans a list of notes by throwing away those under a given minimum duration,

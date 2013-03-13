@@ -1,5 +1,6 @@
 package at.iem.point.eh.sketches
 
+import de.sciss.midi
 import midi.TickRate
 
 sealed trait NoteLike {
@@ -78,7 +79,7 @@ final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, du
   def dropOffset: Note = Note(/* channel = channel, */ pitch = pitch, duration = duration, velocity = velocity)
 
   def toMIDI(channel: Int = 0)(implicit tickRate: TickRate): List[midi.Event] = {
-    val tps       = tickRate.ticksPerSecond
+    val tps       = tickRate.value
     val startTick = (offset * tps + 0.5).toLong
     val stopTick  = (stop   * tps + 0.5).toLong
     midi.Event(startTick, noteOn(channel)) :: midi.Event(stopTick, noteOff(channel)) :: Nil

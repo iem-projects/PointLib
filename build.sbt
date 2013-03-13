@@ -4,7 +4,7 @@ version := "0.0.1-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.1"
 
 homepage := Some(url("https://github.com/iem-projects/PointLib/"))
 
@@ -13,6 +13,7 @@ licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "contextsnake" % "0.1.1+",
   "de.sciss" %% "fingertree" % "1.4.+",
+  "de.sciss" %% "scalamidi" % "0.1.+",
   "com.github.wookietreiber" %% "scala-chart" % "latest.integration",
   "com.itextpdf" % "itextpdf" % "5.3.2"
 )
