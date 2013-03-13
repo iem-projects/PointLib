@@ -4,7 +4,9 @@ import java.io.{IOException, File}
 import java.awt.EventQueue
 import java.text.DecimalFormat
 import java.math.RoundingMode
-import collection.{mutable, breakOut}
+import collection.{IterableLike, mutable}
+import language.higherKinds
+import collection.generic.GenericTraversableTemplate
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -48,6 +50,23 @@ package object sketches {
     def asPitch: Pitch = new Pitch(i)
   }
 
+//  implicit final class RichIterableLike[A, CC[_], Repr <: IterableLike[A, Repr] with CC[A] with GenericTraversableTemplate[A, CC]](val it: Repr) extends AnyVal {
+//    def pairDiff(implicit num: Numeric[A]): Repr = {
+//      val b     = it.companion.newBuilder[A]
+//      val iter  = it.iterator
+//      if (iter.hasNext) {
+//        var pred = iter.next()
+//        while (iter.hasNext) {
+//          import num.mkNumericOps
+//          val succ = iter.next()
+//          b += succ - pred
+//          pred = succ
+//        }
+//      }
+//      b.result()
+//    }
+//  }
+
   implicit final class RichIterable[A](val it: Iterable[A]) extends AnyVal {
 //    def histogram(implicit ord: Numeric[A]): Map[A, Int] = histogram(ord.zero)
 //    def histogram(tolerance: A)(implicit ord: Numeric[A]): Map[A, Int] = {
@@ -58,11 +77,6 @@ package object sketches {
 //        val (bin)
 //      }
 //      b.result()
-//    }
-
-//    def pairDiff(implicit num: Numeric[A]): Iterable[A] = {
-//      import num.mkNumericOps
-//      it.sliding(2,1).map { case lo :+ hi :+ _ => hi - lo }
 //    }
 
     def meanVariance(implicit num: Fractional[A]): (A, A) = {
