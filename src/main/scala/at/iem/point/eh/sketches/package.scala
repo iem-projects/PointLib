@@ -60,6 +60,30 @@ package object sketches {
 //      b.result()
 //    }
 
+//    def pairDiff(implicit num: Numeric[A]): Iterable[A] = {
+//      import num.mkNumericOps
+//      it.sliding(2,1).map { case lo :+ hi :+ _ => hi - lo }
+//    }
+
+    def meanVariance(implicit num: Fractional[A]): (A, A) = {
+      var sum   = num.zero
+      var size  = num.zero
+      val one   = num.one
+      import num.mkNumericOps
+      it.foreach { e =>
+        sum  += e
+        size += one
+      }
+      val mean = sum / size
+      var vari = num.zero
+      it.foreach { e =>
+        val d = (e - mean)
+        vari += d * d
+      }
+
+      (mean, vari)
+    }
+
     def intervals(implicit ev: A <:< Pitch): IIdxSeq[DirectedInterval] =
       it.sliding(2,1).map({ case Seq(low, high) => high interval low }).toIndexedSeq
 

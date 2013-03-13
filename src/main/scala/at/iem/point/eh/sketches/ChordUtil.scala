@@ -47,47 +47,8 @@ object ChordUtil {
     - convert to chords and keep those which satisfy the minimum polyphony
      */
 
-//    implicit def noteInterval(n: OffsetNote) = (n.offset, n.stop)
-//    val tAll = RangedSeq[OffsetNote, Double](notes.filter(_.duration >= minDuration) : _*)
-//
-//    implicit final class RangedOps[Elem](tree: RangedSeq[Elem, Double]) extends Any {
-//      def nextAfter(point: Double): Option[Elem] = {
-//        val it = tree.filterIncludes(point -> Double.PositiveInfinity)
-//        if (it.hasNext) Some(it.next()) else None
-//      }
-//    }
-
-    val tAll = notes.filter(_.duration >= minDuration)
-    var tFlt = Vector.empty[OffsetNote]
-    tAll.iterator.foreach { n =>
-      val start   = n.offset
-      val minStop = start + minDuration
-      tFlt      = tFlt.collect {
-        // no overlap, keep as is
-        case n1 if n1.stop <= start => n1
-
-        // overlaps, but begins early enough
-        case n1 if start - n1.offset >= minDuration =>
-          if (n1.stop >= minStop) n1 else {
-            n1.replaceStop(start) // truncate end to align with current note's offset
-          }
-
-        // overlaps, but ends late enough
-        case n1 if n1.stop >= minStop =>
-          if (start - n1.offset >= minDuration) n1 else {
-            n1.replaceStart(start) // truncate beginning to align with current note's offset
-          }
-      }
-      tFlt :+= n
-    }
-
-    /*
-    - assume a segmentation of the timeline by all remaining note starts and ends
-    - collect the overlapping notes for the segments thus obtains
-    - convert to chords and keep those which satisfy the minimum polyphony
-    */
-
-    val stabs = tFlt.flatMap(n => n.offset :: n.stop :: Nil).toSet.toIndexedSeq.sorted
+    val tFlt  = NoteUtil.clean(notes, minDuration = minDuration)
+    val stabs = NoteUtil.stabbings(tFlt)
     val res   = Vector.newBuilder[Chord]
     val pairs = stabs.sliding(2, 1)
     pairs.foreach {
