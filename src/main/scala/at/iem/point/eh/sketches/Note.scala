@@ -1,5 +1,7 @@
 package at.iem.point.eh.sketches
 
+import de.sciss.midi
+
 sealed trait NoteLike {
 //  /**
 //   * MIDI channel (0 to 15)

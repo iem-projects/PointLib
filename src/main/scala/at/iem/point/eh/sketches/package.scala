@@ -5,6 +5,7 @@ import java.awt.EventQueue
 import java.text.DecimalFormat
 import java.math.RoundingMode
 import collection.{mutable, breakOut}
+import de.sciss.midi
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -39,7 +40,7 @@ package object sketches {
     b.result()
   }
 
-  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
+  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx).getPath)
 
   // maps voices to snippet indices
   lazy val staticChords = Map(
@@ -108,16 +109,16 @@ package object sketches {
 
   implicit final class RichTrack(val t: midi.Track) extends AnyVal {
     def notes: IIdxSeq[OffsetNote] = {
-      val r     = t.sequence.tickRate
+      val r     = t.rate // sequence.tickRate
       val b     = IIdxSeq.newBuilder[OffsetNote]
       val wait  = mutable.Map.empty[(Int, Int), (Double, midi.NoteOn)]
       t.events.foreach {
         case midi.Event(tick, on @ midi.NoteOn(ch, pitch, _)) =>
-          val startTime = tick / r.ticksPerSecond
+          val startTime = tick / r.value
           wait += (ch, pitch) -> (startTime, on)
 
         case midi.Event(tick, off @ midi.NoteOff(ch, pitch, _)) =>
-          val stopTime  = tick / r.ticksPerSecond
+          val stopTime  = tick / r.value
           wait.remove(ch -> pitch).foreach { case (startTime, on) =>
             b += OffsetNote(offset = startTime, /* channel = ch, */ pitch = pitch.asPitch, duration = stopTime - startTime,
               velocity = on.velocity /*, release = off.velocity */)
