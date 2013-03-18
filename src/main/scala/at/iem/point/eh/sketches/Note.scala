@@ -1,6 +1,7 @@
 package at.iem.point.eh.sketches
 
 import de.sciss.midi
+import midi.TickRate
 
 sealed trait NoteLike {
 //  /**
@@ -46,7 +47,7 @@ sealed trait NoteLike {
  */
 final case class Note(/* channel: Int, */ pitch: Pitch, duration: Double, velocity: Int /*, release: Int = 0 */) extends NoteLike {
   override def toString = {
-    s"${productPrefix}(${pitch}, dur = ${durationString}, vel = $velocity})"
+    s"$productPrefix($pitch, dur = $durationString, vel = $velocity})"
   }
 
   def withOffset(offset: Double): OffsetNote =
@@ -58,7 +59,17 @@ final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, du
   extends NoteLike {
 
   override def toString = {
-    s"${productPrefix}(${pitch}, off = ${offsetString}, dur = ${durationString}, vel = ${velocity})"
+    s"$productPrefix($pitch, off = $offsetString, dur = $durationString, vel = $velocity)"
+  }
+
+  def replaceStart(newOffset: Double): OffsetNote = {
+    val newDuration = duration - (newOffset - offset)
+    copy(offset = newOffset, duration = newDuration)
+  }
+
+  def replaceStop(newStop: Double): OffsetNote = {
+    val newDuration = newStop - offset
+    copy(duration = newDuration)
   }
 
   def offsetString: String = s"${offset.roundSecondsToMillis}s"
@@ -66,4 +77,11 @@ final case class OffsetNote(offset: Double, /* channel: Int, */ pitch: Pitch, du
   def stop: Double = offset + duration
 
   def dropOffset: Note = Note(/* channel = channel, */ pitch = pitch, duration = duration, velocity = velocity)
+
+  def toMIDI(channel: Int = 0)(implicit tickRate: TickRate): List[midi.Event] = {
+    val tps       = tickRate.value
+    val startTick = (offset * tps + 0.5).toLong
+    val stopTick  = (stop   * tps + 0.5).toLong
+    midi.Event(startTick, noteOn(channel)) :: midi.Event(stopTick, noteOff(channel)) :: Nil
+  }
 }

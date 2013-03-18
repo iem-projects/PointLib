@@ -24,7 +24,9 @@ package object sketches {
     def name: String = f.getName
   }
 
-  var recPath = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
+  var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
+  def inPath    = basePath / "in"
+  def outPath   = basePath / "rec"
   lazy val snippetFiles: Map[Int, File] = {
     val b   = Map.newBuilder[Int, File]
     val Pat = "snippet (\\d+).mid".r
@@ -36,7 +38,7 @@ package object sketches {
         } else loop(f)
       }
     }
-    loop(recPath)
+    loop(inPath)
     b.result()
   }
 
