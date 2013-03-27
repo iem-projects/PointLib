@@ -11,12 +11,12 @@ object Evolutions3 extends App {
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
   val ENTRY       = true    // model entry offsets
   val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
-  val ENTRY_SCALE = 1.5     // slow down factor if using entry modelling
+  val ENTRY_SCALE = 1.0 // 1.5     // slow down factor if using entry modelling
 
   val INNER       = true    // model inner vertical structure of chords (`true`) or just frame intervals (`false`)
   val GRAINS      = true    // model inner horizontal structure of chords (`true`) or just produce monolithic blocks (`false`)
 
-  val snippet   = improvSnippets.last  // staticChords(5).head
+  val snippet   = staticChords(6)(1) // improvSnippets.last  // staticChords(5).head
   val sq        = loadSnippet(snippet) // .head
   val notesIn0  = sq.notes
   val (_, h)    = NoteUtil.splitMelodicHarmonic(notesIn0)
@@ -118,7 +118,7 @@ object Evolutions3 extends App {
       val og = cg.minOffset
       val d  = oc - og
       Chord((c.notes zip ng).map { case (na, nb) =>
-        val d = c.minOffset
+//        val d = c.minOffset
         na.copy(offset = nb.offset + d, duration = nb.duration)
       })
     }
