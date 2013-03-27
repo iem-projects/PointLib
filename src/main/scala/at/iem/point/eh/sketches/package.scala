@@ -56,4 +56,21 @@ package object sketches {
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
   }
+
+  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) {
+    def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
+    def scramble(implicit random: util.Random): IIdxSeq[A] = {
+      ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>
+        val idx = random.nextInt(in.size)
+        in.patch(idx, Vector.empty, 1) -> (out :+ in(idx))
+      } ._2
+    }
+
+    def integrate(implicit num: Numeric[A]): IIdxSeq[A] = {
+      (Vector.empty[A] /: seq) { (res, elem) =>
+        val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
+        res :+ agg
+      }
+    }
+  }
 }
