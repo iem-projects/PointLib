@@ -1,12 +1,12 @@
 package at.iem.point.eh.sketches
 
 import scalax.chart.Charting._
-import swing.{Component, GridPanel, Swing, Frame}
-import Swing._
-import java.awt.{Color, GraphicsEnvironment}
+import swing.{Component, GridPanel, Frame}
+import java.awt.Color
 import org.jfree.chart.{ChartPanel, ChartFactory, StandardChartTheme}
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
-import scalax.chart.{XYChart, Chart}
+import scalax.chart.XYChart
+import at.iem.point.illism._
 
 object FrameIntervalExample extends App {
   sys.props("com.apple.mrj.application.apple.menu.about.name")  = "PointLib"
@@ -63,18 +63,18 @@ object FrameIntervalExample extends App {
     val intervalTitle = if (allIntervals) "Interval Layer" else "Frame Interval"
 
     val chordTitle = mode match {
-      case StaticChords(sz)         => s"static chords of size ${sz}"
+      case StaticChords(sz)         => s"static chords of size $sz"
       case Improvisation(None)      => s"all chords in an improvisation"
-      case Improvisation(Some(sz))  => s"chords of size ${sz} in an improvisation"
+      case Improvisation(Some(sz))  => s"chords of size $sz in an improvisation"
     }
 
     val frame = new Frame {
-      title = s"${intervalTitle} Histograms for ${chordTitle}"
+      title = s"$intervalTitle Histograms for $chordTitle"
       contents = panel
       PDFSupport.addMenu(peer, panel.peer :: Nil)
       pack().centerOnScreen()
-      open()
     }
+    frame.open()
   }}
   
   def sumInfos(a: Info, b: Info): Info = {
@@ -139,10 +139,10 @@ object FrameIntervalExample extends App {
       case more => more.mkString("(", ",", ")")
     }
     val snippetsTxt = info.snippets match {
-      case single :: Nil => s"snippet #${single}"
+      case single :: Nil => s"snippet #$single"
       case more => more.mkString("snippets ", ",", "")
     }
-    val chart   = XYBarChart(fihData, title = s"Histogram for ${snippetsTxt} - ${info.numChords} chords of ${voicesTxt} voices")
+    val chart   = XYBarChart(fihData, title = s"Histogram for $snippetsTxt - ${info.numChords} chords of $voicesTxt voices")
     val plot    = chart.plot
     val rangeX  = plot.getDomainAxis.asInstanceOf[NumberAxis]
     plot.getRenderer.setSeriesPaint(0, Color.darkGray)

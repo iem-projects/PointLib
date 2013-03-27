@@ -1,6 +1,7 @@
 package at.iem.point.eh.sketches
 
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
+import at.iem.point.illism._
 
 object ContextEvolutions extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
@@ -59,7 +60,7 @@ object ContextEvolutions extends App {
 
   } else notesOut1
 
-  val events  = notesOut.flatMap(_.toMIDI())
+  val events  = notesOut.flatMap(_.toMIDI)
   val track   = Track(events)
   val sqOut   = Sequence(Vector(track))
 
