@@ -4,19 +4,18 @@ import at.iem.point.illism._
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 
 object Evolutions3 extends App {
-  // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
   val NUM         = 200
   val SEED        = 2L      // seed of the random number generator
   val START       = 2       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
-  val ENTRY       = false    // model entry offsets
+  val ENTRY       = true    // model entry offsets
   val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
   val ENTRY_SCALE = 1.5     // slow down factor if using entry modelling
 
   val INNER       = true   // model inner structure of chords (`true`) or just frame intervals (`false`)
 
-  val snippet   = staticChords(5).head
+  val snippet   = improvSnippets.last  // staticChords(5).head
   val sq        = loadSnippet(snippet) // .head
   val notesIn0  = sq.notes
   val (_, h)    = NoteUtil.splitMelodicHarmonic(notesIn0)
@@ -105,13 +104,15 @@ object Evolutions3 extends App {
 
   implicit val rate = TickRate.tempo(120, 1024)
 
-  val chordsOut  =
-    if (ENTRY) {
-    val entrySq = chordsIn.sliding(2, 1).to[Vector].map { case Seq(a, b) =>
-      val fine    = ((b.avgOffset - a.avgOffset) * 1000 + 0.5).toInt // millis
-      val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
-      if (coarse > 0) (fine - fine % coarse) else fine
-//      millis * 1000
+  val chordsOut = if (ENTRY) {
+    val entrySq = h.flatMap { case (_, cs) =>
+      cs.sliding(2, 1).to[Vector].flatMap {
+        case Seq(a, b) =>
+          val fine    = ((b.minOffset - a.maxStop) * 1000 + 0.5).toInt // millis
+          val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
+          if (coarse > 0) Some(fine - fine % coarse) else if (fine > 0) Some(fine) else None
+        case _ => Vector.empty
+      }
     }
 
 //    println(entrySq.mkString(", "))
@@ -120,9 +121,9 @@ object Evolutions3 extends App {
 //    println(recEntry.mkString(", "))
     var off = 0.0
     (chordsOut1 zip recEntry).map { case (c, e) =>
-      val delta = off - c.avgOffset
+      val delta = off - c.minOffset
       val res = Chord(c.notes.map(n => n.copy(offset = n.offset + delta)))
-      off += e * 0.001 * ENTRY_SCALE
+      off += (e * 0.001 + (c.maxStop - c.minOffset)) * ENTRY_SCALE
       res
     }
 
