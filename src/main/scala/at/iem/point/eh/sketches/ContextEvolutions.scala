@@ -18,7 +18,8 @@ object ContextEvolutions extends App {
   val notesIn   = sq.notes.sortBy(_.offset)
   val pitchSq   = notesIn.map(_.pitch.midi)
 
-  val recPch    = ContextDance.move(pitchSq, num = NUM, seed = SEED)(pitchSq(START) :: Nil)
+  implicit val rnd  = new util.Random(SEED)
+  val recPch    = ContextDance.move(pitchSq, num = NUM)(pitchSq(START) :: Nil)
 
 //  println(recPch.map(_.asPitch).mkString(", "))
 
@@ -29,7 +30,7 @@ object ContextEvolutions extends App {
 
   val notesOut1 = if (VELO) {
     val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % VELO_COARSE) }
-    val recVelo = ContextDance.move(veloSq, num = NUM, seed = SEED)(veloSq(START) :: Nil)
+    val recVelo = ContextDance.move(veloSq, num = NUM)(veloSq(START) :: Nil)
     (notesOut0 zip recVelo).map { case (n, v) => n.copy(velocity = v) }
 
   } else notesOut0
@@ -49,7 +50,7 @@ object ContextEvolutions extends App {
 
 //    println(entrySq.mkString(", "))
 //    ContextDance.DEBUG = true
-    val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM, seed = SEED)(entrySq(START) :: Nil)
+    val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM)(entrySq(START) :: Nil)
 //    println(recEntry.mkString(", "))
     var off = 0.0
     (notesOut1 zip recEntry).map { case (n, e) =>

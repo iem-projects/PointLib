@@ -22,15 +22,15 @@ object Evolutions3 extends App {
   val (_, h)    = NoteUtil.splitMelodicHarmonic(notesIn0)
   val chordsIn  = h.flatMap(_._2)
 
+  implicit val rnd = new util.Random(SEED)
   val pchSq     = chordsIn.map { c => val pch = c.pitches; pch.head.`class`.step -> pch.last.`class`.step }
-  val recPch    = ContextDance.move(pchSq, num = NUM, seed = SEED)(pchSq(START) :: Nil)
+  val recPch    = ContextDance.move(pchSq, num = NUM)(pchSq(START) :: Nil)
   val octSq     = chordsIn.map { c => val pch = c.pitches; (pch.head.midi / 12) -> (pch.last.midi / 12) }
-  val recOct    = ContextDance.move(octSq, num = NUM, seed = SEED)(octSq(START) :: Nil)
+  val recOct    = ContextDance.move(octSq, num = NUM)(octSq(START) :: Nil)
   val voiceSq   = chordsIn.map(_.size)
-  val recVoice  = ContextDance.move(voiceSq, num = NUM, seed = SEED)(voiceSq(START) :: Nil)
+  val recVoice  = ContextDance.move(voiceSq, num = NUM)(voiceSq(START) :: Nil)
 //  val maxVoices = voiceSq.max
 //  val maxFrame  = chordsIn.map(_.frameInterval.semitones).max
-  implicit val rnd = new util.Random(SEED)
 
   // a simple occurrence map. frame size -> num voices -> chords
   var inner     = Map.empty[Int, Map[Int, IIdxSeq[Chord]]] withDefaultValue (Map.empty withDefaultValue Vector.empty)
@@ -92,7 +92,7 @@ object Evolutions3 extends App {
       velos = velos + (c.size -> (velos(c.size) :+ c))
     }
     val veloSq  = chordsIn.map { c => val v = (c.avgVelocity + 0.5f).toInt; v - (v % VELO_COARSE) }
-    val recVelo = ContextDance.move(veloSq, num = NUM, seed = SEED)(veloSq(START) :: Nil)
+    val recVelo = ContextDance.move(veloSq, num = NUM)(veloSq(START) :: Nil)
     (chordsOut0 zip recVelo).map { case (c, v) =>
       val vc  = velos(c.size).choose
       val va  = vc.avgVelocity
@@ -140,7 +140,7 @@ object Evolutions3 extends App {
 
 //    println(entrySq.mkString(", "))
 //    ContextDance.DEBUG = true
-    val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM, seed = SEED)(entrySq(START) :: Nil)
+    val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM)(entrySq(START) :: Nil)
 //    println(recEntry.mkString(", "))
     var off = 0.0
     (chordsOut2 zip recEntry).map { case (c, e) =>
