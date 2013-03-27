@@ -22,8 +22,6 @@ object Evolutions2 extends App {
 
   val recPch    = ContextDance.move(pitchSq, num = NUM, seed = SEED)(pitchSq(START) :: Nil)
 
-//  println(recPch.map(_.asPitch).mkString(", "))
-
   val notesOut0 = recPch.zipWithIndex.map { case (midi, idx) =>
     val off = idx * 0.25
     OffsetNote(off, midi.asPitch, 0.125, 80)
