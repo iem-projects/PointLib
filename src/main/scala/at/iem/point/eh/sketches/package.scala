@@ -3,6 +3,7 @@ package at.iem.point.eh
 import java.io.{IOException, File}
 import java.awt.EventQueue
 import de.sciss.midi
+import at.iem.point.illism.Chord
 
 package object sketches {
   val  IIdxSeq    = collection.immutable.IndexedSeq
@@ -57,7 +58,14 @@ package object sketches {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
   }
 
-  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) {
+  implicit final class RichChord(val chord: Chord) extends AnyVal {
+     def avgVelocity: Float = {
+       val v = chord.notes.map(_.velocity).sum
+       v.toFloat / chord.size
+     }
+  }
+
+  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
     def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
     def scramble(implicit random: util.Random): IIdxSeq[A] = {
       ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>

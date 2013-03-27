@@ -6,17 +6,18 @@ import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 object Evolutions3 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
   val NUM         = 200
-  val SEED        = 10L     // seed of the random number generator
-  val START       = 10      // start index in the pitch sequence to begin wih
-  val VELO        = false   // model velocity
+  val SEED        = 2L      // seed of the random number generator
+  val START       = 2       // start index in the pitch sequence to begin wih
+  val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
-  val ENTRY       = true    // model entry offsets
+  val ENTRY       = false    // model entry offsets
   val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
   val ENTRY_SCALE = 1.5     // slow down factor if using entry modelling
 
   val INNER       = true   // model inner structure of chords (`true`) or just frame intervals (`false`)
 
-  val sq        = loadSnippet(improvSnippets.last)
+  val snippet   = staticChords(5).head
+  val sq        = loadSnippet(snippet) // .head
   val notesIn0  = sq.notes
   val (_, h)    = NoteUtil.splitMelodicHarmonic(notesIn0)
   val chordsIn  = h.flatMap(_._2)
@@ -31,7 +32,7 @@ object Evolutions3 extends App {
 //  val maxFrame  = chordsIn.map(_.frameInterval.semitones).max
   implicit val rnd = new util.Random(SEED)
 
-  // a simple occurrence map
+  // a simple occurrence map. frame size -> num voices -> chords
   var inner     = Map.empty[Int, Map[Int, IIdxSeq[Chord]]] withDefaultValue (Map.empty withDefaultValue Vector.empty)
   chordsIn.foreach { c =>
     val semi  = c.frameInterval.semitones
@@ -84,13 +85,22 @@ object Evolutions3 extends App {
     }
   }
 
-  val chordsOut1 =
-//    if (VELO) {
-//    val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % VELO_COARSE) }
-//    val recVelo = ContextDance.move(veloSq, num = NUM, seed = SEED)(veloSq(START) :: Nil)
-//    (notesOut0 zip recVelo).map { case (n, v) => n.copy(velocity = v) }
-//
-//  } else
+  val chordsOut1 = if (VELO) {
+    // a simple occurrence map. num voices -> velocities
+    var velos   = Map.empty[Int, IIdxSeq[Chord]] withDefaultValue Vector.empty
+    chordsIn.foreach { c =>
+      velos = velos + (c.size -> (velos(c.size) :+ c))
+    }
+    val veloSq  = chordsIn.map { c => val v = (c.avgVelocity + 0.5f).toInt; v - (v % VELO_COARSE) }
+    val recVelo = ContextDance.move(veloSq, num = NUM, seed = SEED)(veloSq(START) :: Nil)
+    (chordsOut0 zip recVelo).map { case (c, v) =>
+      val vc  = velos(c.size).choose
+      val va  = vc.avgVelocity
+      val d   = v - va
+      Chord((c.notes zip vc.notes).map { case (n, nv) => n.copy(velocity = math.max(1, math.min(127, (nv.velocity + d + 0.5f).toInt))) })
+    }
+
+  } else
     chordsOut0
 
   implicit val rate = TickRate.tempo(120, 1024)
@@ -123,7 +133,7 @@ object Evolutions3 extends App {
   val track   = Track(events)
   val sqOut   = Sequence(Vector(track))
 
-  sqOut.writeFile(outPath / s"Improv_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid")
+  sqOut.writeFile(outPath / s"Snippet${snippet}_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid")
 
   val player  = Sequencer.open()
   player.play(sqOut)
