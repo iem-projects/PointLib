@@ -6,13 +6,13 @@ import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 object Evolutions2 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
   val NUM         = 200
-  val SEED        = 3L      // seed of the random number generator
+  val SEED        = 4L      // seed of the random number generator
   val START       = 0       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
   val ENTRY       = true    // model entry offsets
   val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
-  val ENTRY_SCALE = 1.5     // slow down factor if using entry modelling
+  val ENTRY_SCALE = 1.25    // slow down factor if using entry modelling
 
   val sq        = loadSnippet(improvSnippets.last)
   val notesIn0  = sq.notes

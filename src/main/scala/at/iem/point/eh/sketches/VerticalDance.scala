@@ -4,7 +4,12 @@ import at.iem.point.illism._
 import de.sciss.midi.TickRate
 
 object VerticalDance {
-  def apply(): VerticalDance = ???
+  def apply(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
+                             entryCoarse: Double, entryScale: Double, modelInner: Boolean, modelGrains: Boolean,
+                             chordSnippets: IIdxSeq[IIdxSeq[Chord]])(implicit rnd: util.Random): VerticalDance =
+    new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse, modelEntry = modelEntry,
+             entryCoarse = entryCoarse, entryScale = entryScale, modelInner = modelInner, modelGrains = modelGrains,
+             h = chordSnippets)
 
   private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
                            entryCoarse: Double, entryScale: Double, modelInner: Boolean, modelGrains: Boolean,
