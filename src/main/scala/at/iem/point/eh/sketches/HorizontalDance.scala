@@ -73,5 +73,5 @@ object HorizontalDance {
   }
 }
 sealed trait HorizontalDance {
-  def move(n: Int): Vector[OffsetNote]
+  def move(num: Int): Vector[OffsetNote]
 }
