@@ -5,7 +5,7 @@ import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 
 object Evolutions4 extends App {
   val NUM         = 200
-  val SEED        = 3L      // seed of the random number generator
+  val SEED        = 13L      // seed of the random number generator
   val START       = 2       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
