@@ -3,10 +3,10 @@ package at.iem.point.eh.sketches
 import at.iem.point.illism._
 import at.iem.point.illism.gui.impl.PianoRollImpl
 import javax.swing.{KeyStroke, WindowConstants}
-import scala.swing.{Action, BoxPanel, Component, Frame, BorderPanel, Orientation, Swing}
+import scala.swing.{Label, Action, BoxPanel, Component, Frame, BorderPanel, Orientation, Swing}
 import Swing._
 import de.sciss.{audiowidgets, desktop, midi}
-import audiowidgets.{Transport, Axis}
+import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDPanel, Transport, Axis}
 import scala.swing.event.{MouseDragged, MousePressed, ValueChanged}
 import desktop.{KeyStrokes, FocusType}
 import java.awt.event.KeyEvent
@@ -27,6 +27,15 @@ object ShowPartitioning extends App with Runnable {
     var position    = 0.0
     val colr        = new Color(0x00, 0x00, 0xFF, 0x80)
 
+    val lcd         = new Label {
+      foreground = LCDColors.defaultFg
+    }
+
+    val lcdP = new LCDPanel {
+      contents += lcd
+      background  = LCDColors.defaultBg
+    }
+
     val view        = new PianoRollImpl.JComponent {
       override def paintComponent(g: Graphics) {
         super.paintComponent(g)
@@ -40,15 +49,18 @@ object ShowPartitioning extends App with Runnable {
     view.chords     = nh
     // val deco        = PianoRoll.NoteDecoration(Some(Color.red))
     // view.decoration = nh.map(n => n -> deco)(breakOut)
+
+    val timeFormat  = AxisFormat.Time(hours = false, millis = true)
+
     lazy val axis   = new Axis() {
-      format        = Axis.Format.Time(hours = false, millis = true)
+      format        = timeFormat // AxisFormat.Time(hours = false, millis = true)
       minimum       = view.timeRange._1
       maximum       = view.timeRange._2
 
       val tri = new GeneralPath()
-      tri.moveTo(-6, 0)
-      tri.lineTo(7, 0)
-      tri.lineTo(0, 13)
+      tri.moveTo(-6,  0)
+      tri.lineTo( 7,  0)
+      tri.lineTo( 0, 13)
       tri.closePath()
 
       listenTo(mouse.clicks)
@@ -80,6 +92,7 @@ object ShowPartitioning extends App with Runnable {
       position = p
       axis.repaint()
       view.repaint()
+      lcd.text = timeFormat.format(p, pad = 10)
     }
 
     // val slider      = new JSlider((view.timeRange._1 * 100).toInt, (view.timeRange._2 * 100).toInt)
@@ -156,7 +169,8 @@ object ShowPartitioning extends App with Runnable {
 
     var playStartPos  = 0.0
     var playStartTime = 0L
-    val timer = new javax.swing.Timer(50, ActionListener { _ =>
+
+    val timer = new javax.swing.Timer(47, ActionListener { _ =>
       val p = playStartPos + (System.currentTimeMillis() - playStartTime) * 0.001
       setPos(p)
     })
@@ -196,9 +210,15 @@ object ShowPartitioning extends App with Runnable {
       contents += new BoxPanel(Orientation.Horizontal) {
         contents += HGlue
         contents += transp
+        contents += HStrut(8)
+        contents += lcdP
+        contents += HStrut(4)
       }
       contents += box
     }
+
+    rtz()
+    lcdP.maximumSize = lcdP.preferredSize // = (200, 20)
 
     new Frame {
       contents = new BorderPanel {
