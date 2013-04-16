@@ -25,6 +25,8 @@ retrieveManaged := true
 
 initialCommands in console :=
 """import at.iem.point.eh.sketches._
+  |import at.iem.point.illism._
   |import scalax.chart._
   |import scalax.chart.Charting._
+  |import de.sciss.midi
 """.stripMargin

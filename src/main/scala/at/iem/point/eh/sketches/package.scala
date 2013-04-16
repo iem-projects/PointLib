@@ -22,6 +22,14 @@ package object sketches {
     def name: String = f.getName
   }
 
+  implicit final class RichFloat(val f: Float) extends AnyVal {
+    def linlin(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
+      (f - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
+
+    def linexp(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
+      math.pow(dstHi / dstLo, (f - srcLo) / (srcHi - srcLo)).toFloat * dstLo
+  }
+
   var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
   def inPath    = basePath / "in"
   def outPath   = basePath / "rec"

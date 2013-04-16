@@ -5,24 +5,24 @@ import at.iem.point.illism.gui.impl.PianoRollImpl
 import javax.swing.{KeyStroke, WindowConstants}
 import scala.swing.{Label, Action, BoxPanel, Component, Frame, BorderPanel, Orientation, Swing}
 import Swing._
-import de.sciss.{audiowidgets, desktop, midi}
+import de.sciss.{desktop, midi}
 import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDPanel, Transport, Axis}
 import scala.swing.event.{MouseDragged, MousePressed, ValueChanged}
 import desktop.{KeyStrokes, FocusType}
 import java.awt.event.KeyEvent
 import java.awt.{Graphics, Point, Color, RenderingHints, Graphics2D}
 import java.awt.geom.GeneralPath
+import at.iem.point.illism.gui.PianoRoll.NoteDecoration
+import collection.breakOut
 
-object ShowPartitioning extends App with Runnable {
-  Swing.onEDT(run())
+trait ShowPartitioning {
+  def show(notes: IIdxSeq[IIdxSeq[OffsetNote]], chords: IIdxSeq[IIdxSeq[Chord]])(implicit rate: midi.TickRate) {
+    val notesF      = notes.flatten
+    val chordsF     = chords.flatten
+    val allNotes    = (notesF ++ chordsF.flatMap(_.notes)).sortBy(_.offset)
+    val dur         = if (allNotes.isEmpty) 1.0 else allNotes.maxBy(_.stop).stop
 
-  def run() {
-    val sn          = loadSnippet(improvSnippets(1))
-    val notes       = sn.notes
-    val dur         = sn.duration
-    val (m, h)      = NoteUtil.splitMelodicHarmonic(notes)
-    val nm          = m.flatMap(_._2)
-    val nh          = h.flatMap(_._2)
+    println(s"Notes ${notesF.size} chords ${chordsF.size}")
 
     var position    = 0.0
     val colr        = new Color(0x00, 0x00, 0xFF, 0x80)
@@ -45,10 +45,23 @@ object ShowPartitioning extends App with Runnable {
         g.drawLine(x, 0, x, getHeight - 1)
       }
     }
-    view.notes      = nm
-    view.chords     = nh
-    // val deco        = PianoRoll.NoteDecoration(Some(Color.red))
-    // view.decoration = nh.map(n => n -> deco)(breakOut)
+    view.notes      = notesF
+    view.chords     = chordsF
+    val pch         = allNotes.map(_.pitch.midi)
+    val (minPch, maxPch) = (pch.min, pch.max)
+    view.pitchRange = (minPch - (minPch % 12)) -> ((maxPch + 11) - ((maxPch + 11) % 12))
+
+    val noteGroupSz   = notes.size
+    val chordGroupSz  = chords.size
+    if (noteGroupSz > 1 || chordGroupSz > 1) {  // use decorators
+      val m: Map[OffsetNote, NoteDecoration] = notes.zipWithIndex.flatMap({ case (ns, i) =>
+        val in    = i.toFloat / (noteGroupSz - 1)
+        val colrN = Color.getHSBColor(in.linlin(0, 1, 0.40f, 0.70f), 0.75f, in.linlin(0, 1, 0.75f, 1.0f))
+        val decN  = NoteDecoration(Some(colrN))
+        ns.map(n => n -> decN)(breakOut) // : Map[OffsetNote, NoteDecoration]
+      })(breakOut)
+      view.decoration = m
+    }
 
     val timeFormat  = AxisFormat.Time(hours = false, millis = true)
 
@@ -177,11 +190,10 @@ object ShowPartitioning extends App with Runnable {
 
     def play() {
       stop()
-      val sq  = if (position == 0) sn else {
-        val n0  = notes.dropWhile(_.offset < position)
-        implicit val rate = sn.rate
+      val sq  = /* if (position == 0) sn else */ {
+        val n0  = allNotes.dropWhile(_.offset < position)
         val n1  = n0.map(n => n.copy(offset = n.offset - position))
-        val t   = midi.Track(n1.flatMap(_.toMIDI))
+        val t   = midi.Track(n1.flatMap(_.toMIDI))    // XXX TODO: use different channels for each note/chord group
         midi.Sequence(Vector(t))
       }
       sequencer.play(sq)
