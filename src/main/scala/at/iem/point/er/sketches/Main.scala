@@ -63,7 +63,7 @@ object Main extends SwingApplicationImpl("PointLib") {
     if (onsets.isEmpty) return
     val init  = Some(createOutputPath(f, tag = "Onsets", extension = "pdf"))
     GUI.saveFileDialog(tpe = "PDF Score", init = init).foreach { f =>
-      println(s"save $f")
+      ScoreExport(f, onsets, sampleRate = fileSpec.sampleRate, tempo = 120.0)
     }
   }
 
