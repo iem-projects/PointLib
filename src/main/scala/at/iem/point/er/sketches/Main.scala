@@ -2,7 +2,7 @@ package at.iem.point.er.sketches
 
 import java.io.File
 import annotation.tailrec
-import de.sciss.sonogram.SimpleSonogramOverviewManager
+import de.sciss.sonogram
 import javax.swing.WindowConstants
 import swing.{MainFrame, Slider, BorderPanel, BoxPanel, Orientation, Component, Button, Frame, Swing, SimpleSwingApplication}
 import Swing._
@@ -22,17 +22,17 @@ object Main extends SimpleSwingApplication {
   private lazy val sono   = new SonogramView
   private var playerViewOption = Option.empty[PlayerView]
 
-  private var _pitches: PitchAnalysis.PayLoad = Vector.empty
+  private var _pitches: PitchAnalysis.Product = Vector.empty
   def pitches = _pitches
-  def pitches_=(seq: PitchAnalysis.PayLoad) {
+  def pitches_=(seq: PitchAnalysis.Product) {
     _pitches = seq
     sono.pitchOverlay = seq
     playerViewOption.foreach(_.pitches = seq)
   }
 
-  private var _onsets: OnsetsAnalysis.PayLoad = Vector.empty
+  private var _onsets: OnsetsAnalysis.Product = Vector.empty
   def onsets = _onsets
-  def onsets_=(seq: OnsetsAnalysis.PayLoad) {
+  def onsets_=(seq: OnsetsAnalysis.Product) {
     _onsets = seq
     sono.onsetsOverlay = seq
     playerViewOption.foreach(_.onsets = seq)
@@ -48,12 +48,14 @@ object Main extends SimpleSwingApplication {
 
     val f       = loop()
     val fileSpec  = AudioFile.readSpec(f)
-    val mgr     = new SimpleSonogramOverviewManager
-    val cfg     = ConstQ.Config()
-    cfg.maxFFTSize  = 8192
-    cfg.maxTimeRes  = 4f
-    cfg.bandsPerOct = 48
-    val ov      = mgr.fromFile(f, cfg)
+    val mcfg    = sonogram.OverviewManager.Config()
+    val mgr     = sonogram.OverviewManager(mcfg)
+    val cqcfg   = ConstQ.Config()
+    cqcfg.maxFFTSize  = 8192
+    cqcfg.maxTimeRes  = 4f
+    cqcfg.bandsPerOct = 48
+    val job     = sonogram.OverviewManager.Job(f, cqcfg)
+    val ov      = mgr.acquire(job)
 //    println(ov.fileSpec.sono)
     sono.boost  = 4f
     sono.sono   = Some(ov)

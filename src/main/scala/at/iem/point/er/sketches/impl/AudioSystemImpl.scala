@@ -3,6 +3,7 @@ package impl
 
 // import at.iem.sysson.impl.ModelImpl
 import de.sciss.synth
+import de.sciss.model.impl.ModelImpl
 
 object AudioSystemImpl {
   lazy val instance: AudioSystem = {
@@ -11,7 +12,7 @@ object AudioSystemImpl {
     i
   }
 
-  private final class Impl extends AudioSystem /* with ModelImpl[AudioSystem.Update] */ {
+  private final class Impl extends AudioSystem with ModelImpl[AudioSystem.Update] {
     override def toString = "AudioSystem"
 
     private val sync      = new AnyRef

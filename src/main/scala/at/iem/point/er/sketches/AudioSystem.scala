@@ -2,8 +2,8 @@ package at.iem.point.er.sketches
 
 import impl.{AudioSystemImpl => Impl}
 import de.sciss.synth
-import synth.Model
 import de.sciss.osc.TCP
+import de.sciss.model.Model
 
 object AudioSystem {
   def instance: AudioSystem = Impl.instance

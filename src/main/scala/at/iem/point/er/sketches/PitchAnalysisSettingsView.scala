@@ -6,6 +6,7 @@ import synth.io.AudioFileSpec
 import util.Success
 import Swing._
 import javax.swing.BorderFactory
+import de.sciss.processor.Processor
 
 class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
                                 init: PitchAnalysis.Config = PitchAnalysis.Config.default) {
@@ -59,8 +60,8 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
 
   private val ggRun = Button("Run...") {
     PitchAnalysis.verbose = true
-    PitchAnalysis(config) {
-      case PitchAnalysis.Result(Success(seq)) =>
+    PitchAnalysis.run(config) {
+      case Processor.Result(_, Success(seq)) =>
 //        sono.pitchOverlay = seq
       Main.pitches = seq
     }

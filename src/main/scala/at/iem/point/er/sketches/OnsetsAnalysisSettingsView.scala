@@ -6,6 +6,7 @@ import synth.io.AudioFileSpec
 import util.Success
 import Swing._
 import javax.swing.BorderFactory
+import de.sciss.processor.Processor
 
 class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
                                 init: OnsetsAnalysis.Config = OnsetsAnalysis.Config.default) {
@@ -75,8 +76,8 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
 
   private val ggRun = Button("Run...") {
     OnsetsAnalysis.verbose = true
-    OnsetsAnalysis(config) {
-      case OnsetsAnalysis.Result(Success(seq)) =>
+    OnsetsAnalysis.run(config) {
+      case Processor.Result(_, Success(seq)) =>
 //        seq.foreach(x => println(s"frame $x"))
         Main.onsets = seq
     }

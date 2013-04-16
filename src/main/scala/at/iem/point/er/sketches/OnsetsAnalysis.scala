@@ -28,16 +28,19 @@ package at.iem.point.er.sketches
 import java.io.File
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import de.sciss.synth
-import concurrent.{Await, ExecutionContext, Promise, duration, blocking}
+import concurrent.{Await, duration, blocking}
 import duration.Duration
 import synth.io.AudioFile
-import de.sciss.strugatzki.{Processor, ProcessorCompanion}
-import de.sciss.strugatzki.impl.{NonRealtimeProcessor, ProcessorImpl}
+import de.sciss.strugatzki.impl.NonRealtimeProcessor
 import language.implicitConversions
 import de.sciss.strugatzki.impl.NonRealtimeProcessor.BufferSpec
 import annotation.switch
+import de.sciss.processor.ProcessorFactory
+import de.sciss.processor.impl.ProcessorImpl
 
-object OnsetsAnalysis extends ProcessorCompanion {
+object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
+  var verbose = false
+
   object Function {
     case object Power     extends Function { final val id = 0 }
     case object MagSum    extends Function { final val id = 1 }
@@ -203,24 +206,21 @@ object OnsetsAnalysis extends ProcessorCompanion {
   }
   sealed trait Config extends ConfigLike
 
-  type PayLoad = IIdxSeq[Long]
+  type Product  = IIdxSeq[Long]
+  type Repr     = Any
 
   // -----
 
   protected def defaultConfig: Config = Config()
 
-  protected def create(config: Config, observer: Observer, promise: Promise[PayLoad])
-                      (implicit exec: ExecutionContext): Processor[PayLoad, Config] = {
-    new Proc(config, observer, promise)
-  }
+  protected def prepare(config: Config): Prepared = new Proc(config)
 
-  private final class Proc(val config: Config, val observer: Observer, val promise: Promise[PayLoad])
-                          (implicit val executionContext: ExecutionContext)
-    extends ProcessorImpl[PayLoad, Config] {
+  private final class Proc(val config: Config)
+    extends ProcessorImpl[Product, Any] {
 
     val companion = OnsetsAnalysis
 
-    def body(): PayLoad = blocking {
+    def body(): Product = blocking {
       import NonRealtimeProcessor.{RenderConfig, render}
       import synth._
       import ugen._

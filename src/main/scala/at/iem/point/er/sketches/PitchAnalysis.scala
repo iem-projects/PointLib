@@ -28,14 +28,17 @@ package at.iem.point.er.sketches
 import java.io.File
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import de.sciss.synth
-import concurrent.{Await, ExecutionContext, Promise, duration, blocking}
+import concurrent.{Await, duration, blocking}
 import duration.Duration
 import synth.io.AudioFile
-import de.sciss.strugatzki.{Processor, ProcessorCompanion}
-import de.sciss.strugatzki.impl.{NonRealtimeProcessor, ProcessorImpl}
+import de.sciss.strugatzki.impl.NonRealtimeProcessor
 import language.implicitConversions
+import de.sciss.processor.ProcessorFactory
+import de.sciss.processor.impl.ProcessorImpl
 
-object PitchAnalysis extends ProcessorCompanion {
+object PitchAnalysis extends ProcessorFactory.WithDefaults {
+  var verbose = false
+
   sealed trait ConfigLike {
     /** Audio input file to analyze. Multiple channels will be mixed together to form a mono signal. */
     def input: File
@@ -234,26 +237,23 @@ object PitchAnalysis extends ProcessorCompanion {
   }
   sealed trait Config extends ConfigLike
 
-  type PayLoad = IIdxSeq[Sample]
+  type Product  = IIdxSeq[Sample]
+  type Repr     = Any
 
   // -----
 
   protected def defaultConfig: Config = Config()
 
-  protected def create(config: Config, observer: Observer, promise: Promise[PayLoad])
-                      (implicit exec: ExecutionContext): Processor[PayLoad, Config] = {
-    new Proc(config, observer, promise)
-  }
+  protected def prepare(config: Config): Prepared = new Proc(config)
 
   final case class Sample(start: Long, stop: Long, freq: CurveFitting.Fit, clarity: Float)
 
-  private final class Proc(val config: Config, val observer: Observer, val promise: Promise[PayLoad])
-                          (implicit val executionContext: ExecutionContext)
-    extends ProcessorImpl[PayLoad, Config] {
+  private final class Proc(val config: Config)
+    extends ProcessorImpl[Product, Any] {
 
     val companion = PitchAnalysis
 
-    def body(): PayLoad = blocking {
+    def body(): Product = blocking {
       import NonRealtimeProcessor.{RenderConfig, render}
       import synth._
       import ugen._

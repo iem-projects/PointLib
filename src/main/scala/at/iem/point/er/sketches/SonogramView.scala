@@ -1,6 +1,6 @@
 package at.iem.point.er.sketches
 
-import de.sciss.sonogram.{SonogramOverview, SimpleSonogramView}
+import de.sciss.sonogram
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
@@ -8,7 +8,7 @@ import collection.immutable.{IndexedSeq => IIdxSeq}
 import java.awt.geom.{GeneralPath, Rectangle2D}
 import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
 
-final class SonogramView extends SimpleSonogramView {
+final class SonogramView extends sonogram.SonogramComponent {
   private val colrCrosshair = new Color(0xFF, 0xFF, 0xFF, 0x40)
 //  private val colrPitch     = new Color(0x40, 0x40, 0xFF, 0x80)
   private val colrPitch     = new Color(0xFF, 0xFF, 0x00, 0xA0)
@@ -22,20 +22,20 @@ final class SonogramView extends SimpleSonogramView {
   private var _onsets = IIdxSeq.empty[Long]
 
   def pitchOverlay = _pitch
-  def pitchOverlay_=(value: PitchAnalysis.PayLoad) {
+  def pitchOverlay_=(value: PitchAnalysis.Product) {
     _pitch = value
     repaint()
   }
 
   def onsetsOverlay = _onsets
-  def onsetsOverlay_=(value: OnsetsAnalysis.PayLoad) {
+  def onsetsOverlay_=(value: OnsetsAnalysis.Product) {
     _onsets = value
     repaint()
   }
 
-  private def screenToTime(screen: Float, ovr: SonogramOverview): Float = {
+  private def screenToTime(screen: Float, ovr: sonogram.Overview): Float = {
     import synth._
-    val spec  = ovr.fileSpec
+    val spec  = ovr.inputSpec
     val w     = getWidth
     screen.linlin(0, w, 0, spec.numFrames/spec.sampleRate).toFloat
   }
@@ -47,22 +47,22 @@ final class SonogramView extends SimpleSonogramView {
 //    secs.linlin(0, spec.numFrames/spec.sampleRate, 0, w).toFloat
 //  }
 
-  private def frameToScreen(frame: Long, ovr: SonogramOverview): Float = {
+  private def frameToScreen(frame: Long, ovr: sonogram.Overview): Float = {
     import synth._
-    val spec  = ovr.fileSpec
+    val spec  = ovr.inputSpec
     val w     = getWidth
     frame.toDouble.linlin(0, spec.numFrames, 0, w).toFloat
   }
 
-  private def screenToFreq(screen: Float, ovr: SonogramOverview): Float = {
+  private def screenToFreq(screen: Float, ovr: sonogram.Overview): Float = {
     import synth._
-    val spec  = ovr.fileSpec.sono
+    val spec  = ovr.config.sonogram
     val h     = getHeight
     screen.linexp(h - 1, 0, spec.minFreq, spec.maxFreq).toFloat
   }
 
-  private def freqToScreen(freq: Float, ovr: SonogramOverview): Float = {
-    val spec  = ovr.fileSpec.sono
+  private def freqToScreen(freq: Float, ovr: sonogram.Overview): Float = {
+    val spec  = ovr.config.sonogram
     val h     = getHeight
     freq.toDouble.explin(spec.minFreq, spec.maxFreq, h - 1, 0).toFloat
   }

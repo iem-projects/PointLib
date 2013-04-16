@@ -1,23 +1,24 @@
 name := "er_sketches"
 
-version := "0.0.1-SNAPSHOT"
+version := "0.1.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.0"
+scalaVersion := "2.10.1"
 
 homepage := Some(url("https://github.com/iem-projects/PointLib"))
 
 licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
 libraryDependencies ++= Seq(
-  "de.sciss" %% "scalacollider" % "1.5.2+",
-  "de.sciss" %% "scalacolliderswing" % "1.5.+",
-  "de.sciss" %% "scalacolliderugens-core" % "1.5.1+",
-  "de.sciss" %% "sonogramoverview" % "1.4.+",                               // Sonogram View
-  "de.sciss" %% "strugatzki" % "1.6.+",                                     // Offline Feature Extraction
-  "com.github.benhutchison" % "scalaswingcontrib" % "1.4",                  // Tree component for Scala-Swing
-  "com.github.wookietreiber" %% "scala-chart" % "latest.integration"        // JFreeChart integration
+  "de.sciss" %% "scalacollider"            % "1.6.+",
+//"de.sciss" %% "scalacolliderswing"       % "1.5.+",
+//"de.sciss" %% "scalacolliderugens-core"  % "1.5.1+",
+  "de.sciss" %% "sonogramoverview"         % "1.5.+",                       // Sonogram View
+  "de.sciss" %% "strugatzki"               % "1.8.+",                       // Offline Feature Extraction
+  "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
+  "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
+  "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration
 )
 
 retrieveManaged := true
@@ -31,6 +32,4 @@ initialCommands in console :=
   |import de.sciss.synth._
   |import ugen._
   |import Ops._
-  |import scalax.chart._
-  |import Charting._
 """.stripMargin

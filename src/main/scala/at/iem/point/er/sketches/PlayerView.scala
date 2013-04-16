@@ -1,7 +1,7 @@
 package at.iem.point.er.sketches
 
 import scala.swing.{Component, Swing}
-import de.sciss.audiowidgets.{Transport, Axis}
+import de.sciss.audiowidgets.{AxisFormat, Transport, Axis}
 import java.io.File
 import java.awt.{RenderingHints, Color, Graphics2D}
 import de.sciss.synth
@@ -38,9 +38,9 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     playing.foreach(_.synth.set("resynthAmp" -> value))
   }
 
-  private var _pitches: PitchAnalysis.PayLoad = Main.pitches
+  private var _pitches: PitchAnalysis.Product = Main.pitches
   def pitches = _pitches
-  def pitches_=(seq: PitchAnalysis.PayLoad) {
+  def pitches_=(seq: PitchAnalysis.Product) {
     _pitches = seq
     val p = playing.isDefined
     if (p) {
@@ -49,9 +49,9 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
   }
 
-  private var _onsets: OnsetsAnalysis.PayLoad = Main.onsets
+  private var _onsets: OnsetsAnalysis.Product = Main.onsets
   def onsets = _onsets
-  def onsets_=(seq: OnsetsAnalysis.PayLoad) {
+  def onsets_=(seq: OnsetsAnalysis.Product) {
     _onsets = seq
     val p = playing.isDefined
     if (p) {
@@ -151,7 +151,7 @@ posIdx = 0  // XXX TODO
   }
 
   lazy val axis: Axis = new Axis {
-    format  = Axis.Format.Time(hours = false, millis = true)
+    format  = AxisFormat.Time(hours = false, millis = true)
     maximum = inputSpec.numFrames / inputSpec.sampleRate
 
     val tri = new GeneralPath()
