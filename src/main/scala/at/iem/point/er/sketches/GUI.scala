@@ -1,13 +1,14 @@
 package at.iem.point.er.sketches
 
-import java.awt.{EventQueue, FileDialog}
+import java.awt.FileDialog
 import java.io.{File, FilenameFilter}
 import de.sciss.synth.io.{AudioFileType, AudioFile}
 import de.sciss.synth.Optional
-import swing.{Swing, Window, Panel, TextField, Alignment, Label, Component}
+import swing.{Swing, Panel, TextField, Alignment, Label, Component}
 import swing.event.EditDone
 import scalaswingcontrib.group.GroupPanel
 import Swing._
+import de.sciss.desktop.Window
 
 object GUI {
   def openAudioFileDialog(): Option[File] = {

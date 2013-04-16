@@ -11,9 +11,11 @@ import GUI.Implicits._
 import de.sciss.synth
 import synth.io.AudioFile
 import swing.event.ValueChanged
+import de.sciss.desktop.impl.{WindowImpl, SwingApplicationImpl}
+import de.sciss.desktop.{Window, KeyStrokes, Menu}
+import java.awt.event.KeyEvent
 
-object Main extends SimpleSwingApplication {
-  val name = "PointLib"
+object Main extends SwingApplicationImpl("PointLib") {
 
   def boot() {
     AudioSystem.start()
@@ -21,6 +23,68 @@ object Main extends SimpleSwingApplication {
 
   private lazy val sono   = new SonogramView
   private var playerViewOption = Option.empty[PlayerView]
+
+  def quit() { sys.exit() }
+
+  lazy val f: File = {
+    @tailrec def loop(): File = GUI.openAudioFileDialog() match {
+      case Some(_f) => _f
+      case _        => loop()
+    }
+    loop()
+  }
+
+  lazy val fileSpec   = AudioFile.readSpec(f)
+
+  lazy val playerView = new PlayerView(f, fileSpec)
+
+  def createOutputPath(in: File, tag: String, extension: String): File = {
+    val nameIn  = in.getName
+    val i       = nameIn.lastIndexOf('.')
+    val nameInP = if (i < 0) nameIn else nameIn.substring(0, i)
+
+    @tailrec def loop(cnt: Int): File = {
+      val fOut = new File(f.getParentFile, s"${nameInP}_$tag${if (cnt == 0) "" else cnt.toString}.$extension")
+      if (!fOut.exists) fOut else loop(cnt + 1)
+    }
+    loop(0)
+  }
+
+  def exportAsAudioFile() {
+    val tag0  = if (pitches.nonEmpty) "Pitch" else ""
+    val tag   = if (onsets .nonEmpty) tag0 + "Onsets" else tag0
+    val init  = Some(createOutputPath(f, tag = tag, extension = "aif"))
+    GUI.saveFileDialog(init = init).foreach { f =>
+      playerView.capture(f)
+    }
+  }
+
+  def exportAsScore() {
+    if (onsets.isEmpty) return
+    val init  = Some(createOutputPath(f, tag = "Onsets", extension = "pdf"))
+    GUI.saveFileDialog(tpe = "PDF Score", init = init).foreach { f =>
+      println(s"save $f")
+    }
+  }
+
+  lazy val menuFactory: Menu.Root = {
+    import Menu._
+    import KeyStrokes._
+    import KeyEvent._
+    Root().add(
+      Group("file", "File").add(
+        Group("export", "Export").add(
+          Item("audiofile")("Audio File..." -> (menu1 + VK_S)) {
+            exportAsAudioFile()
+          }
+        ).add(
+          Item("score")("Score..." -> (menu1 + shift + VK_S)) {
+            exportAsScore()
+          }
+        )
+      )
+    )
+  }
 
   private var _pitches: PitchAnalysis.Product = Vector.empty
   def pitches = _pitches
@@ -38,16 +102,11 @@ object Main extends SimpleSwingApplication {
     playerViewOption.foreach(_.onsets = seq)
   }
 
-  lazy val top: Frame = {
+  override def init() {
     boot()
 
-    @tailrec def loop(): File = GUI.openAudioFileDialog() match {
-      case Some(_f) => _f
-      case _ => loop()
-    }
+    f // opens dialog
 
-    val f       = loop()
-    val fileSpec  = AudioFile.readSpec(f)
     val mcfg    = sonogram.OverviewManager.Config()
     val mgr     = sonogram.OverviewManager(mcfg)
     val cqcfg   = ConstQ.Config()
@@ -60,7 +119,6 @@ object Main extends SimpleSwingApplication {
     sono.boost  = 4f
     sono.sono   = Some(ov)
 
-    val playerView    = new PlayerView(f, fileSpec)
     playerViewOption  = Some(playerView)
     val mixView       = new MixView(playerView)
 
@@ -77,15 +135,17 @@ object Main extends SimpleSwingApplication {
       pchCfg.trajMinDur = 25.0f
 
       val pitchView = new PitchAnalysisSettingsView(inputSpec = fileSpec, init = pchCfg)
-      new Frame {
+      new WindowImpl {
+        def handler = Main.windowHandler
+        def style = Window.Palette
         title = "Pitch Analysis Settings"
-        peer.getRootPane.putClientProperty("Window.style", "small")
-        peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+        // peer.getRootPane.putClientProperty("Window.style", "small")
+        closeOperation = Window.CloseHide
         contents = pitchView.component
         pack()
         resizable = false
         this.placeRightOf(top)
-        open()
+        front()
       }
     }
 
@@ -94,27 +154,31 @@ object Main extends SimpleSwingApplication {
       oCfg.input = f
 
       val oView = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
-      new Frame {
+      new WindowImpl {
+        def handler = Main.windowHandler
+        def style = Window.Palette
         title = "Onsets Analysis Settings"
-        peer.getRootPane.putClientProperty("Window.style", "small")
-        peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+        // peer.getRootPane.putClientProperty("Window.style", "small")
+        closeOperation = Window.CloseHide
         contents = oView.component
         pack()
         resizable = false
         this.placeRightOf(top)
-        open()
+        front()
       }
     }
 
-    lazy val mixFrame = new Frame {
+    lazy val mixFrame = new WindowImpl {
+      def handler = Main.windowHandler
+      def style = Window.Palette
       title = "Mixer"
-      peer.getRootPane.putClientProperty("Window.style", "small")
-      peer.setDefaultCloseOperation(WindowConstants.HIDE_ON_CLOSE)
+      // peer.getRootPane.putClientProperty("Window.style", "small")
+      closeOperation = Window.CloseHide
       contents = mixView.component
       pack()
       resizable = false
       this.placeLeftOf(top)
-      open()
+      front()
     }
 
 
@@ -124,58 +188,46 @@ object Main extends SimpleSwingApplication {
 //      maximumSize = preferredSize
 //    }
 
-    val ggPitch = Button("Pitch...") {
-      pitchSettingsFrame.open()
+    lazy val ggPitch = Button("Pitch...") {
+      pitchSettingsFrame.front()
     }
     ggPitch.focusable = false
     ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-    val ggOnsets = Button("Onsets...") {
-      onsetsSettingsFrame.open()
+    lazy val ggOnsets = Button("Onsets...") {
+      onsetsSettingsFrame.front()
     }
     ggOnsets.focusable = false
     ggOnsets.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-    val ggMix = Button("Mixer...") {
-      mixFrame.open()
+    lazy val ggMix = Button("Mixer...") {
+      mixFrame.front()
     }
     ggMix.focusable = false
     ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-    val ggExport = Button("Export...") {
-      val nameIn = f.getName
-      val i = nameIn.lastIndexOf('.')
-      val nameInP = if (i < 0) nameIn else nameIn.substring(0, i)
+    //    val ggExport = Button("Export...") {
+    //    }
+    //    ggExport.focusable = false
+    //    ggExport.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-      @tailrec def loop(cnt: Int): File = {
-        val fOut = new File(f.getParentFile, s"${nameInP}_Pitch${if (cnt == 0) "" else cnt.toString}.aif")
-        if (!fOut.exists) fOut else loop(cnt + 1)
-      }
-      val init = Some(loop(0))
-      GUI.saveFileDialog(init = init).foreach { f =>
-        playerView.capture(f)
-      }
-    }
-    ggExport.focusable = false
-    ggExport.peer.putClientProperty("JComponent.sizeVariant", "small")
+    //    def sonaMouse(pt: Point, mod: Int) {
+    //      import synth._
+    //      val spc   = ov.fileSpec
+    //      val time  = pt.x.toDouble / jView.getWidth * spc.numFrames / spc.sampleRate // seconds
+    //      val freq  = (1.0 - (pt.y + 1).toDouble / jView.getHeight) * (spc.sono.maxFreq - spc.sono.minFreq) + spc.sono.minFreq  // hertz
+    //      ggStatus.text = f"time: $time%1.3f s, freq: $freq%1.1f Hz, pitch = ${freq.cpsmidi}%1.2f mid"
+    //    }
 
-//    def sonaMouse(pt: Point, mod: Int) {
-//      import synth._
-//      val spc   = ov.fileSpec
-//      val time  = pt.x.toDouble / jView.getWidth * spc.numFrames / spc.sampleRate // seconds
-//      val freq  = (1.0 - (pt.y + 1).toDouble / jView.getHeight) * (spc.sono.maxFreq - spc.sono.minFreq) + spc.sono.minFreq  // hertz
-//      ggStatus.text = f"time: $time%1.3f s, freq: $freq%1.1f Hz, pitch = ${freq.cpsmidi}%1.2f mid"
-//    }
-
-    val view = Component.wrap(sono)
+    lazy val view = Component.wrap(sono)
     view.preferredSize = (600, 400)
-//    view.listenTo(view.mouse.moves)
-//    view.reactions += {
-//      case MouseMoved  (_, pt, mod) => sonaMouse(pt, mod)
-//      case MouseEntered(_, pt, mod) => sonaMouse(pt, mod)
-//    }
+    //    view.listenTo(view.mouse.moves)
+    //    view.reactions += {
+    //      case MouseMoved  (_, pt, mod) => sonaMouse(pt, mod)
+    //      case MouseEntered(_, pt, mod) => sonaMouse(pt, mod)
+    //    }
 
-    val ggBoost = new Slider {
+    lazy val ggBoost = new Slider {
       orientation = Orientation.Vertical
       min   = 0
       max   = 200
@@ -190,7 +242,7 @@ object Main extends SimpleSwingApplication {
       }
     }
 
-    val box = new BorderPanel {
+    lazy val box = new BorderPanel {
       add(new BoxPanel(Orientation.Horizontal) {
         contents += playerView.axis
         contents += HStrut(ggBoost.preferredSize.width)
@@ -201,7 +253,7 @@ object Main extends SimpleSwingApplication {
         contents += playerView.transport
         contents += HStrut(16)
         contents += HGlue
-        contents += ggExport
+        // contents += ggExport
         contents += ggMix
         contents += ggPitch
         contents += ggOnsets
@@ -209,13 +261,21 @@ object Main extends SimpleSwingApplication {
       add(ggBoost, BorderPanel.Position.East)
     }
 
-    new MainFrame {
+    lazy val top: Window = new WindowImpl {
+
+
       title     = f.getName
       contents  = box
-//      size      = (600, 400)
+      //      size      = (600, 400)
       pack()
-      centerOnScreen()
-      open()
+      // centerOnScreen()
+      front()
+
+      def handler = Main.windowHandler
+
+      protected def style = Window.Regular
     }
+
+    top
   }
 }

@@ -17,6 +17,7 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "sonogramoverview"         % "1.5.+",                       // Sonogram View
   "de.sciss" %% "strugatzki"               % "1.8.+",                       // Offline Feature Extraction
   "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
+  "de.sciss" %% "desktop"                  % "0.2.+",                       // Menu components
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
   "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration
 )
