@@ -27,9 +27,9 @@ object ScoreExport {
   //  "1." -> 96
   // ]
 
-  private val r1_64 = Rational(1, 64)
-  private val r1_96 = Rational(1, 96)
-  private val r3_2  = Rational(3, 2)
+  //  private val r1_64 = Rational(1, 64)
+  //  private val r1_96 = Rational(1, 96)
+  //  private val r3_2  = Rational(3, 2)
   private val r2_3  = Rational(2, 3)
   private val r3_4  = Rational(3, 4)
   private val r1_4  = Rational(1, 4)
@@ -40,7 +40,7 @@ object ScoreExport {
 
   private val divisions = List(1, 2, 4, 8, 16, 32, 64).map(Rational(1, _))
 
-  def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, tempo: Double = 120) {
+  def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "") {
     require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
 
     val dir       = if (debug) new File(sys.props("user.home"), "Desktop") else null
@@ -55,7 +55,7 @@ object ScoreExport {
     val minDurSec = onsetsSec.min
 
     // tempo given in beats per minute, where beat = quarter
-    @tailrec def autoTempo(tempo: Double = 120): Double = {
+    @tailrec def autoTempo(tempo: Double = 90): Double = {
       val wholeDur  = 1.0/(tempo/(4 * 60))
       val minValue  = minDurSec / wholeDur
       if (minValue >= 1.0/96) tempo else {
@@ -83,8 +83,13 @@ object ScoreExport {
 
     val (tempoBase, tempoNom) = tempoSig()
 
-    val wholeDur  = (tempoBase * tempoNom).doubleValue()
-    val values    = onsetsSec.map(_ / wholeDur)
+    val wholeDur  = 60 / (tempoBase * tempoNom).doubleValue()
+    val values    = onsetsSec.map(_ * wholeDur)
+
+    if (debug) {
+      println(f"tempoFrac $tempoFrac%1.2f yields base $tempoBase with nominal tempo $tempoNom; wholeDur = $wholeDur%1.2f")
+      println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
+    }
 
     // expects nominator to be either of 1, 3, 7
     def dotString(r: Rational): String = {
@@ -112,15 +117,14 @@ object ScoreExport {
           case _ => sq
         }
 
-      def dot(sq: Vector[Rational]): Vector[Rational] = {
+      def dot(sq: Vector[Rational]): Vector[Rational] =
         sq match {
-          case init :+ a :+ b :+ c if b == c * r3_2 && a == b * r3_2 => // Doppelpunktierung
+          case init :+ a :+ b :+ c if a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
             init :+ (a + b + c)
-          case init :+ a :+ b if a == b * r3_2  => // Einfachpunktierung
+          case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
             init :+ (a + b)
           case _ => sq
         }
-      }
 
       val dec     = decompose(lim, divisions, Vector.empty)
       val dotted  = dot(dec)
@@ -130,7 +134,7 @@ object ScoreExport {
         s"c'$dur"
       }
 
-      durs.mkString("~")  // tie
+      durs.mkString("", "~", " s32")  // tie. the added silence of 1/32 yields better spacing for the short ties
     }
 
     val n   = file.getName
@@ -144,7 +148,7 @@ object ScoreExport {
       raw"""\header {
         |  title = \markup { \fontsize #-1 \sans "$name" }
         |  tagline = ""
-        |  subtitle = " " % padding the cheesy way
+        |  subtitle = "${if (subtitle.isEmpty) " " else subtitle}"
         |}
         |\version "2.16.2"
         |
@@ -152,23 +156,29 @@ object ScoreExport {
         |  ragged-right = ##t
         |
         |  \context { \Score
-        |    % tuplet handling
-        |    tupletFullLength = ##t
-        |    \override TupletBracket #'bracket-visibility = ##t
-        |    \override TupletBracket #'padding = #2
-        |    % allow tuplet bracket to always be visible, even for short tuplets.
-        |    \override TupletBracket #'springs-and-rods = #ly:spanner::set-spacing-rods
-        |    \override TupletBracket #'minimum-length = #3
-        |	 \override TupletNumber #'text = #tuplet-number::calc-fraction-text
+        |    % % tuplet handling
+        |    % tupletFullLength = ##t
+        |    % \override TupletBracket #'bracket-visibility = ##t
+        |    % \override TupletBracket #'padding = #2
+        |    % % allow tuplet bracket to always be visible, even for short tuplets.
+        |    % \override TupletBracket #'springs-and-rods = #ly:spanner::set-spacing-rods
+        |    % \override TupletBracket #'minimum-length = #3
+        |	   % \override TupletNumber #'text = #tuplet-number::calc-fraction-text
         |
-        |	 \remove Bar_number_engraver
-        |    \override TimeSignature #'X-extent = #'(0 . 3)
-        |    \override InstrumentName #'X-extent = #'(0 . 4)
+        |	   % \remove Bar_number_engraver
+        |    % \override TimeSignature #'X-extent = #'(0 . 3)
+        |    % \override InstrumentName #'X-extent = #'(0 . 4)
         |
-        |    proportionalNotationDuration = #(ly:make-moment 1 56)
-        |    \override SpacingSpanner #'strict-note-spacing = ##t
-        |    \override SpacingSpanner #'strict-grace-spacing = ##t
-        |    \override SpacingSpanner #'uniform-stretching = ##t
+        |    % proportionalNotationDuration = #(ly:make-moment 1 56)
+        |    % \override SpacingSpanner #'strict-note-spacing = ##t
+        |    % \override SpacingSpanner #'strict-grace-spacing = ##t
+        |    % \override SpacingSpanner #'uniform-stretching = ##t
+        |
+        |    % non-proportional settings:
+        |    \override SpacingSpanner #'base-shortest-duration = #(ly:make-moment 1 32)
+        |  }
+        |  \context { \Voice
+        |    \remove "Forbid_line_break_engraver"
         |  }
         |}
         |
@@ -182,8 +192,7 @@ object ScoreExport {
         |\score {
         |  \new RhythmicStaff {
         |    \tempo ${dotString(tempoBase)} = $tempoNom
-        |    % \set Staff.instrumentName = \markup { \char ##x00D7 1/4 }
-        |    \autoBeamOff
+        |    ${if (autoBeamOff) "\\autoBeamOff" else ""}
         |    ${notes.mkString(" ")}
         |  }
         |}
