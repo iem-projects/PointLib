@@ -30,6 +30,9 @@ object ScoreExport {
   private val r1_64 = Rational(1, 64)
   private val r1_96 = Rational(1, 96)
   private val r3_2  = Rational(3, 2)
+  private val r2_3  = Rational(2, 3)
+  private val r3_4  = Rational(3, 4)
+  private val r1_4  = Rational(1, 4)
 
   //  implicit final class RichInt(val numer: Int) extends AnyVal {
   //    def /- (denom: Int) = Rational(numer, denom)
@@ -39,25 +42,64 @@ object ScoreExport {
 
   def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, tempo: Double = 120) {
     require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
-    val wholeDur  = 1.0/(tempo/(4 * 60)) // tempo given in beats per minute, where beat = quarter
+
     val dir       = if (debug) new File(sys.props("user.home"), "Desktop") else null
     val ly        = File.createTempFile("point", ".ly", dir)
-    val onsets0   = /* 0L +: */ onsets
-    val values    = onsets0.sliding(2, 1).map { case Seq(prev, succ) =>
+
+    def onsetsSec = onsets.sliding(2, 1).map { case Seq(prev, succ) =>
       val frames: Long = succ - prev
       val secs    = frames / sampleRate
-      secs / wholeDur
+      secs
     } .toIndexedSeq
-    val minValue  = values /*.tail */ .min
 
-    require(minValue >= 1.0/96, f"Smallest note duration ($minValue%1.2f)less than 1/96 at given tempo ($tempo%1f)")
+    val minDurSec = onsetsSec.min
+
+    // tempo given in beats per minute, where beat = quarter
+    @tailrec def autoTempo(tempo: Double = 120): Double = {
+      val wholeDur  = 1.0/(tempo/(4 * 60))
+      val minValue  = minDurSec / wholeDur
+      if (minValue >= 1.0/96) tempo else {
+        autoTempo(tempo * 4/3)
+      }
+    }
+
+    val tempoFrac = autoTempo()
+
+    @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
+      val factor  = 4 * note
+      val tempo   = tempoFrac * factor.doubleValue()
+      if (tempo <= 160) {
+        val tempo1  = (tempo + 0.5).toInt + 9
+        val tempo2  = tempo1 - tempo1 % 10  // round up to multiples of 10
+        (note, tempo2)
+      } else {
+        val factor = note.numerator.intValue() match {
+          case 1 => r3_4  // e.g. 4 -> 8.
+          case 3 => r2_3
+        }
+        tempoSig(note * factor)
+      }
+    }
+
+    val (tempoBase, tempoNom) = tempoSig()
+
+    val wholeDur  = (tempoBase * tempoNom).doubleValue()
+    val values    = onsetsSec.map(_ / wholeDur)
+
+    // expects nominator to be either of 1, 3, 7
+    def dotString(r: Rational): String = {
+      val denom = r.denominator.intValue()
+      r.numerator.intValue() match {
+        case 1 => s"$denom"
+        case 3 => s"${denom/2}."
+        case 7 => s"${denom/4}.."
+      }
+    }
 
     val notes   = values.map { v =>
       val frac  = Rational(v)
-      val small = frac < r1_96
-      //      val note  = if (small) r1_96 else r1_64
-      val lim   = frac.limitDenominatorTo((if (small) r1_96 else r1_64).denominator)
-      //      val rest  = lim - note
+      val lim   = frac.limitDenominatorTo(96)
+      // val rest  = lim - note
 
       @tailrec def decompose(rem: Rational, units: List[Rational], sq: Vector[Rational]): Vector[Rational] =
         units match {
@@ -84,12 +126,7 @@ object ScoreExport {
       val dotted  = dot(dec)
 
       val durs    = dotted map { r =>
-        val denom = r.denominator.intValue()
-        val dur   = r.numerator.intValue() match {
-          case 1 => s"$denom"
-          case 3 => s"${denom/2}."
-          case 7 => s"${denom/4}.."
-        }
+        val dur = dotString(r)
         s"c'$dur"
       }
 
@@ -144,8 +181,9 @@ object ScoreExport {
         |
         |\score {
         |  \new RhythmicStaff {
-        |    \tempo 4 = 120
+        |    \tempo ${dotString(tempoBase)} = $tempoNom
         |    % \set Staff.instrumentName = \markup { \char ##x00D7 1/4 }
+        |    \autoBeamOff
         |    ${notes.mkString(" ")}
         |  }
         |}
