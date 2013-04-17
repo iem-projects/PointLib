@@ -2,17 +2,98 @@ package at.iem.point.er.sketches
 
 import java.io.{OutputStreamWriter, FileOutputStream, File}
 import collection.immutable.{IndexedSeq => IIdxSeq}
+import spire.math.Rational
+import scala.annotation.tailrec
 
 object ScoreExport {
   var lilypond  = sys.props("user.home") + "/bin/lilypond"
   var pdfViewer = "open"
+  var debug     = true    // leaves lilypond files on the desktop!
+
+  //  Dictionary[
+  //  "64" -> 1,
+  //  "64." -> 1.5,
+  //  "32" -> 2,
+  //  "32." -> 3,
+  //  "16" -> 4,
+  //  "16." -> 6,
+  //  "8" -> 8,
+  //  "8." -> 12,
+  //  "4" -> 16,
+  //  "4." -> 24,
+  //  "2" -> 32,
+  //  "2." -> 48,
+  //  "1" -> 64,
+  //  "1." -> 96
+  // ]
+
+  private val r1_64 = Rational(1, 64)
+  private val r1_96 = Rational(1, 96)
+  private val r3_2  = Rational(3, 2)
+
+  //  implicit final class RichInt(val numer: Int) extends AnyVal {
+  //    def /- (denom: Int) = Rational(numer, denom)
+  //  }
+
+  private val divisions = List(1, 2, 4, 8, 16, 32, 64).map(Rational(1, _))
 
   def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, tempo: Double = 120) {
-    val ly      = File.createTempFile("point", ".ly")
+    require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
+    val wholeDur  = 1.0/(tempo/(4 * 60)) // tempo given in beats per minute, where beat = quarter
+    val dir       = if (debug) new File(sys.props("user.home"), "Desktop") else null
+    val ly        = File.createTempFile("point", ".ly", dir)
+    val onsets0   = /* 0L +: */ onsets
+    val values    = onsets0.sliding(2, 1).map { case Seq(prev, succ) =>
+      val frames: Long = succ - prev
+      val secs    = frames / sampleRate
+      secs / wholeDur
+    } .toIndexedSeq
+    val minValue  = values /*.tail */ .min
 
-    val values  = onsets.map { frames =>
-      val secs = frames / sampleRate
-      "c'8" // test
+    require(minValue >= 1.0/96, f"Smallest note duration ($minValue%1.2f)less than 1/96 at given tempo ($tempo%1f)")
+
+    val notes   = values.map { v =>
+      val frac  = Rational(v)
+      val small = frac < r1_96
+      //      val note  = if (small) r1_96 else r1_64
+      val lim   = frac.limitDenominatorTo((if (small) r1_96 else r1_64).denominator)
+      //      val rest  = lim - note
+
+      @tailrec def decompose(rem: Rational, units: List[Rational], sq: Vector[Rational]): Vector[Rational] =
+        units match {
+          case unit :: tail =>
+            if (rem >= unit) {
+              decompose(rem - unit, units, sq :+ unit)
+            } else {
+              decompose(rem, tail, sq)
+            }
+          case _ => sq
+        }
+
+      def dot(sq: Vector[Rational]): Vector[Rational] = {
+        sq match {
+          case init :+ a :+ b :+ c if b == c * r3_2 && a == b * r3_2 => // Doppelpunktierung
+            init :+ (a + b + c)
+          case init :+ a :+ b if a == b * r3_2  => // Einfachpunktierung
+            init :+ (a + b)
+          case _ => sq
+        }
+      }
+
+      val dec     = decompose(lim, divisions, Vector.empty)
+      val dotted  = dot(dec)
+
+      val durs    = dotted map { r =>
+        val denom = r.denominator.intValue()
+        val dur   = r.numerator.intValue() match {
+          case 1 => s"$denom"
+          case 3 => s"${denom/2}."
+          case 7 => s"${denom/4}.."
+        }
+        s"c'$dur"
+      }
+
+      durs.mkString("~")  // tie
     }
 
     val n   = file.getName
@@ -24,7 +105,7 @@ object ScoreExport {
 
     val score =
       raw"""\header {
-        |  title = \markup { \fontsize #-1 \sans "Onsets for $name" }
+        |  title = \markup { \fontsize #-1 \sans "$name" }
         |  tagline = ""
         |  subtitle = " " % padding the cheesy way
         |}
@@ -63,9 +144,9 @@ object ScoreExport {
         |
         |\score {
         |  \new RhythmicStaff {
-        |    \tempo 8. = 120
+        |    \tempo 4 = 120
         |    % \set Staff.instrumentName = \markup { \char ##x00D7 1/4 }
-        |    ${values.mkString(" ")}
+        |    ${notes.mkString(" ")}
         |  }
         |}
         |
@@ -80,6 +161,7 @@ object ScoreExport {
     val cmd = Seq(lilypond, "-o", outPath, ly.getAbsolutePath)
     println(cmd.mkString(" "))
     val res = cmd.!
+    if (!debug) ly.delete()
     if (res != 0) sys.error(s"Lilypond exited with code $res")
 
     Seq(pdfViewer, outPath + ".pdf").!

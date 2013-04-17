@@ -19,6 +19,7 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
   "de.sciss" %% "desktop"                  % "0.2.+",                       // Menu components
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
+  "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers
   "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration
 )
 
@@ -33,4 +34,5 @@ initialCommands in console :=
   |import de.sciss.synth._
   |import ugen._
   |import Ops._
+  |import spire.math._
 """.stripMargin
