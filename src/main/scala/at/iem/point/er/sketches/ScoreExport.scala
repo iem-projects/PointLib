@@ -54,43 +54,6 @@ object ScoreExport {
 
     val minDurSec = onsetsSec.min
 
-    // tempo given in beats per minute, where beat = quarter
-    @tailrec def autoTempo(tempo: Double = 90): Double = {
-      val wholeDur  = 1.0/(tempo/(4 * 60))
-      val minValue  = minDurSec / wholeDur
-      if (minValue >= 1.0/96) tempo else {
-        autoTempo(tempo * 4/3)
-      }
-    }
-
-    val tempoFrac = autoTempo()
-
-    @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
-      val factor  = 4 * note
-      val tempo   = tempoFrac * factor.doubleValue()
-      if (tempo <= 160) {
-        val tempo1  = (tempo + 0.5).toInt + 9
-        val tempo2  = tempo1 - tempo1 % 10  // round up to multiples of 10
-        (note, tempo2)
-      } else {
-        val factor = note.numerator.intValue() match {
-          case 1 => r3_4  // e.g. 4 -> 8.
-          case 3 => r2_3
-        }
-        tempoSig(note * factor)
-      }
-    }
-
-    val (tempoBase, tempoNom) = tempoSig()
-
-    val wholeDur  = 60 / (tempoBase * tempoNom).doubleValue()
-    val values    = onsetsSec.map(_ * wholeDur)
-
-    if (debug) {
-      println(f"tempoFrac $tempoFrac%1.2f yields base $tempoBase with nominal tempo $tempoNom; wholeDur = $wholeDur%1.2f")
-      println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
-    }
-
     // expects nominator to be either of 1, 3, 7
     def dotString(r: Rational): String = {
       val denom = r.denominator.intValue()
@@ -101,41 +64,85 @@ object ScoreExport {
       }
     }
 
-    val notes   = values.map { v =>
-      val frac  = Rational(v)
-      val lim   = frac.limitDenominatorTo(96)
-      // val rest  = lim - note
+    // tempo given in beats per minute, where beat = quarter
+    @tailrec def autoTempo(tempo: Double = 90): Double = {
+      val wholeDur  = 1.0/(tempo/(4 * 60))
+      val minValue  = minDurSec / wholeDur
+      if (minValue >= 1.0/96) tempo else {
+        autoTempo(tempo * 4/3)
+      }
+    }
 
-      @tailrec def decompose(rem: Rational, units: List[Rational], sq: Vector[Rational]): Vector[Rational] =
-        units match {
-          case unit :: tail =>
-            if (rem >= unit) {
-              decompose(rem - unit, units, sq :+ unit)
-            } else {
-              decompose(rem, tail, sq)
-            }
-          case _ => sq
+    def schoko(): (Rational, Int, IIdxSeq[String]) = {
+
+      val tempoFrac = autoTempo()
+
+      @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
+        val factor  = 4 * note
+        val tempo   = tempoFrac * factor.doubleValue()
+        if (tempo <= 160) {
+          val tempo1  = (tempo + 0.5).toInt + 9
+          val tempo2  = tempo1 - tempo1 % 10  // round up to multiples of 10
+          (note, tempo2)
+        } else {
+          val factor = note.numerator.intValue() match {
+            case 1 => r3_4  // e.g. 4 -> 8.
+            case 3 => r2_3
+          }
+          tempoSig(note * factor)
         }
-
-      def dot(sq: Vector[Rational]): Vector[Rational] =
-        sq match {
-          case init :+ a :+ b :+ c if a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
-            init :+ (a + b + c)
-          case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
-            init :+ (a + b)
-          case _ => sq
-        }
-
-      val dec     = decompose(lim, divisions, Vector.empty)
-      val dotted  = dot(dec)
-
-      val durs    = dotted map { r =>
-        val dur = dotString(r)
-        s"c'$dur"
       }
 
-      durs.mkString("", "~", " s32")  // tie. the added silence of 1/32 yields better spacing for the short ties
+      val (_tempoBase, _tempoNom) = tempoSig()
+
+      val wholeDur  = 60 / (_tempoBase * _tempoNom).doubleValue()
+      val values    = onsetsSec.map(_ * wholeDur)
+
+      if (debug) {
+        println(f"tempoFrac $tempoFrac%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = $wholeDur%1.2f")
+        println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
+      }
+
+      val _notes: IIdxSeq[String] = values.map { v =>
+        val frac  = Rational(v)
+        val lim   = frac.limitDenominatorTo(96)
+        // val rest  = lim - note
+
+        @tailrec def decompose(rem: Rational, units: List[Rational], sq: Vector[Rational]): Vector[Rational] =
+          units match {
+            case unit :: tail =>
+              if (rem >= unit) {
+                decompose(rem - unit, units, sq :+ unit)
+              } else {
+                decompose(rem, tail, sq)
+              }
+            case _ => sq
+          }
+
+        def dot(sq: Vector[Rational]): Vector[Rational] =
+          sq match {
+            case init :+ a :+ b :+ c if a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
+              init :+ (a + b + c)
+            case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
+              init :+ (a + b)
+            case _ => sq
+          }
+
+        val dec     = decompose(lim, divisions, Vector.empty)
+        val dotted  = dot(dec)
+
+        val durs    = dotted map { r =>
+          val dur = dotString(r)
+          s"c'$dur"
+        }
+
+        durs.mkString("", "~", " s32")  // tie. the added silence of 1/32 yields better spacing for the short ties
+      }
+
+      (_tempoBase, _tempoNom, _notes)
     }
+
+    val (tempoBase, tempoNom, notes) = schoko()
 
     val n   = file.getName
     val ni0 = n.lastIndexOf('.')
