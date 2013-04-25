@@ -8,7 +8,7 @@ import scala.annotation.tailrec
 object ScoreExport {
   var lilypond  = sys.props("user.home") + "/bin/lilypond"
   var pdfViewer = "open"
-  var debug     = true    // leaves lilypond files on the desktop!
+  var debug     = true // false    // leaves lilypond files on the desktop!
 
   //  Dictionary[
   //  "64" -> 1,
@@ -40,7 +40,8 @@ object ScoreExport {
 
   private val divisions = List(1, 2, 4, 8, 16, 32, 64).map(Rational(1, _))
 
-  def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "") {
+  def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "",
+            doubleDotted: Boolean = false) {
     require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
 
     val dir       = if (debug) new File(sys.props("user.home"), "Desktop") else null
@@ -73,16 +74,22 @@ object ScoreExport {
       }
     }
 
-    def schoko(): (Rational, Int, IIdxSeq[String]) = {
+    def dot(sq: IIdxSeq[Rational]): IIdxSeq[Rational] =
+      sq match {
+        case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
+          init :+ (a + b + c)
+        case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
+          init :+ (a + b)
+        case _ => sq
+      }
 
-      val tempoFrac = autoTempo()
-
+    def calcNotes(_tempoFrac: Double): (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = {
       @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
         val factor  = 4 * note
-        val tempo   = tempoFrac * factor.doubleValue()
+        val tempo   = _tempoFrac * factor.doubleValue()
         if (tempo <= 160) {
-          val tempo1  = (tempo + 0.5).toInt + 9
-          val tempo2  = tempo1 - tempo1 % 10  // round up to multiples of 10
+          val tempo1  = (tempo + 0.5).toInt + 5 // 9
+          val tempo2  = tempo1 - tempo1 % 10  // round to multiples of 10
           (note, tempo2)
         } else {
           val factor = note.numerator.intValue() match {
@@ -99,11 +106,11 @@ object ScoreExport {
       val values    = onsetsSec.map(_ * wholeDur)
 
       if (debug) {
-        println(f"tempoFrac $tempoFrac%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = $wholeDur%1.2f")
-        println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
+        println(f"tempoFrac ${_tempoFrac}%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = $wholeDur%1.2f")
+        // println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
       }
 
-      val _notes: IIdxSeq[String] = values.map { v =>
+      val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
         val frac  = Rational(v)
         val lim   = frac.limitDenominatorTo(96)
         // val rest  = lim - note
@@ -119,18 +126,43 @@ object ScoreExport {
             case _ => sq
           }
 
-        def dot(sq: Vector[Rational]): Vector[Rational] =
-          sq match {
-            case init :+ a :+ b :+ c if a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
-              init :+ (a + b + c)
-            case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
-              init :+ (a + b)
-            case _ => sq
-          }
-
         val dec     = decompose(lim, divisions, Vector.empty)
         val dotted  = dot(dec)
+        dotted
+      }
 
+      (_tempoBase, _tempoNom, _notes)
+    }
+
+    def findBest(): (Rational, Int, IIdxSeq[String]) = {
+      val tempoFrac0  = autoTempo()       // begin with this tempo
+      val tempoFrac1  = tempoFrac0 * 2.0 // 1.5  // stop at this tempo
+      val tempoFactor = math.pow(2,1.0/128) // increase tempo by this factor in each iteration
+      var t = tempoFrac0
+      var bestRes: (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = null
+      var bestCost = Int.MaxValue
+
+      while (t <= tempoFrac1) {
+        val tup   = calcNotes(t)
+        // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
+        val cost  = tup._3.map(d => {
+          val sz = d.toSet.size
+          sz * sz
+        }).sum  // try to minimise the number of different note values
+        if (cost < bestCost) {
+          bestRes   = tup
+          bestCost  = cost
+          if (debug) {
+            println(s"With tempo $t, best cost now $bestCost")
+          }
+        }
+
+        t *= tempoFactor
+      }
+
+      val (_tempoBase, _tempoNom, _notes) = bestRes
+      val _notesStr = _notes.map { dotted =>
+        // val dotted  = dot(dec)
         val durs    = dotted map { r =>
           val dur = dotString(r)
           s"c'$dur"
@@ -139,10 +171,10 @@ object ScoreExport {
         durs.mkString("", "~", " s32")  // tie. the added silence of 1/32 yields better spacing for the short ties
       }
 
-      (_tempoBase, _tempoNom, _notes)
+      (_tempoBase, _tempoNom, _notesStr)
     }
 
-    val (tempoBase, tempoNom, notes) = schoko()
+    val (tempoBase, tempoNom, notesStr) = findBest()
 
     val n   = file.getName
     val ni0 = n.lastIndexOf('.')
@@ -200,7 +232,7 @@ object ScoreExport {
         |  \new RhythmicStaff {
         |    \tempo ${dotString(tempoBase)} = $tempoNom
         |    ${if (autoBeamOff) "\\autoBeamOff" else ""}
-        |    ${notes.mkString(" ")}
+        |    ${notesStr.mkString(" ")}
         |  }
         |}
         |
