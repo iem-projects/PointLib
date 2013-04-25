@@ -66,7 +66,7 @@ object ScoreExport {
     }
 
     // tempo given in beats per minute, where beat = quarter
-    @tailrec def autoTempo(tempo: Double = 90): Double = {
+    @tailrec def autoTempo(tempo: Double = 60): Double = {
       val wholeDur  = 1.0/(tempo/(4 * 60))
       val minValue  = minDurSec / wholeDur
       if (minValue >= 1.0/96) tempo else {
@@ -87,7 +87,7 @@ object ScoreExport {
       @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
         val factor  = 4 * note
         val tempo   = _tempoFrac * factor.doubleValue()
-        if (tempo <= 160) {
+        if (tempo <= 160) { // i.e. maximum 1/4 = 160
           val tempo1  = (tempo + 0.5).toInt + 5 // 9
           val tempo2  = tempo1 - tempo1 % 10  // round to multiples of 10
           (note, tempo2)
@@ -102,8 +102,9 @@ object ScoreExport {
 
       val (_tempoBase, _tempoNom) = tempoSig()
 
-      val wholeDur  = 60 / (_tempoBase * _tempoNom).doubleValue()
-      val values    = onsetsSec.map(_ * wholeDur)
+      // val wholeDur  = 60 / (_tempoBase * _tempoNom).doubleValue()
+      val wholeDur  = (60 * 4) / _tempoFrac
+      val values    = onsetsSec.map(_ / wholeDur)
 
       if (debug) {
         println(f"tempoFrac ${_tempoFrac}%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = $wholeDur%1.2f")
@@ -136,24 +137,34 @@ object ScoreExport {
 
     def findBest(): (Rational, Int, IIdxSeq[String]) = {
       val tempoFrac0  = autoTempo()       // begin with this tempo
-      val tempoFrac1  = tempoFrac0 * 2.0 // 1.5  // stop at this tempo
+      val tempoFrac1  = tempoFrac0 * 4.0  // 1.5  // stop at this tempo
       val tempoFactor = math.pow(2,1.0/128) // increase tempo by this factor in each iteration
       var t = tempoFrac0
       var bestRes: (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = null
-      var bestCost = Int.MaxValue
+      var bestCost1 = Int.MaxValue
+      var bestCost2 = Double.PositiveInfinity
 
       while (t <= tempoFrac1) {
         val tup   = calcNotes(t)
         // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
-        val cost  = tup._3.map(d => {
+        val (c1s, c2s) = tup._3.map(d => {
           val sz = d.toSet.size
-          sz * sz
-        }).sum  // try to minimise the number of different note values
-        if (cost < bestCost) {
+          val tuplingCost = sz * sz // higher costs for large tuple deconstructions, better to have less tuples
+          val dur = d.map(_.toDouble).sum
+          val tempoCost = if (dur >= 0.25) dur / 0.25 else 0.25 / dur // higher costs for notes deviating from 1/4
+          (tuplingCost, tempoCost)
+        }).unzip
+        val c1 = c1s.sum // (math.Numeric.IntIsIntegral)
+        val c2 = c2s.sum // (math.Numeric.IntIsIntegral)
+        if (debug) {
+          println(f"With tempo $t, cost is $bestCost1 / $bestCost2%1.2f")
+        }
+        if (c1 < bestCost1 || (c1 == bestCost1 && c2 < bestCost2)) {
           bestRes   = tup
-          bestCost  = cost
+          bestCost1 = c1
+          bestCost2 = c2
           if (debug) {
-            println(s"With tempo $t, best cost now $bestCost")
+            println("...new best")
           }
         }
 
