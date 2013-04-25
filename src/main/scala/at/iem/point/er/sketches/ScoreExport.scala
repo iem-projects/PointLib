@@ -8,7 +8,7 @@ import scala.annotation.tailrec
 object ScoreExport {
   var lilypond  = sys.props("user.home") + "/bin/lilypond"
   var pdfViewer = "open"
-  var debug     = true // false    // leaves lilypond files on the desktop!
+  var debug     = false    // leaves lilypond files on the desktop!
 
   //  Dictionary[
   //  "64" -> 1,
@@ -38,7 +38,9 @@ object ScoreExport {
   //    def /- (denom: Int) = Rational(numer, denom)
   //  }
 
-  private val divisions = List(1, 2, 4, 8, 16, 32, 64).map(Rational(1, _))
+  private val divisions  = List(1, 2, 4, 8, 16, 32, 64).map(Rational(1, _))
+  private val divisions2 = divisions.init
+  private val divisions3 = divisions2.init
 
   def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "",
             doubleDotted: Boolean = false) {
@@ -83,7 +85,7 @@ object ScoreExport {
         case _ => sq
       }
 
-    def calcNotes(_tempoFrac: Double): (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = {
+    def calcNotes(_tempoFrac: Double, _divisions: List[Rational]): (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = {
       @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
         val factor  = 4 * note
         val tempo   = _tempoFrac * factor.doubleValue()
@@ -111,6 +113,8 @@ object ScoreExport {
         // println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsetsSec.take(5)} -> values ${values.take(5)}")
       }
 
+      var gagaismo = true
+
       val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
         val frac  = Rational(v)
         val lim   = frac.limitDenominatorTo(96)
@@ -127,8 +131,14 @@ object ScoreExport {
             case _ => sq
           }
 
-        val dec     = decompose(lim, divisions, Vector.empty)
+        val dec     = decompose(lim, _divisions, Vector.empty)
         val dotted  = dot(dec)
+
+        if (debug && gagaismo) {
+          println(s"- first note becomes $lim -- ($frac) -- dotted is $dotted")
+          gagaismo = false
+        }
+
         dotted
       }
 
@@ -137,15 +147,16 @@ object ScoreExport {
 
     def findBest(): (Rational, Int, IIdxSeq[String]) = {
       val tempoFrac0  = autoTempo()       // begin with this tempo
-      val tempoFrac1  = tempoFrac0 * 4.0  // 1.5  // stop at this tempo
+      val tempoFrac1  = tempoFrac0 * 3.0  // 1.5  // stop at this tempo
       val tempoFactor = math.pow(2,1.0/128) // increase tempo by this factor in each iteration
       var t = tempoFrac0
       var bestRes: (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = null
       var bestCost1 = Int.MaxValue
       var bestCost2 = Double.PositiveInfinity
+      var bestT     = 0.0
 
-      while (t <= tempoFrac1) {
-        val tup   = calcNotes(t)
+      def wooopi(t: Double, _divisions: List[Rational]) {
+        val tup   = calcNotes(t, _divisions)
         // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
         val (c1s, c2s) = tup._3.map(d => {
           val sz = d.toSet.size
@@ -163,13 +174,22 @@ object ScoreExport {
           bestRes   = tup
           bestCost1 = c1
           bestCost2 = c2
+          bestT     = t
           if (debug) {
             println("...new best")
           }
         }
+      }
 
+      while (t <= tempoFrac1) {
+        wooopi(t, divisions)
         t *= tempoFactor
       }
+
+      // println("double trouble...")
+      wooopi(bestT * 2, divisions2)
+      wooopi(bestT * 3, divisions2)
+      wooopi(bestT * 4, divisions3)
 
       val (_tempoBase, _tempoNom, _notes) = bestRes
       val _notesStr = _notes.map { dotted =>
