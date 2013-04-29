@@ -34,25 +34,56 @@ object ElisabethPartitioning extends App with ShowPartitioning {
   }
 
   def run() {
-    val sn    = loadDisklavier(0)
+    val sn    = loadDisklavier(5) // 4  1  0
     val notes = sn.notes
 
-    def inHeap(minTime: Double, maxTime: Double, minPitch: Int, maxPitch: Int)(n: OffsetNote): Boolean = {
-      val p = n.pitch.midi
-      n.offset < maxTime && n.stop > minTime && p >= minPitch && p <= maxPitch
-    }
+    val timeTol   = 0.5 // 0.3
+    val pitchTol  = 4.0 // 3.0 // Double!
+    // val diagTol   = math.sqrt(timeTol * timeTol + pitchTol * pitchTol)
 
-    val timeTol   = 0.3
-    val pitchTol  = 3
+    def inHeap(ref: OffsetNote)(n: OffsetNote): Boolean = {
+      val np  = n.pitch.midi
+      val rp  = ref.pitch.midi
+      val pch = math.abs(np - rp)
+
+      // n.offset < maxTime && n.stop > minTime && p >= minPitch && p <= maxPitch
+
+      if (n.offset < ref.offset) {
+        // note begins before ref
+
+        if (n.stop >= ref.offset) {
+          // notes touch or overlap in time
+          pch <= pitchTol
+
+        } else {
+          // n precedes ref in time
+          val dx      = (ref.offset - n.stop) / timeTol
+          val dy      = math.max(0, pch - 1) / pitchTol
+          val distSq  = dx * dx + dy * dy
+          distSq <= 1.0
+        }
+
+      } else {
+        // note begins after ref
+
+        if (n.offset <= ref.stop) {
+          // notes touch or overlap in time
+          pch <= pitchTol
+
+        } else {
+          // n succeeds ref in time
+          val dx      = (n.offset - ref.stop) / timeTol
+          val dy      = math.max(0, pch - 1) / pitchTol
+          val distSq  = dx * dx + dy * dy
+          distSq <= 1.0
+        }
+      }
+    }
 
     def mkHeap(rem: IIdxSeq[OffsetNote], in: IIdxSeq[OffsetNote], out: IIdxSeq[OffsetNote]): (IIdxSeq[OffsetNote], IIdxSeq[OffsetNote]) =
       rem match {
         case head +: tail =>
-          val minTime   = head.offset - timeTol
-          val maxTime   = head.stop   + timeTol
-          val minPitch  = head.pitch.midi - pitchTol
-          val maxPitch  = head.pitch.midi + pitchTol
-          val (in1, out1) = out.partition(inHeap(minTime, maxTime, minPitch, maxPitch))
+          val (in1, out1) = out.partition(inHeap(head))
           mkHeap(rem = tail ++ in1, in = in :+ head, out = out1)
 
         case _ => (in, out)
@@ -69,6 +100,6 @@ object ElisabethPartitioning extends App with ShowPartitioning {
 
     val heaps = mkHeaps(notes, Vector.empty)
     implicit val r  = sn.rate
-    show(heaps, Vector.empty, numGroups = 4)
+    show(heaps, Vector.empty, numGroups = 5)
   }
 }
