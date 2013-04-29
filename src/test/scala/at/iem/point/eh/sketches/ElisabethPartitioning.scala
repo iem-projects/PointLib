@@ -3,6 +3,7 @@ package at.iem.point.eh.sketches
 import scala.swing.Swing
 import at.iem.point.illism._
 import scala.annotation.tailrec
+import collection.breakOut
 
 object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(run())
@@ -34,12 +35,24 @@ object ElisabethPartitioning extends App with ShowPartitioning {
   }
 
   def run() {
-    val sn    = loadDisklavier(5) // 4  1  0
+    val sn    = loadDisklavier(0) // 5  4  1  0
     val notes = sn.notes
 
-    val timeTol   = 0.5 // 0.3
-    val pitchTol  = 4.0 // 3.0 // Double!
+    val timeTol       = 0.3 // 5 // 0.3           // seconds
+    val pitchTol      = 4.0 // 3.0 // Double!     // semitones
+    val densityWindow = 4.0                       // seconds
+
     // val diagTol   = math.sqrt(timeTol * timeTol + pitchTol * pitchTol)
+
+    def calcDensity(window: Double)(n: OffsetNote): Double = {
+      val minTime = n.offset - window
+      val maxTime = n.stop   + window
+      val num     = notes.count(that => that.offset >= minTime && that.stop <= maxTime)
+      num / window
+    }
+
+    val densityFun = calcDensity(densityWindow) _
+    val densityMap: Map[OffsetNote, Double] = notes.map(n => n -> densityFun(n))(breakOut)
 
     def inHeap(ref: OffsetNote)(n: OffsetNote): Boolean = {
       val np  = n.pitch.midi
@@ -48,35 +61,39 @@ object ElisabethPartitioning extends App with ShowPartitioning {
 
       // n.offset < maxTime && n.stop > minTime && p >= minPitch && p <= maxPitch
 
-      if (n.offset < ref.offset) {
-        // note begins before ref
+      val densityBonus = densityMap(n)
 
-        if (n.stop >= ref.offset) {
-          // notes touch or overlap in time
-          pch <= pitchTol
+      if ((n.offset < ref.offset &&   n.stop >= ref.offset) ||
+          (n.offset > ref.offset && ref.stop >= n  .offset)) {
 
-        } else {
-          // n precedes ref in time
-          val dx      = (ref.offset - n.stop) / timeTol
-          val dy      = math.max(0, pch - 1) / pitchTol
-          val distSq  = dx * dx + dy * dy
-          distSq <= 1.0
-        }
+        val durDif0   = math.max(n.duration, ref.duration) / math.min(n.duration, ref.duration)
+        // val durDif    = math.min(3.0, durDif0)
+        // val timeBonus = durDif.linexp(1.0, 2.0, 0.5, 2.0) // or linlin?
+        val durDif    = math.min(5.0, durDif0)
+        val timeBonus0 = durDif.linlin(1.0, 2.0, 0.5, 2.0)  // bonus for having similar duration
+
+        val timeBonus1 = if (durDif0 < 1.4) {
+          val ovrMin = math.min(n.stop, ref.stop) - math.max(n.offset, ref.offset)
+          val ovrMax = math.max(n.stop, ref.stop) - math.min(n.offset, ref.offset)
+          if (ovrMax / ovrMin < 1.5) {  // 'chord'
+            0.25 // bonus for being simultaneous
+          } else {
+            1.0
+          }
+        } else 1.0
+
+        val timeBonus = math.min(timeBonus0, timeBonus1)
+
+        // notes touch or overlap in time
+        pch * timeBonus <= pitchTol
 
       } else {
-        // note begins after ref
-
-        if (n.offset <= ref.stop) {
-          // notes touch or overlap in time
-          pch <= pitchTol
-
-        } else {
-          // n succeeds ref in time
-          val dx      = (n.offset - ref.stop) / timeTol
-          val dy      = math.max(0, pch - 1) / pitchTol
-          val distSq  = dx * dx + dy * dy
-          distSq <= 1.0
-        }
+        // n precedes or succeeds ref in time
+        val pitchBonus = if (pch == 0) 0.5 else 1.0
+        val dx      = math.min(math.abs(n.offset - ref.stop), math.abs(ref.offset - n.stop)) / timeTol * pitchBonus
+        val dy      = math.max(0, pch - 1) / pitchTol
+        val distSq  = dx * dx + dy * dy
+        distSq <= 1.0
       }
     }
 

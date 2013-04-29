@@ -30,6 +30,14 @@ package object sketches {
       math.pow(dstHi / dstLo, (f - srcLo) / (srcHi - srcLo)).toFloat * dstLo
   }
 
+  implicit final class RichDouble(val d: Double) extends AnyVal {
+    def linlin(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
+      (d - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
+
+    def linexp(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
+      math.pow(dstHi / dstLo, (d - srcLo) / (srcHi - srcLo)).toFloat * dstLo
+  }
+
   var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
   def inPath    = basePath / "in"
   def outPath   = basePath / "rec"
