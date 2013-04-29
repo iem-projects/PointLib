@@ -7,9 +7,9 @@ import de.sciss.midi
 object MattiasPartitioning extends App with ShowPartitioning {
   Swing.onEDT(run())
 
-  def fields        = true
-  def splitVoices   = false && !fields
-  def studyIdx      = 1
+  def fields        = false // true
+  def splitVoices   = true && !fields
+  def studyIdx      = 2
 
   def run() {
     val i           = 2

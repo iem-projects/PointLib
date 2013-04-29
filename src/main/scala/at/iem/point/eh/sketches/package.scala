@@ -33,6 +33,8 @@ package object sketches {
   var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
   def inPath    = basePath / "in"
   def outPath   = basePath / "rec"
+  def outPath2  = basePath / "rec_neu"
+
   lazy val snippetFiles: Map[Int, File] = {
     val b   = Map.newBuilder[Int, File]
     val Pat = "snippet (\\d+).mid".r
@@ -49,6 +51,13 @@ package object sketches {
   }
 
   def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx).getPath)
+
+  private val disklavierNames = Vector(
+    "Kreisend", "Cluster", "StummeTasten", "4_TeilweisePedal", "MitGanzOberenHoehen",
+    "SchleifenderDaumen"
+  )
+
+  def loadDisklavier(idx: Int): midi.Sequence = midi.Sequence.read((outPath2 / s"${disklavierNames(idx)}.mid").getPath)
 
   // maps voices to snippet indices
   lazy val staticChords = Map(

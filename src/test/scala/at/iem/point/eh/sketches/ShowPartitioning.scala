@@ -16,7 +16,8 @@ import at.iem.point.illism.gui.PianoRoll.NoteDecoration
 import collection.breakOut
 
 trait ShowPartitioning {
-  def show(notes: IIdxSeq[IIdxSeq[OffsetNote]], chords: IIdxSeq[IIdxSeq[Chord]])(implicit rate: midi.TickRate) {
+  def show(notes: IIdxSeq[IIdxSeq[OffsetNote]], chords: IIdxSeq[IIdxSeq[Chord]], numGroups: Int = -1)
+          (implicit rate: midi.TickRate) {
     val notesF      = notes.flatten
     val chordsF     = chords.flatten
     val allNotes    = (notesF ++ chordsF.flatMap(_.notes)).sortBy(_.offset)
@@ -51,12 +52,15 @@ trait ShowPartitioning {
     val (minPch, maxPch) = (pch.min, pch.max)
     view.pitchRange = (minPch - (minPch % 12)) -> ((maxPch + 11) - ((maxPch + 11) % 12))
 
-    val noteGroupSz   = notes.size
+    val noteGroupSz   = if (numGroups < 0) notes.size else numGroups
     val chordGroupSz  = chords.size
     if (noteGroupSz > 1 || chordGroupSz > 1) {  // use decorators
+      val ngs1    = noteGroupSz - 1
+      val hueMin  = if (numGroups < 0) 0.40f else 0.2f
+      val hueMax  = if (numGroups < 0) 0.70f else 0.8f
       val m: Map[OffsetNote, NoteDecoration] = notes.zipWithIndex.flatMap({ case (ns, i) =>
-        val in    = i.toFloat / (noteGroupSz - 1)
-        val colrN = Color.getHSBColor(in.linlin(0, 1, 0.40f, 0.70f), 0.75f, in.linlin(0, 1, 0.75f, 1.0f))
+        val in    = (i % noteGroupSz).toFloat // / ngs1
+        val colrN = Color.getHSBColor(in.linlin(0, ngs1, hueMin, hueMax), 0.75f, in.linlin(0, ngs1, 0.75f, 1.0f))
         val decN  = NoteDecoration(Some(colrN))
         ns.map(n => n -> decN)(breakOut) // : Map[OffsetNote, NoteDecoration]
       })(breakOut)
@@ -241,6 +245,9 @@ trait ShowPartitioning {
       pack()
       centerOnScreen()
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
+
+      PDFSupport.addMenu(peer, view :: Nil, usePrefSize = false)
+
       open()
     }
   }
