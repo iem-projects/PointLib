@@ -1,6 +1,6 @@
 name := "er_sketches"
 
-version := "0.1.0-SNAPSHOT"
+version := "0.1.0"
 
 organization := "at.iem.point"
 
@@ -11,11 +11,9 @@ homepage := Some(url("https://github.com/iem-projects/PointLib"))
 licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
 libraryDependencies ++= Seq(
-  "de.sciss" %% "scalacollider"            % "1.6.+",
-//"de.sciss" %% "scalacolliderswing"       % "1.5.+",
-//"de.sciss" %% "scalacolliderugens-core"  % "1.5.1+",
-  "de.sciss" %% "sonogramoverview"         % "1.5.+",                       // Sonogram View
-  "de.sciss" %% "strugatzki"               % "1.8.+",                       // Offline Feature Extraction
+  "de.sciss" %% "scalacollider"            % "1.7.+",
+  "de.sciss" %% "sonogramoverview"         % "1.6.+",                       // Sonogram View
+  "de.sciss" %% "strugatzki"               % "1.9.+",                       // Offline Feature Extraction
   "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
   "de.sciss" %% "desktop"                  % "0.2.+",                       // Menu components
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
@@ -36,3 +34,10 @@ initialCommands in console :=
   |import Ops._
   |import spire.math._
 """.stripMargin
+
+// ---- app bundle ----
+
+seq(appbundle.settings: _*)
+
+appbundle.target <<= baseDirectory
+
