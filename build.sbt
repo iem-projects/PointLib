@@ -11,8 +11,9 @@ homepage := Some(url("https://github.com/iem-projects/PointLib"))
 licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
 libraryDependencies ++= Seq(
-  "org.spire-math" %% "spire" % "0.4.0-M4",                        // Rational Numbers
-  "com.github.wookietreiber" %% "scala-chart" % "0.2.0"            // JFreeChart integration
+  "org.spire-math" %% "spire" % "0.4.0-M4",                        // Rational Numbers; 0.4.0 adds `lcm` methods
+  "com.github.wookietreiber" %% "scala-chart" % "0.2.0",           // JFreeChart integration
+  "com.itextpdf" % "itextpdf" % "5.3.2"                            // PDF export
 )
 
 retrieveManaged := true
