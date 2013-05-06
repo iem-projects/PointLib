@@ -1,7 +1,7 @@
 package at.iem.point.sh
 
+import spire.math.{Rational, compat}
+
 package object sketches {
-//  implicit class RichInt(val i: Int) extends AnyRef {
-//
-//  }
+  implicit val rationalNumeric = compat.numeric[Rational]
 }

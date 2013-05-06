@@ -33,9 +33,25 @@ object Cell {
     Cell(23, v(9, 15), r"6/4"),
     Cell(24, v(12, 5, 11), r"7/4")
   )
-  
+
   assert(cell.zipWithIndex.forall { case (Cell(id, _, _), idx) => id == idx })
+
+  val norm = cell.map(_.normalized)
 }
 final case class Cell(id: Int, elements: IIdxSeq[NoteOrRest], dur: Rational) {
-  override def toString = s"Cell#$id(${elements.map(_.toInt).mkString("[", ", ", "]")}, dur = $dur)"
+  override def toString = s"Cell#$id($prettyElements}, dur = $dur)"
+
+  def size = elements.size
+
+  def prettyElements: String = elements.map(_.toNumber).mkString("[", ", ", "]")
+
+  def pretty: String = {
+    val s = f"#$id%2s: $prettyElements, ${dur.toString}" // "${dur.toString}%3s"
+    s + (" " * math.max(0, 40 - s.length))
+  }
+
+  def normalized: Cell = {
+    val factor = dur / elements.map(_.dur).sum
+    copy(elements = elements.map(_ * factor), dur = 1)
+  }
 }
