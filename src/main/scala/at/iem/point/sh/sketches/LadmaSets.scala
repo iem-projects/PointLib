@@ -11,7 +11,7 @@ import org.jfree.chart.labels.StandardXYItemLabelGenerator
 
 object LadmaSets extends SimpleSwingApplication {
   // --- settings ---
-  val xaxis: PlotType   = Duration              // which datum to plot across the x-axis
+  val xaxis: PlotType   = Dilation              // which datum to plot across the x-axis
   val yaxis: PlotType   = Entropy               // which datum to plot across the y-axis
   val source: Source    = FactorsAllForms       // which set of cells forms the source of analysis
 
@@ -23,6 +23,7 @@ object LadmaSets extends SimpleSwingApplication {
   case object TensionByMobility extends LadmaType
   case object Duration extends PlotType
   case object Index extends PlotType
+  case object Dilation extends PlotType
 
   sealed trait Source
   /** All the base cells without stretching */
@@ -65,6 +66,7 @@ object LadmaSets extends SimpleSwingApplication {
 
       case Duration           => (cells.map(_.dur.toDouble), "Duration", None)
       case Index              => (cells.map(c => (c.id + 1).toDouble), "Cell No.", None)
+      case Dilation           => (cells.map(c => (c.dur / baseCells(c.id).dur).toDouble), "Dilation", None)
     }
 
     // println("-----CELLS-----")
