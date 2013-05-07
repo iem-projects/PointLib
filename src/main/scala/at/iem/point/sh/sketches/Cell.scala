@@ -34,24 +34,45 @@ object Cell {
     Cell(24, v(12, 5, 11), r"7/4")
   )
 
-  assert(cell.zipWithIndex.forall { case (Cell(id, _, _), idx) => id == idx })
+  def baseCells = cell
 
-  val norm = cell.map(_.normalized)
+  // make sure we have no tipos
+  assert(baseCells.zipWithIndex.forall { case (Cell(id, _, _), idx) => id == idx })
+
+  // cells with total durations integrated into the elements
+  val norm = baseCells.map(_.normalized)
+
+  val baseFactors = Vector(5, 6, 7, 8, 9).map(Rational(1, _))
+  val minStretch  = r"1/4"
+  val maxStretch  = r"4"
+
+  // there are 106 different factors when expanding the base factors
+  // through multiplication within the min/max stretch
+  val factors     = baseFactors.flatMap(_.multiples(minStretch, maxStretch)).sorted.distinct
+
+  assert(factors.size == 106)
 }
 final case class Cell(id: Int, elements: IIdxSeq[NoteOrRest], dur: Rational) {
   override def toString = s"Cell#$id($prettyElements}, dur = $dur)"
 
+  /** Number of elements in the cell */
   def size = elements.size
 
+  /** Pretty formatted string representation of the cell's elements */
   def prettyElements: String = elements.map(_.toNumber).mkString("[", ", ", "]")
 
+  /** Pretty formatted string representation of the cell */
   def pretty: String = {
     val s = f"#$id%2s: $prettyElements, ${dur.toString}" // "${dur.toString}%3s"
     s + (" " * math.max(0, 40 - s.length))
   }
 
+  /** Multiplies the elements by a factor so that their sum will become the nominal total duration. */
   def normalized: Cell = {
     val factor = dur / elements.map(_.dur).sum
-    copy(elements = elements.map(_ * factor), dur = 1)
+    copy(elements = elements.map(_ * factor) /* , dur = 1 */)
   }
+
+  /** Scales the total duration of the cell by a given factor */
+  def * (factor: Rational): Cell = copy(dur = dur * factor)
 }

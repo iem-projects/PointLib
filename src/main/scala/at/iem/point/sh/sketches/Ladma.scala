@@ -41,7 +41,18 @@ object Ladma {
     val (dursM, k) = prepare(cell)
     // Note: Ladma uses symbol `k` twice. The sum obviously goes over the number of elements
     // and not the order of the structure.
-    val ps = dursM.map { d => val quot = (d/k).toDouble; quot * math.log(quot) }
+    // val ps = dursM.map { d => val quot = (d/k).toDouble; quot * math.log(quot) }
+
+    // There is another problem with the original formula: It assumes that for any note the
+    // numerator is less than or equal to the order of the structure, i.e. no note greater
+    // than a whole occurs. If that property is violated we could get negative entropies.
+    // To solve this, we can something similar to the "reducible patterns" approach of Ladma,
+    // e.g. 3/2 = 2/2 + 1/2. We can then omit the whole tones, because log(1) == 0.
+
+    val dursF = dursM.collect {
+      case d if (d % k) != 0 => d % k
+    }
+    val ps = dursF.map { d => val quot = (d/k).toDouble; quot * math.log(quot) }
     val h  = -ps.sum
     h
   }
