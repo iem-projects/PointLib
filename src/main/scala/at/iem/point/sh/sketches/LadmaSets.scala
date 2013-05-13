@@ -81,7 +81,7 @@ object LadmaSets extends SimpleSwingApplication {
       case BaseForms            => "Base forms"
       case BaseFactors          => "Cells stretched with base factors"
       case FactorsOneForm(idx)  => s"Cell No. ${idx + 1} stretched with all factors"
-      case FactorsAllForms      => "Cells stretched with al factors"
+      case FactorsAllForms      => "Cells stretched with all factors"
     }
 
     val labelFun = source match {
