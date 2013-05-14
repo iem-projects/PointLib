@@ -8,12 +8,12 @@ object Kreuztabelle extends App {
   val DEBUG = false
 
   Swing.onEDT {
-    run(chordSize = -1, intervalClasses = true)
+    run(chordSize = -1, intervalClasses = true, idx = 11)
   }
 
-  def analyze(raw: Boolean = false, allIntervals: Boolean = false,
+  def analyze(raw: Boolean = false, idx: Int = 0, allIntervals: Boolean = false,
               intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
-    val f   = loadDefault(raw = raw)
+    val f   = loadDefault(raw = raw, idx = idx)
     val n   = f.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
     val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)
@@ -35,18 +35,20 @@ object Kreuztabelle extends App {
 
 //    println(mp)
 
-    val title0 = s"File: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
+    val title0 = s"File #$idx: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
     val title  = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
     val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel
   }
 
-  def run(chordSize: Int = -1, intervalClasses: Boolean = false) {
+  /** `idx` is zero for the file in `MIDI`, and >1 for those in `MIDI3` */
+  def run(chordSize: Int = -1, intervalClasses: Boolean = false, idx: Int = 0) {
+    val rawSeq = if (idx == 0) Seq(false, true) else Seq(true)
     val panes = for {
-      raw          <- Seq(false, true)
+      raw          <- rawSeq
       allIntervals <- Seq(true, false)
     } yield {
-      analyze(raw = raw, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
+      analyze(raw = raw, idx = idx, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
     }
 
     val panel = panes.asGrid(2, 2)

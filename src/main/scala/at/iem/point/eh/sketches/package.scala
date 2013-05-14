@@ -44,8 +44,14 @@ package object sketches {
 
 //  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
 
-  def loadDefault(raw: Boolean = false): midi.Sequence =
-    midi.Sequence.readFile(recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid")
+  def loadDefault(raw: Boolean = false, idx: Int = 0): midi.Sequence = {
+    val file = if (idx == 0) {
+      recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid"
+    } else {
+      recPath / "MIDI3" / f"study_#$idx%02d.mid"
+    }
+    midi.Sequence.readFile(file)
+  }
 
   implicit final class RichInt(val i: Int) extends AnyVal {
     def asPitch: Pitch = new Pitch(i)
