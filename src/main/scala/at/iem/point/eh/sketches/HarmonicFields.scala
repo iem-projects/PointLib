@@ -17,7 +17,8 @@ object HarmonicFields extends App {
 
   def analyse(raw: Boolean = false, weighted: Boolean = false, allIntervals: Boolean = false,
               intervalClasses: Boolean = false, chordSize: Int = -1): XYChart = {
-    val f   = loadDefault(raw = raw)
+    val st  = if (raw) Study.Raw(0) else Study.Edited(0)
+    val f   = load(st)
     val n   = f.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
     val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)

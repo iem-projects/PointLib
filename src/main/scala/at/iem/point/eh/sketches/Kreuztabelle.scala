@@ -11,9 +11,9 @@ object Kreuztabelle extends App {
     run(chordSize = -1, intervalClasses = true, idx = 11)
   }
 
-  def analyze(raw: Boolean = false, idx: Int = 0, allIntervals: Boolean = false,
+  def analyze(study: Study, allIntervals: Boolean = false,
               intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
-    val f   = loadDefault(raw = raw, idx = idx)
+    val f   = load(study)
     val n   = f.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
     val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)
@@ -35,7 +35,7 @@ object Kreuztabelle extends App {
 
 //    println(mp)
 
-    val title0 = s"File #$idx: ${if (raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
+    val title0 = s"File #${study.idx}: ${if (study.raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
     val title  = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
     val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel
@@ -48,7 +48,8 @@ object Kreuztabelle extends App {
       raw          <- rawSeq
       allIntervals <- Seq(true, false)
     } yield {
-      analyze(raw = raw, idx = idx, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
+      val study = if (raw) Study.Raw(idx) else Study.Edited(idx)
+      analyze(study, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
     }
 
     val panel = panes.asGrid(2, 2)

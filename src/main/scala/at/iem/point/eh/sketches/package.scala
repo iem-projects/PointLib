@@ -44,13 +44,38 @@ package object sketches {
 
 //  def loadSnippet(idx: Int): midi.Sequence = midi.Sequence.read(snippetFiles(idx))
 
-  def loadDefault(raw: Boolean = false, idx: Int = 0): midi.Sequence = {
-    val file = if (idx == 0) {
-      recPath / "MIDI" / s"ms_midiexample_[${if (raw) "raw" else "edited"}].mid"
-    } else {
-      recPath / "MIDI3" / f"study_#$idx%02d.mid"
+  object Study {
+    case class Raw(idx: Int) extends Study {
+      def raw = true
+      def file: File = if (idx == 0) {
+        recPath / "MIDI" / s"ms_midiexample_[raw].mid"
+      } else {
+        recPath / "MIDI3" / f"study_#$idx%02d.mid"
+      }
     }
-    midi.Sequence.readFile(file)
+
+    case class Edited(idx: Int) extends Study {
+      def raw = false
+      def file: File = if (idx == 0) {
+        recPath / "MIDI" / s"ms_midiexample_[edited].mid"
+      } else {
+        sys.error(s"No edited file for index $idx")
+      }
+    }
+
+    case class Boring(idx: Int) extends Study {
+      def raw = true
+      def file: File = recPath / "boring" / f"study_#$idx%02du.mid"
+    }
+  }
+  sealed trait Study {
+    def file: File
+    def idx: Int
+    def raw: Boolean
+  }
+
+  def load(study: Study = Study.Edited(0)): midi.Sequence = {
+    midi.Sequence.readFile(study.file)
   }
 
   implicit final class RichInt(val i: Int) extends AnyVal {
