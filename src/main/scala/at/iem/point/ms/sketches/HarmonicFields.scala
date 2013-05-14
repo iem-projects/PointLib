@@ -9,6 +9,8 @@ import scalax.chart.XYChart
 import org.jfree.chart.{ChartFactory, StandardChartTheme, ChartPanel}
 import org.jfree.chart.title.TextTitle
 import javax.swing.WindowConstants
+import at.iem.point.illism._
+import de.sciss.pdflitz
 
 object HarmonicFields extends App {
   Swing.onEDT {
@@ -83,8 +85,7 @@ object HarmonicFields extends App {
       centerOnScreen()
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
     }
-    PDFSupport.addMenu(fr.peer, panel.peer :: Nil, usePrefSize = false)
-
+    new pdflitz.SaveAction(panel :: Nil).setupMenu(fr)
     fr.open()
   }
 }

@@ -4,6 +4,7 @@ import swing.{Panel, GridPanel, Component, Frame, Swing}
 import Swing._
 import java.awt.Dimension
 import javax.swing.WindowConstants
+import de.sciss.pdflitz
 
 object GUI {
   def frame(title: String, component: Component, size: Dimension = (1000, 800)): Frame = {
@@ -16,7 +17,7 @@ object GUI {
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
       centerOnScreen()
     }
-    PDFSupport.addMenu(fr.peer, component.peer :: Nil, usePrefSize = false)
+    new pdflitz.SaveAction(component :: Nil).setupMenu(fr)
     fr.open()
     fr
   }

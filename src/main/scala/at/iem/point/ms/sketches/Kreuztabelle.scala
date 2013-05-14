@@ -3,6 +3,7 @@ package at.iem.point.ms.sketches
 import swing.{Component, Swing}
 import Swing._
 import GUI._
+import at.iem.point.illism._
 
 object Kreuztabelle extends App {
   def DEBUG = false

@@ -1,5 +1,7 @@
 package at.iem.point.ms.sketches
 
+import at.iem.point.illism._
+
 object Rhythmic extends App {
   for (raw <- Seq(true, false)) {
     println(s"---- In ${if (raw) "raw" else "edited"} file: ----")
