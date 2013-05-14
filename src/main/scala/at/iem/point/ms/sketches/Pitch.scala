@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 object Pitch {
   // cf. http://www.sengpielaudio.com/Rechner-notennamen.htm

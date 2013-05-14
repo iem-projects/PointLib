@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 object Language {
   var default: Language = Language.English

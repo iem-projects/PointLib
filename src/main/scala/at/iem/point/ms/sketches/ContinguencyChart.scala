@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 import org.jfree.data.xy.{MatrixSeries, MatrixSeriesCollection}
 import org.jfree.chart.renderer.xy.XYBlockRenderer

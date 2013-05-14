@@ -1,11 +1,11 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 import swing.{Component, Swing}
 import Swing._
 import GUI._
 
 object Kreuztabelle extends App {
-  val DEBUG = false
+  def DEBUG = false
 
   Swing.onEDT {
     run(chordSize = -1, intervalClasses = true, idx = 11)
@@ -35,7 +35,7 @@ object Kreuztabelle extends App {
 
 //    println(mp)
 
-    val title0 = s"File #${study.idx}: ${if (study.raw) "raw" else "edited"} ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
+    val title0 = s"${study.file.name}: ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
     val title  = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
     val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel

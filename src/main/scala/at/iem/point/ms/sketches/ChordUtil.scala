@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 import annotation.tailrec
 import de.sciss.fingertree.{RangedSeq, FingerTree}

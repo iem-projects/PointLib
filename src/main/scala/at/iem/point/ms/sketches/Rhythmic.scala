@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 object Rhythmic extends App {
   for (raw <- Seq(true, false)) {

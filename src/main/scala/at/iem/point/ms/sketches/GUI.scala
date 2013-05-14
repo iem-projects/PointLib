@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 import swing.{Panel, GridPanel, Component, Frame, Swing}
 import Swing._

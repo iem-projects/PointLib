@@ -1,4 +1,4 @@
-package at.iem.point.eh.sketches
+package at.iem.point.ms.sketches
 
 import scalax.chart.Charting._
 import swing.{Component, GridPanel, Swing, Frame}

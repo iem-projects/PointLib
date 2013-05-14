@@ -1,4 +1,4 @@
-package at.iem.point.eh
+package at.iem.point.ms
 
 import java.io.{IOException, File}
 import java.awt.EventQueue
@@ -50,7 +50,9 @@ package object sketches {
       def file: File = if (idx == 0) {
         recPath / "MIDI" / s"ms_midiexample_[raw].mid"
       } else {
-        recPath / "MIDI3" / f"study_#$idx%02d.mid"
+        val base               = recPath / "MIDI3"
+        val f0                 = base / f"study_#$idx%02d.mid"
+        if (f0.exists()) f0 else base / f"study_#$idx%02d!.mid"
       }
     }
 
