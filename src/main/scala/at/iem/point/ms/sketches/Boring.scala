@@ -13,7 +13,8 @@ object Boring extends App {
 
     which match {
       case "--kreuz"  => kreuz()
-      case _          => ladmaVerlauf()
+      case "--ladma"  => ladmaVerlauf()
+      case _          => harmonicVerlauf()
     }
   }
 
@@ -36,8 +37,8 @@ object Boring extends App {
     // val sts     = Vector(Study.Boring(26)) // , Study.Boring(29)) // , Study.Boring(31))
     // val sts     = Vector(Study.Raw(4), Study.Raw(5), Study.Raw(6)) // , Study.Raw(7))
     val sts     = Vector(Study.Boring(29), Study.Raw(4), Study.Raw(5), Study.Raw(6))
-    val winSecs = 16.0
-    val winOver = 8
+    val winSecs = 16.0    // window size in seconds
+    val winOver = 8       // window step factor (8 means 1/8 of window size)
 
     val ms  = sts.map { st =>
       println(s"\nFile: ${st.file.name}")
@@ -56,7 +57,6 @@ object Boring extends App {
       val quant = Tempo.quantize(durRaw, qpm = 160, maxDenom = 64)
       println(s"Tempo: ${quant.tempoBase} = ${quant.tempoNom}")
 
-      import NoteUtil2.noteOffsetView
       val winSize = winSecs / quant.wholeDuration  // wholes per 10 seconds
       val winStep = winSize / winOver
       println(f"Sliding window size $winSize, step $winStep (1 = ${quant.wholeDuration}%1.3fs)")
@@ -85,5 +85,76 @@ object Boring extends App {
     import Plotting._
 
     ms.plot(ylabel = measure.capitalize, title = s"${measure.capitalize} Comparison", legends = sts.map(_.file.name))
+  }
+
+  def harmonicVerlauf() {
+    val measure   = "horiz-ambi"  // either of "chord-mean", "chord-var", "horiz-var", "horiz-ambi"
+    val ivalClass = false
+
+    // val sts     = Vector(Study.Raw(4), Study.Raw(5), Study.Raw(6), Study.Raw(7))
+    // val sts     = Vector(Study.Raw(8), Study.Raw(9), Study.Raw(10), Study.Raw(11))
+    // val sts     = Vector(Study.Boring(26), Study.Boring(29), Study.Boring(31))
+    val sts     = Vector(Study.Boring(26), Study.Boring(29), Study.Raw(5), Study.Raw(10))
+    val winSecs = 16.0
+    val winOver = 8
+
+    val ms  = sts.map { st =>
+      println(s"\nFile: ${st.file.name}")
+      val midi      = load(st)
+      val winSize   = winSecs
+      val winStep   = winSize / winOver
+
+      if (measure.startsWith("chord")) {
+        val notes     = midi.notes
+        val segm      = ChordUtil.findHarmonicFields(notes, minPoly = 1).sortBy(_.minOffset)
+
+        val slices0   = NoteUtil2.slidingWindow(segm, size = winSize, step = winStep)(_.minOffset)
+        val slices    = slices0.dropRight(winOver*2/3) // last slice is smaller and produces spikes
+        val m         = slices.map { slice =>
+          val chordM = slice.flatMap { chord =>
+            chord.allIntervals.map { ival =>
+              val steps = if (ivalClass) ival.`class`.steps else ival.semitones
+              steps.toDouble
+            }
+          }
+          measure match {
+            case "chord-mean"  => chordM.meanVariance._1 / slice.size
+            case "chord-var"   => chordM.meanVariance._2 / slice.size
+          }
+        }
+        m
+      } else if (measure.startsWith("horiz")) {
+        val segm0 = (0 until 4).flatMap { ch =>
+          val notes: IIdxSeq[OffsetNote] = midi.notes(channel = ch)
+          notes.map(_.offset).drop(1) zip notes.map(_.pitch.midi).pairDiff.map(_.abs)  // (offset, directed interval)
+        }
+        val segm = segm0.sortBy(_._1)
+        val slices0   = NoteUtil2.slidingWindow(segm, size = winSize, step = winStep)(_._1)
+        val slices    = slices0.dropRight(winOver*2/3) // last slice is smaller and produces spikes
+
+        slices.map { sq =>
+          val ivals = sq.map(_._2.toDouble)
+          val (mean, vr) = ivals.meanVariance
+          measure match {
+            case "horiz-mean"   => mean
+            case "horiz-var"    => vr
+            case "horiz-ambi"   => ivals.max - ivals.min
+          }
+        }
+
+      } else {
+        sys.error(s"Illegal measure $measure")
+      }
+    }
+
+    import Plotting._
+
+    val titleDetail = if (measure.startsWith("chord"))
+      "inner-harmonic intervals"
+    else if (measure.startsWith("horiz"))
+      "successive pitch steps"
+
+    ms.plot(ylabel = s"${measure.capitalize}", title = s"Diversity in $titleDetail",
+      legends = sts.map(_.file.name))
   }
 }
