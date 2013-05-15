@@ -13,7 +13,7 @@ object Boring extends App {
 
     which match {
       case "--kreuz"  => kreuz()
-      case _          => verlauf()
+      case _          => ladmaVerlauf()
     }
   }
 
@@ -27,11 +27,18 @@ object Boring extends App {
     frame("Kreuztabelle", panel, (1000, 1000))
   }
 
-  def verlauf() {
+  def ladmaVerlauf() {
     val measure = "mobility"
 
     // val sts = Vector(Study.Boring(26), Study.Raw(5))
-    val sts = Vector(Study.Boring(29), Study.Raw(4), Study.Raw(5), Study.Raw(6) /*, Study.Raw(7) */)
+    // val sts = Vector(Study.Boring(29), Study.Raw(4), Study.Raw(5), Study.Raw(6) /*, Study.Raw(7) */)
+
+    // val sts     = Vector(Study.Boring(26)) // , Study.Boring(29)) // , Study.Boring(31))
+    // val sts     = Vector(Study.Raw(4), Study.Raw(5), Study.Raw(6)) // , Study.Raw(7))
+    val sts     = Vector(Study.Boring(29), Study.Raw(4), Study.Raw(5), Study.Raw(6))
+    val winSecs = 16.0
+    val winOver = 8
+
     val ms  = sts.map { st =>
       println(s"\nFile: ${st.file.name}")
       val notes     = load(st).notes
@@ -45,22 +52,26 @@ object Boring extends App {
         stabs zip _durs
       }
       val (segm, durRaw) = tup.unzip
-      val quant     = Tempo.guess(durRaw, maxDenom = if (st.isInstanceOf[Study.Boring]) 128 else 128)
+      // val quant     = Tempo.guess(durRaw, maxDenom = if (st.isInstanceOf[Study.Boring]) 128 else 128)
+      val quant = Tempo.quantize(durRaw, qpm = 160, maxDenom = 64)
       println(s"Tempo: ${quant.tempoBase} = ${quant.tempoNom}")
 
       import NoteUtil2.noteOffsetView
-      val winSize = 10.0 / quant.wholeDuration  // wholes per 10 seconds
-      val winStep = winSize / 2
+      val winSize = winSecs / quant.wholeDuration  // wholes per 10 seconds
+      val winStep = winSize / winOver
       println(f"Sliding window size $winSize, step $winStep (1 = ${quant.wholeDuration}%1.3fs)")
 
       assert(segm.size == quant.durations.size)
       val segmQuant = segm zip quant.durations
       val slices0   = NoteUtil2.slidingWindow(segmQuant, size = winSize, step = winStep)(_._1)
-      val slices    = slices0.init  // last slice is smaller and produces spikes
+      val slices    = slices0.dropRight(winOver*2/3) // last slice is smaller and produces spikes
 
-      val cells     = slices.zipWithIndex.map { case (xs, i) =>
+      val cells     = slices.zipWithIndex.flatMap { case (xs, i) =>
         val dursQuant = xs.map(_._2)
-        rhythm.Cell(i, dursQuant.map(rhythm.Note(_)), dursQuant.sum)
+        val dur = dursQuant.sum
+        if (dur == 0) None else Some(
+          rhythm.Cell(i, dursQuant.map(rhythm.Note(_)), dur)
+        )
       }
       val mf  = measure match {
         case "entropy"  => Ladma.entropy  _
@@ -73,6 +84,6 @@ object Boring extends App {
 
     import Plotting._
 
-    ms.plot(ylabel = "Entropy", title = s"${measure.capitalize} Comparison", legends = sts.map(_.file.name))
+    ms.plot(ylabel = measure.capitalize, title = s"${measure.capitalize} Comparison", legends = sts.map(_.file.name))
   }
 }

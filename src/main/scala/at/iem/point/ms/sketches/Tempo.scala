@@ -27,12 +27,87 @@ object Tempo {
     */
   final case class Result(wholeDuration: Double, tempoBase: Rational, tempoNom: Int, durations: Durations)
 
-  def quantize(durations: IIdxSeq[Double], wholeDuration: Double, maxDenom: Int = 32,
+  def quantize(durations: IIdxSeq[Double], qpm: Double, maxDenom: Int = 32,
             doubleDotted: Boolean = false): Result = {
     require(durations.size >= 1, s"Must have at least one duration (number is ${durations.size})")
 
-    ???
+    // val _wholeDur   = (60 * 4) / qpm
+    val divList     = (0 to 10).map(1 << _).takeWhile(_ <= maxDenom)
+    val divisions: List[Rational] = divList.map(Rational(1, _))(breakOut)
+    val tup = calcNotes(durations, qpm, divisions, doubleDotted = doubleDotted)
+    Result(tup._1, tup._2, tup._3, tup._4.map(_.sum))
   }
+
+  private def calcNotes(durations: IIdxSeq[Double], _tempoFrac: Double,
+                        _divisions: List[Rational],
+                        doubleDotted: Boolean): (Double, Rational, Int, IIdxSeq[Durations]) = {
+    @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
+      val factor  = 4 * note
+      val tempo   = _tempoFrac * factor.doubleValue()
+      if (tempo <= 160) { // i.e. maximum 1/4 = 160
+        val tempo1  = (tempo + 0.5).toInt + 5 // 9
+        val tempo2  = tempo1 - tempo1 % 10  // round to multiples of 10
+        (note, tempo2)
+      } else {
+        val factor = note.numerator.intValue() match {
+          case 1 => r3_4  // e.g. 4 -> 8.
+          case 3 => r2_3
+        }
+        tempoSig(note * factor)
+      }
+    }
+
+    val (_tempoBase, _tempoNom) = tempoSig()
+
+    // val wholeDur  = 60 / (_tempoBase * _tempoNom).doubleValue()
+    val _wholeDur   = (60 * 4) / _tempoFrac
+    val values      = durations.map(_ / _wholeDur)
+
+    if (DEBUG) {
+      println(f"tempoFrac ${_tempoFrac}%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = ${_wholeDur}%1.2f")
+      // println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsets.take(5)} -> values ${values.take(5)}")
+    }
+
+    var gagaismo = true
+
+    val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
+      val frac  = Rational(v)
+      val lim   = frac.limitDenominatorTo(96)
+      // val rest  = lim - note
+
+      @tailrec def decompose(rem: Rational, units: List[Rational], sq: Durations): Durations =
+        units match {
+          case unit :: tail =>
+            if (rem >= unit) {
+              decompose(rem - unit, units, sq :+ unit)
+            } else {
+              decompose(rem, tail, sq)
+            }
+          case _ => sq
+        }
+
+      val dec     = decompose(lim, _divisions, Vector.empty)
+      val dotted  = dot(dec, doubleDotted = doubleDotted)
+
+      if (DEBUG && gagaismo) {
+        println(s"- first note becomes $lim -- ($frac) -- dotted is $dotted")
+        gagaismo = false
+      }
+
+      dotted
+    }
+
+    (_wholeDur, _tempoBase, _tempoNom, _notes)
+  }
+
+  private def dot(sq: IIdxSeq[Rational], doubleDotted: Boolean): IIdxSeq[Rational] =
+    sq match {
+      case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
+        init :+ (a + b + c)
+      case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
+        init :+ (a + b)
+      case _ => sq
+    }
 
   /** Tries to guess a "good" tempo from a given sequence of unquantized note offset.
     *
@@ -59,75 +134,6 @@ object Tempo {
       }
     }
 
-    def dot(sq: IIdxSeq[Rational]): IIdxSeq[Rational] =
-      sq match {
-        case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
-          init :+ (a + b + c)
-        case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
-          init :+ (a + b)
-        case _ => sq
-      }
-
-    def calcNotes(_tempoFrac: Double, _divisions: List[Rational]): (Double, Rational, Int, IIdxSeq[Durations]) = {
-      @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
-        val factor  = 4 * note
-        val tempo   = _tempoFrac * factor.doubleValue()
-        if (tempo <= 160) { // i.e. maximum 1/4 = 160
-          val tempo1  = (tempo + 0.5).toInt + 5 // 9
-          val tempo2  = tempo1 - tempo1 % 10  // round to multiples of 10
-          (note, tempo2)
-        } else {
-          val factor = note.numerator.intValue() match {
-            case 1 => r3_4  // e.g. 4 -> 8.
-            case 3 => r2_3
-          }
-          tempoSig(note * factor)
-        }
-      }
-
-      val (_tempoBase, _tempoNom) = tempoSig()
-
-      // val wholeDur  = 60 / (_tempoBase * _tempoNom).doubleValue()
-      val _wholeDur   = (60 * 4) / _tempoFrac
-      val values      = durations.map(_ / _wholeDur)
-
-      if (DEBUG) {
-        println(f"tempoFrac ${_tempoFrac}%1.2f yields base ${_tempoBase} with nominal tempo ${_tempoNom}; wholeDur = ${_wholeDur}%1.2f")
-        // println(s"First five onsets frames ${onsets.take(5)} -> seconds ${onsets.take(5)} -> values ${values.take(5)}")
-      }
-
-      var gagaismo = true
-
-      val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
-        val frac  = Rational(v)
-        val lim   = frac.limitDenominatorTo(96)
-        // val rest  = lim - note
-
-        @tailrec def decompose(rem: Rational, units: List[Rational], sq: Durations): Durations =
-          units match {
-            case unit :: tail =>
-              if (rem >= unit) {
-                decompose(rem - unit, units, sq :+ unit)
-              } else {
-                decompose(rem, tail, sq)
-              }
-            case _ => sq
-          }
-
-        val dec     = decompose(lim, _divisions, Vector.empty)
-        val dotted  = dot(dec)
-
-        if (DEBUG && gagaismo) {
-          println(s"- first note becomes $lim -- ($frac) -- dotted is $dotted")
-          gagaismo = false
-        }
-
-        dotted
-      }
-
-      (_wholeDur, _tempoBase, _tempoNom, _notes)
-    }
-
     def findBest(): Result = {
       val tempoFrac0  = autoTempo()       // begin with this tempo
       val tempoFrac1  = tempoFrac0 * 3.0  // 1.5  // stop at this tempo
@@ -139,7 +145,7 @@ object Tempo {
       var bestT     = 0.0
 
       def wooopi(t: Double, _divisions: List[Rational]) {
-        val tup   = calcNotes(t, _divisions)
+        val tup   = calcNotes(durations, t, _divisions, doubleDotted = doubleDotted)
         // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
         val (c1s, c2s) = tup._4.map(d => {
           val sz = d.toSet.size
