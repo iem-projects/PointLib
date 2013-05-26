@@ -9,6 +9,7 @@ import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
 import scala.swing.event.WindowClosing
 import org.jfree.chart.labels.StandardXYItemLabelGenerator
 import de.sciss.pdflitz
+import at.iem.point.illism.rhythm.{Ladma, Cell}
 
 object LadmaSets extends SimpleSwingApplication {
   // --- settings ---
@@ -33,14 +34,12 @@ object LadmaSets extends SimpleSwingApplication {
   case object BaseFactors extends Source
   /** One of the base cells, stretched with the all stretch factors */
   case class  FactorsOneForm(idx: Int) extends Source {
-    require(idx >= 0 && idx < Cell.cell.size)
+    require(idx >= 0 && idx < cell.size)
   }
   /** All the base cells, each stretched with the all stretch factors */
   case object FactorsAllForms extends Source
 
   lazy val top = {
-    import Cell._
-    import Ladma._
 
     lazy val cells: Vector[Cell] = {
       val seq = source match {
@@ -52,9 +51,9 @@ object LadmaSets extends SimpleSwingApplication {
       seq.sortBy(_.dur)
     }
 
-    lazy val m = cells.map(mobility)
-    lazy val t = cells.map(tension)
-    lazy val e = cells.map(entropy)
+    lazy val m = cells.map(Ladma.mobility)
+    lazy val t = cells.map(Ladma.tension)
+    lazy val e = cells.map(Ladma.entropy)
 
     // val data  = m zip t
     // val datas = data.sortBy { case (a, b) => a * b }

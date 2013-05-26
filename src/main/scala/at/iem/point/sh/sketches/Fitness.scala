@@ -4,9 +4,10 @@ import spire.math.Rational
 import scala.util.Random
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import scala.annotation.tailrec
+import at.iem.point.illism.rhythm.{Cell, NoteOrRest}
 
 object Fitness {
-  val corpus: IIdxSeq[Cell] = Cell.baseCells.flatMap(c => Cell.factors.map(c * _))
+  val corpus: IIdxSeq[Cell] = baseCells.flatMap(c => factors.map(c * _))
   val norm  : IIdxSeq[Cell] = corpus.map(_.normalized)
 
   def rng(seed: Long) = new Random(seed)
