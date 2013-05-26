@@ -14,7 +14,7 @@ object BoundaryVersionsApp extends App {
     val flat    = sq.flattenCells
     val flatDur = flat.map(_.dur).sum
     val tol     = flatDur / 5
-    val vr = boundaryVersions(flat, drop = 0.5, durTol = tol)
+    val vr = boundaryVersions(flat, drop = 0.75, durTol = tol)
     if (vr.size > 100) {
       println("Wooop. That jumped the fence...")
     } else {

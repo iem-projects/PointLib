@@ -8,6 +8,7 @@ import scala.swing.{Component, Frame, SimpleSwingApplication}
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
 import scala.swing.event.WindowClosing
 import org.jfree.chart.labels.StandardXYItemLabelGenerator
+import de.sciss.pdflitz
 
 object LadmaSets extends SimpleSwingApplication {
   // --- settings ---
@@ -105,7 +106,7 @@ object LadmaSets extends SimpleSwingApplication {
     val panel   = Component.wrap(panelj)
     new Frame {
       contents = panel
-      PDFSupport.addMenu(peer, panel.peer :: Nil, usePrefSize = false)
+      new pdflitz.SaveAction(panel :: Nil).setupMenu(this)
       pack().centerOnScreen()
       listenTo(this)
       reactions += {
