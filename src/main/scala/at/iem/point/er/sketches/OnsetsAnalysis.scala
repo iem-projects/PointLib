@@ -117,8 +117,8 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     var function                = Function.Complex: Function
     private var _fftSize        = 512
     private var _fftOverlap     = 2
-    private var _decay        = 1.0f
-    private var _noiseFloor          = 0.1f
+    private var _decay          = 1.0f
+    private var _noiseFloor     = 0.1f
     private var _minGap         = 10
     private var _median         = 11
     private var _inputGain      = 1f

@@ -37,42 +37,34 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     }
   }
 
-//  private def ampThresh: Float = b.ampThresh.ampdb
-//  private def ampThresh_=(value: Float) { b.ampThresh = value.dbamp }
-//
-//  private def peakThresh: Float = b.peakThresh.ampdb
-//  private def peakThresh_=(value: Float) { b.peakThresh = value.dbamp }
-
   private def inputGain: Float = b.inputGain.ampdb
   private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
 
   private def noiseFloor: Float = b.noiseFloor.ampdb
   private def noiseFloor_=(value: Float) { b.noiseFloor = value.dbamp }
 
-//  private def maxSpread: Float = b.maxFreqSpread * 100
-//  private def maxSpread_=(value: Float) { b.maxFreqSpread = value / 100 }
-//
-//  private def maxSlope: Float = b.maxFreqSlope * 100
-//  private def maxSlope_=(value: Float) { b.maxFreqSlope = value / 100 }
-
   private val setTimeRes = GUI.Setting.float("Time resolution:", "ms")(timeRes _)(timeRes = _)
-  private val setFFTSize = GUI.Setting.int("FFT size:", "ms")(fftSize _)(fftSize = _)
+  private val setFFTSize = GUI.Setting.int  ("FFT size:",        "ms")(fftSize _)(fftSize = _)
 
   private val settings = {
     import GUI.Setting._
     List(
-      float("Threshold:", "dB")(b.thresh _)(b.thresh = _),
+      float("Threshold:",     "dB")(b.thresh _)(b.thresh = _),
       setTimeRes,
       setFFTSize,
-      int("Median:")               (b.median   _)(b.median   = _),
-      int("Min Gap:")              (b.minGap   _)(b.minGap   = _),
+      int  ("Median:"             )(b.median   _)(b.median   = _),
+      int  ("Min Gap:"            )(b.minGap   _)(b.minGap   = _),
       float("Input gain:",    "dB")(inputGain  _)(inputGain  = _),
       float("Noise floor:",   "dB")(noiseFloor _)(noiseFloor = _),
-      float("Decay:",         "s") (b.decay    _)(b.decay    = _)
+      float("Decay:",         "s" )(b.decay    _)(b.decay    = _)
     )
   }
 
   def config: OnsetsAnalysis.Config = b.build
+  def config_=(value: OnsetsAnalysis.Config) {
+    b.read(value)
+    settings.foreach(_.reset())
+  }
 
   private val ggRun = Button("Run...") {
     OnsetsAnalysis.verbose = true

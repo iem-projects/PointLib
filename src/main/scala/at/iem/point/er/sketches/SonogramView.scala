@@ -10,7 +10,7 @@ import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
 
 final class SonogramView extends sonogram.SonogramComponent {
   private val colrCrosshair = new Color(0xFF, 0xFF, 0xFF, 0x40)
-//  private val colrPitch     = new Color(0x40, 0x40, 0xFF, 0x80)
+  //  private val colrPitch     = new Color(0x40, 0x40, 0xFF, 0x80)
   private val colrPitch     = new Color(0xFF, 0xFF, 0x00, 0xA0)
   private val colrPitchOut  = new Color(0x00, 0x00, 0xFF, 0xA0)
   private val strkPitchOut  = new BasicStroke(2f)
@@ -40,12 +40,12 @@ final class SonogramView extends sonogram.SonogramComponent {
     screen.linlin(0, w, 0, spec.numFrames/spec.sampleRate).toFloat
   }
 
-//  private def secsToScreen(secs: Float, ovr: SonogramOverview): Float = {
-//    import synth._
-//    val spec  = ovr.fileSpec
-//    val w     = getWidth
-//    secs.linlin(0, spec.numFrames/spec.sampleRate, 0, w).toFloat
-//  }
+  //  private def secsToScreen(secs: Float, ovr: SonogramOverview): Float = {
+  //    import synth._
+  //    val spec  = ovr.fileSpec
+  //    val w     = getWidth
+  //    secs.linlin(0, spec.numFrames/spec.sampleRate, 0, w).toFloat
+  //  }
 
   private def frameToScreen(frame: Long, ovr: sonogram.Overview): Float = {
     import synth._
@@ -108,10 +108,10 @@ final class SonogramView extends sonogram.SonogramComponent {
 
     sono.foreach { ovr =>
       if (_pitch.nonEmpty) {
-//      g.setColor(colrPitch)
-//      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-//      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE)
-      g2.setStroke(strkPitchOut)
+        //      g.setColor(colrPitch)
+        //      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+        //      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE)
+        g2.setStroke(strkPitchOut)
         _pitch.foreach { smp =>
           val x1  = frameToScreen(smp.start, ovr)
           val x2  = frameToScreen(smp.stop,  ovr)

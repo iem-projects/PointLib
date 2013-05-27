@@ -112,6 +112,7 @@ object GUI {
     def label: Component
     def input: Component
     def unit:  Option[Component]
+    def reset(): Unit
 
     var value: A
   }

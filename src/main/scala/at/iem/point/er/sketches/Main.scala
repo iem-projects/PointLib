@@ -83,6 +83,14 @@ object Main extends SwingApplicationImpl("PointLib") {
           }
         )
       )
+    ).add(
+      Group("tools", "Tools").add(
+        Item("mixer")("Mixer"          -> (menu1 + VK_M)) { mixFrame.front() }
+      ).add(
+        Item("pitch")("Pitch Analysis" -> (menu1 + VK_P)) { pitchSettingsFrame.front() }
+      ).add(
+        Item("onsets")("Onsets Detection" -> (menu1 + VK_D)) { onsetsSettingsFrame.front() }
+      )
     )
   }
 
@@ -100,6 +108,115 @@ object Main extends SwingApplicationImpl("PointLib") {
     _onsets = seq
     sono.onsetsOverlay = seq
     playerViewOption.foreach(_.onsets = seq)
+  }
+
+  private lazy val mixView = new MixView(playerView)
+
+  private lazy val mixFrame = new WindowImpl {
+    def handler = Main.windowHandler
+    def style = Window.Palette
+    title = "Mixer"
+    // peer.getRootPane.putClientProperty("Window.style", "small")
+    closeOperation = Window.CloseHide
+    contents = mixView.component
+    pack()
+    resizable = false
+    this.placeLeftOf(top)
+    front()
+  }
+
+  private lazy val ggBoost = new Slider {
+    orientation = Orientation.Vertical
+    min   = 0
+    max   = 200
+    value = 100
+    //      paintTicks = true
+    peer.putClientProperty("JComponent.sizeVariant", "small")
+    listenTo(this)
+    reactions += {
+      case ValueChanged(_) =>
+        import synth._
+        sono.boost = value.linlin(0, 200, -24, 24).dbamp
+    }
+  }
+
+  private lazy val view = Component.wrap(sono)
+
+  private lazy val box = new BorderPanel {
+    add(new BoxPanel(Orientation.Horizontal) {
+      contents += playerView.axis
+      contents += HStrut(ggBoost.preferredSize.width)
+    }, BorderPanel.Position.North)
+    add(view, BorderPanel.Position.Center)
+    add(new BoxPanel(Orientation.Horizontal) {
+      //        contents += ggStatus
+      contents += playerView.transport
+      contents += HStrut(16)
+      contents += HGlue
+      // contents += ggExport
+      // contents += ggMix
+      // contents += ggPitch
+      // contents += ggOnsets
+    }, BorderPanel.Position.South)
+    add(ggBoost, BorderPanel.Position.East)
+  }
+
+  private lazy val top: Window = new WindowImpl {
+    title     = f.getName
+    contents  = box
+    pack()
+    // centerOnScreen()
+    front()
+
+    def handler = Main.windowHandler
+
+    protected def style = Window.Regular
+  }
+
+  private lazy val pitchSettingsFrame = {
+    import synth._
+    val pchCfg        = PitchAnalysis.Config()
+    pchCfg.input      = f
+    pchCfg.inputGain  =   6.dbamp
+    pchCfg.ampThresh  = -48.dbamp
+    pchCfg.peakThresh = -12.dbamp
+    pchCfg.median     = 12
+    pchCfg.stepSize   = 256 // 512
+    pchCfg.maxFreqSpread = math.pow(2, 3.0/12).toFloat
+    pchCfg.trajMinDur = 25.0f
+
+    val pitchView = new PitchAnalysisSettingsView(inputSpec = fileSpec, init = pchCfg)
+    new WindowImpl {
+      def handler = Main.windowHandler
+      def style = Window.Palette
+      title = "Pitch Analysis Settings"
+      // peer.getRootPane.putClientProperty("Window.style", "small")
+      closeOperation = Window.CloseHide
+      contents = pitchView.component
+      pack()
+      resizable = false
+      this.placeRightOf(top)
+      front()
+    }
+  }
+
+  private lazy val onsetsSettingsFrame = {
+    val oCfg = OnsetsAnalysis.Config()
+    oCfg.input = f
+
+    val oView = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
+    new WindowImpl {
+      def handler = Main.windowHandler
+      def style = Window.Palette
+      title = "Onsets Analysis Settings"
+      // peer.getRootPane.putClientProperty("Window.style", "small")
+      closeOperation = Window.CloseHide
+      contents = oView.component
+      pack()
+      resizable = false
+      this.placeRightOf(top)
+      front()
+    }
   }
 
   override def init() {
@@ -120,91 +237,30 @@ object Main extends SwingApplicationImpl("PointLib") {
     sono.sono   = Some(ov)
 
     playerViewOption  = Some(playerView)
-    val mixView       = new MixView(playerView)
 
-    lazy val pitchSettingsFrame = {
-      import synth._
-      val pchCfg        = PitchAnalysis.Config()
-      pchCfg.input      = f
-      pchCfg.inputGain  = 6.dbamp
-      pchCfg.ampThresh  = -48.dbamp
-      pchCfg.peakThresh = -12.dbamp
-      pchCfg.median     = 12
-      pchCfg.stepSize   = 256 // 512
-      pchCfg.maxFreqSpread = math.pow(2, 3.0/12).toFloat
-      pchCfg.trajMinDur = 25.0f
+    //    val ggStatus  = new TextField(60) {
+    //      editable    = false
+    //      border      = BorderFactory.createEmptyBorder()
+    //      maximumSize = preferredSize
+    //    }
 
-      val pitchView = new PitchAnalysisSettingsView(inputSpec = fileSpec, init = pchCfg)
-      new WindowImpl {
-        def handler = Main.windowHandler
-        def style = Window.Palette
-        title = "Pitch Analysis Settings"
-        // peer.getRootPane.putClientProperty("Window.style", "small")
-        closeOperation = Window.CloseHide
-        contents = pitchView.component
-        pack()
-        resizable = false
-        this.placeRightOf(top)
-        front()
-      }
-    }
+    //    lazy val ggPitch = Button("Pitch...") {
+    //      pitchSettingsFrame.front()
+    //    }
+    //    ggPitch.focusable = false
+    //    ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-    lazy val onsetsSettingsFrame = {
-      val oCfg = OnsetsAnalysis.Config()
-      oCfg.input = f
+    //    lazy val ggOnsets = Button("Onsets...") {
+    //      onsetsSettingsFrame.front()
+    //    }
+    //    ggOnsets.focusable = false
+    //    ggOnsets.peer.putClientProperty("JComponent.sizeVariant", "small")
 
-      val oView = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
-      new WindowImpl {
-        def handler = Main.windowHandler
-        def style = Window.Palette
-        title = "Onsets Analysis Settings"
-        // peer.getRootPane.putClientProperty("Window.style", "small")
-        closeOperation = Window.CloseHide
-        contents = oView.component
-        pack()
-        resizable = false
-        this.placeRightOf(top)
-        front()
-      }
-    }
-
-    lazy val mixFrame = new WindowImpl {
-      def handler = Main.windowHandler
-      def style = Window.Palette
-      title = "Mixer"
-      // peer.getRootPane.putClientProperty("Window.style", "small")
-      closeOperation = Window.CloseHide
-      contents = mixView.component
-      pack()
-      resizable = false
-      this.placeLeftOf(top)
-      front()
-    }
-
-
-//    val ggStatus  = new TextField(60) {
-//      editable    = false
-//      border      = BorderFactory.createEmptyBorder()
-//      maximumSize = preferredSize
-//    }
-
-    lazy val ggPitch = Button("Pitch...") {
-      pitchSettingsFrame.front()
-    }
-    ggPitch.focusable = false
-    ggPitch.peer.putClientProperty("JComponent.sizeVariant", "small")
-
-    lazy val ggOnsets = Button("Onsets...") {
-      onsetsSettingsFrame.front()
-    }
-    ggOnsets.focusable = false
-    ggOnsets.peer.putClientProperty("JComponent.sizeVariant", "small")
-
-    lazy val ggMix = Button("Mixer...") {
-      mixFrame.front()
-    }
-    ggMix.focusable = false
-    ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
+    //    lazy val ggMix = Button("Mixer...") {
+    //      mixFrame.front()
+    //    }
+    //    ggMix.focusable = false
+    //    ggMix.peer.putClientProperty("JComponent.sizeVariant", "small")
 
     //    val ggExport = Button("Export...") {
     //    }
@@ -219,62 +275,12 @@ object Main extends SwingApplicationImpl("PointLib") {
     //      ggStatus.text = f"time: $time%1.3f s, freq: $freq%1.1f Hz, pitch = ${freq.cpsmidi}%1.2f mid"
     //    }
 
-    lazy val view = Component.wrap(sono)
     view.preferredSize = (600, 400)
     //    view.listenTo(view.mouse.moves)
     //    view.reactions += {
     //      case MouseMoved  (_, pt, mod) => sonaMouse(pt, mod)
     //      case MouseEntered(_, pt, mod) => sonaMouse(pt, mod)
     //    }
-
-    lazy val ggBoost = new Slider {
-      orientation = Orientation.Vertical
-      min   = 0
-      max   = 200
-      value = 100
-//      paintTicks = true
-      peer.putClientProperty("JComponent.sizeVariant", "small")
-      listenTo(this)
-      reactions += {
-        case ValueChanged(_) =>
-          import synth._
-          sono.boost = value.linlin(0, 200, -24, 24).dbamp
-      }
-    }
-
-    lazy val box = new BorderPanel {
-      add(new BoxPanel(Orientation.Horizontal) {
-        contents += playerView.axis
-        contents += HStrut(ggBoost.preferredSize.width)
-      }, BorderPanel.Position.North)
-      add(view, BorderPanel.Position.Center)
-      add(new BoxPanel(Orientation.Horizontal) {
-//        contents += ggStatus
-        contents += playerView.transport
-        contents += HStrut(16)
-        contents += HGlue
-        // contents += ggExport
-        contents += ggMix
-        contents += ggPitch
-        contents += ggOnsets
-      }, BorderPanel.Position.South)
-      add(ggBoost, BorderPanel.Position.East)
-    }
-
-    lazy val top: Window = new WindowImpl {
-
-
-      title     = f.getName
-      contents  = box
-      //      size      = (600, 400)
-      pack()
-      // centerOnScreen()
-      front()
-
-      def handler = Main.windowHandler
-
-      protected def style = Window.Regular
-    }
 
     top
   }
