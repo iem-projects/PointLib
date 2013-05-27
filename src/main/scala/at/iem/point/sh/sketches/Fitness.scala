@@ -13,6 +13,7 @@ object Fitness {
   type Genome         = IIdxSeq[Chromosome]
   type GenomeVal      = IIdxSeq[(Chromosome, Double)]
 
+  /** Whether to print log information (for debugging) during calculation or not. */
   var showLog = false // true
 
   /** The corpus consists of all cells with all stretching factors applied. */
@@ -179,8 +180,11 @@ object Fitness {
   }
 
   implicit final class RichIndexedSeq[A](val seq: IIdxSeq[A]) extends AnyVal {
+    /** Chooses a random element of the sequence. */
     def choose()(implicit rnd: Random): A = seq(rnd.nextInt(seq.size))
+    /** Converts a sequence of cells to a flat sequence of note-or-rest elements. */
     def flattenCells(implicit ev: A <:< Cell): Sequence = seq.flatMap(c => ev(c).normalized.elements)
+    /** For a sequence of `Tuple2`, drops the second tuple part. */
     def drop_2[B](implicit ev: A <:< (B, _)): IIdxSeq[B] = seq.map(_._1)
 
     //    def toCell(implicit ev: A <:< Rational): Cell = {
@@ -189,35 +193,62 @@ object Fitness {
     //      Cell(-1, elems, dur)
     //    }
 
+    /** Converts a flat sequence of note-or-rest elements to a single cell. */
     def toCell(implicit ev: A <:< NoteOrRest): Cell = {
       val elems = seq.map(ev(_))
       val dur   = elems.map(_.dur).sum
       Cell(-1, elems, dur)
     }
 
+    /** Creates a short string representation of a genome, by just referring to the cell ids and their total duration. */
     def idString(implicit ev: A <:< Chromosome): String =
       seq.map(a => {
         val c = ev(a)
         c.map(_.id).mkString("<", ",", f" @${c.dur.toDouble}%1.2f>")
       }).mkString("[", ", ", "]")
 
+    /** Calculates the total duration of a chromosome. */
     def dur(implicit ev: A <:< Cell): Rational = seq.map(ev(_).dur).sum
 
+    /** Zips a chromosome with the running sum of its duration. */
     def accumDur/* (beginWithZero: Boolean) */(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
       seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
 
+    /** Zips a note-or-rest sequence with the running sum of its duration. */
     def accumSeqDur/* (beginWithZero: Boolean) */(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
       seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
 
+    /** Given a sequence which is at least as long as the reference, calculates the relative error
+      * for the sequence length with respect to the reference length, and compares it to the relative error
+      * which would occur when one more element is dropped from the end.
+      *
+      * @param ref    reference duration
+      * @param view   (running sum) duration view of the sequence
+      * @param num    numeric evidence of the duration view
+      * @tparam B     type of duration
+      * @return       either the input sequence, or the input sequence minus the last element, if that
+      *               yields a smaller relative error with respect to the reference duration
+      */
     def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
       case init :+ t2 :+ t1 if optimize(ref, t1, t2, init, view) => init :+ t2
       case _ => seq
     }
 
+    /** Given a sequence which is at least as long as the reference, calculates the relative error
+      * for the sequence length with respect to the reference length, and compares it to the relative error
+      * which would occur when one more element is dropped from the beginning.
+      *
+      * @param ref    reference duration
+      * @param view   (running sum) duration view of the sequence
+      * @param num    numeric evidence of the duration view
+      * @tparam B     type of duration
+      * @return       either the input sequence, or the input sequence minus the first element, if that
+      *               yields a smaller relative error with respect to the reference duration
+      */
     def optimumStart[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
       case t1 +: t2 +: tail if optimize(ref, t1, t2, tail, view) => t2 +: tail
       case _ => seq
