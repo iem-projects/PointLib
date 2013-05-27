@@ -3,6 +3,8 @@ package at.iem.point.sh.sketches
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import at.iem.point.illism.rhythm.Ladma
 import spire.syntax._
+import java.io.{File, FileOutputStream, OutputStreamWriter}
+import de.sciss.file._
 
 object FitnessApp extends App {
   import Fitness._
@@ -73,4 +75,74 @@ object FitnessApp extends App {
   val sorted  = res.distinct.sortBy(-_._2)
 
   sorted.take(5).foreach(println)
+
+  // ---- lilypond test output ----
+  val score = raw"""\header {
+    |  title = \markup { \fontsize #-1 \sans Titel }
+    |  tagline = ""
+    |  subtitle = " " % padding the cheesy way
+    |}
+    |version "2.16.2"
+    |
+    |\layout {
+    |  ragged-right = ##t
+    |
+    |  \context { \Score
+    |    % % tuplet handling
+    |    % tupletFullLength = ##t
+    |    % \override TupletBracket #'bracket-visibility = ##t
+    |    % \override TupletBracket #'padding = #2
+    |    % % allow tuplet bracket to always be visible, even for short tuplets.
+    |    % \override TupletBracket #'springs-and-rods = #ly:spanner::set-spacing-rods
+    |    % \override TupletBracket #'minimum-length = #3
+    |	   % \override TupletNumber #'text = #tuplet-number::calc-fraction-text
+    |
+    |	   % \remove Bar_number_engraver
+    |    % \override TimeSignature #'X-extent = #'(0 . 3)
+    |    % \override InstrumentName #'X-extent = #'(0 . 4)
+    |
+    |    % proportionalNotationDuration = #(ly:make-moment 1 56)
+    |    % \override SpacingSpanner #'strict-note-spacing = ##t
+    |    % \override SpacingSpanner #'strict-grace-spacing = ##t
+    |    % \override SpacingSpanner #'uniform-stretching = ##t
+    |
+    |    % non-proportional settings:
+    |    \override SpacingSpanner #'base-shortest-duration = #(ly:make-moment 1 32)
+    |  }
+    |  \context { \Voice
+    |    \remove "Forbid_line_break_engraver"
+    |  }
+    |}
+    |
+    |\paper {
+    |  after-title-spacing = #'((space . 0) (padding . 1.5) (stretchability . 3) (minimum-distance . 0))
+    |}
+    |
+    |#(set-default-paper-size "a4")
+    |#(set-global-staff-size 16)
+    |
+    |\score {
+    |  \new RhythmicStaff {
+    |    ${sorted.head._1.map(_.toLilypondString(timeSig = true)).mkString("\n")}
+    |  }
+    |  \midi { }
+    |  \layout { }
+    |}
+  """.stripMargin
+
+  val lyf = File.createTempFile("point", ".ly")
+  val os  = new OutputStreamWriter(new FileOutputStream(lyf), "UTF-8")
+  os.write(score)
+  os.close()
+
+  import sys.process._
+
+  val outPath = userHome / "Desktop"
+  val cmd = Seq(lilypond, "-o", outPath.path, lyf.absolutePath)
+  println(cmd.mkString(" "))
+  val cmdRes = cmd.!
+  /* if (!debug) */ lyf.delete()
+  if (cmdRes != 0 && cmdRes != 1) sys.error(s"Lilypond exited with code $cmdRes")
+
+  Seq(pdfViewer, (outPath / lyf.base).replaceExt("pdf").path).!
 }

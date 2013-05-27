@@ -14,7 +14,8 @@ libraryDependencies ++= Seq(
   "org.spire-math"           %% "spire"              % "0.4.0-M4",        // Rational Numbers; 0.4.0 adds `lcm` methods
   "com.github.wookietreiber" %% "scala-chart"        % "0.3.0-SNAPSHOT",  // JFreeChart integration
   "de.sciss"                 %% "pdflitz"            % "1.0.+",           // PDF export
-  "de.sciss"                 %% "pointillism-rhythm" % "0.2.+"
+  "de.sciss"                 %% "pointillism-rhythm" % "0.2.+",
+  "de.sciss"                 %% "fileutil"           % "1.0.+"
 )
 
 retrieveManaged := true
@@ -25,8 +26,6 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
 initialCommands in console := 
 """import at.iem.point.sh.sketches._
-  |import Cell._
-  |import Ladma._
   |import spire.math._
   |import spire.syntax._
 """.stripMargin

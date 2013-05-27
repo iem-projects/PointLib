@@ -3,10 +3,14 @@ package at.iem.point.sh
 import spire.math.{Rational, compat}
 import scala.collection.immutable.{IndexedSeq => IIdxSeq}
 import at.iem.point.illism.rhythm.Cell
+import de.sciss.file._
 
 package object sketches {
   implicit val rationalNumeric    = compat.numeric   [Rational]
   implicit val rationalFractional = compat.fractional[Rational]
+
+  val lilypond  = (userHome / "bin" / "lilypond").path
+  val pdfViewer = "open"
 
   import scala.{Vector => v}
   import spire.syntax._
@@ -80,4 +84,36 @@ package object sketches {
     def linexp(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
       math.pow(dstHi / dstLo, (d - srcLo) / (srcHi - srcLo)).toFloat * dstLo
   }
+
+  //  implicit final class RichCell(val cell: Cell) extends AnyVal {
+  //    private def dot(sq: IIdxSeq[Rational], doubleDotted: Boolean = false): IIdxSeq[Rational] =
+  //      sq match {
+  //        case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
+  //          init :+ (a + b + c)
+  //        case init :+ a :+ b      if a.numerator == 1 && a == b * 2               => // Einfachpunktierung
+  //          init :+ (a + b)
+  //        case _ => sq
+  //      }
+  //
+  //    def usingIntegers: Cell = {
+  //      import spire.math._
+  //      val elems   = cell.elements
+  //      val durs    = elems.map(_.dur)
+  //      val denoms  = durs.map(_.denominator)
+  //      val k       = denoms.reduce(lcm(_, _))
+  //      if (k == 1) return cell
+  //      val elemsM  = elems.map(_ * k)
+  //      cell.copy(elements = elemsM)
+  //    }
+  //
+  //    def lilyString: String = {
+  //      val notes = cell.normalized.elements
+  //      notes.map { n =>
+  //        // dot(n.dur)
+  //        n.dur
+  //      }
+  //
+  //      ???
+  //    }
+  //  }
 }
