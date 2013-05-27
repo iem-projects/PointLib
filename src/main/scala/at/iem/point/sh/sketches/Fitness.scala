@@ -4,7 +4,7 @@ import spire.math.Rational
 import scala.util.Random
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import scala.annotation.tailrec
-import at.iem.point.illism.rhythm.{Note, Cell, NoteOrRest}
+import at.iem.point.illism.rhythm.{Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
@@ -13,7 +13,7 @@ object Fitness {
   type Genome         = IIdxSeq[Chromosome]
   type GenomeVal      = IIdxSeq[(Chromosome, Double)]
 
-  var showLog = true
+  var showLog = false // true
 
   val corpus: IIdxSeq[Cell] = baseCells.flatMap(c => factors.map(c * _))
   val norm  : IIdxSeq[Cell] = corpus.map(_.normalized)
@@ -128,12 +128,12 @@ object Fitness {
 
     def accumDur/* (beginWithZero: Boolean) */(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
-      seq zip /* (if (beginWithZero) */ scan /* else scan.tail) */
+      seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
 
     def accumSeqDur/* (beginWithZero: Boolean) */(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
-      seq zip /* (if (beginWithZero) */ scan /* else scan.tail) */
+      seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
 
     def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {

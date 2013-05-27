@@ -9,11 +9,11 @@ object FitnessApp extends App {
 
   implicit val r = rng(4L)
 
-  val duration  = r"4"
+  val duration  = r"8"
   val pop       = 20
-  val iter      = 1 // 20
+  val iter      = 20
 
-  val win       = r"1"
+  val win       = r"3/2"
   val step      = win/2
 
   def seqFit(seq: Sequence, w: Double): Double = {
@@ -53,6 +53,9 @@ object FitnessApp extends App {
       val t1  = r1.takeWhile { case (c, acc) => (acc - c.dur) < miss }
       val s1b = t1.optimumEnd(miss)(_._2) .drop_2
       s1b ++ e2
+
+    } else if (fill == 0) { // s1 has perfect length
+      s1
 
     } else {  // find s2, the optimium truncation of e2 at its beginning, and prepend s1
 
