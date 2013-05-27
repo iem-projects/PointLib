@@ -63,4 +63,20 @@ package object sketches {
       (loF until hiF).map(r * _)
     }
   }
+
+  implicit final class RichFloat(val f: Float) extends AnyVal {
+    def linlin(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
+      (f - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
+
+    def linexp(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
+      math.pow(dstHi / dstLo, (f - srcLo) / (srcHi - srcLo)).toFloat * dstLo
+  }
+
+  implicit final class RichDouble(val d: Double) extends AnyVal {
+    def linlin(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
+      (d - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
+
+    def linexp(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
+      math.pow(dstHi / dstLo, (d - srcLo) / (srcHi - srcLo)).toFloat * dstLo
+  }
 }

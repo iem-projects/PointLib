@@ -24,7 +24,7 @@ object LadmaSets extends SimpleSwingApplication {
   case object Entropy  extends LadmaType
   case object TensionByMobility extends LadmaType
   case object Duration extends PlotType
-  case object Index extends PlotType
+  case object Index    extends PlotType
   case object Dilation extends PlotType
 
   sealed trait Source
