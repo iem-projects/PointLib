@@ -42,46 +42,25 @@ object FitnessApp extends App {
   }
 
   def cross(e1: Chromosome, e2: Chromosome): Chromosome = {
-    val i     = r.nextInt(e1.size)
-    val s1    = e1.take(i)
+    val i     = r.nextInt(e1.size)  // splitting point
+    val s1    = e1.take(i)          // left hand side
     val d1    = s1.dur
-    val fill  = duration - d1
-    val e2r   = e2.reverse
-    val e2d   = e2r.accumDur
-    val s2    = e2d.takeWhile(_._2 < fill).drop_2.reverse
-    val d2    = s2.dur
-    val sum   = d1 + d2
-    if (sum >= duration) {
-      if (s2.nonEmpty) {
-        val r1 = sum / duration
-        val r2 = duration / (sum - s2.head.dur)
-        if (r1 < r2) {
-          s1 ++ s2
-        } else {
-          s1 ++ s2.tail
-        }
-      } else {
-        s1
-      }
-    } else {
-      val rem   = e1.drop(i)
-      val remd  = rem.accumDur // scanLeft(r"0")(_ + _.dur)
-      val remf  = duration - sum
-      val s3    = remd.takeWhile(_._2 < remf).drop_2
-      val d3    = s3.dur
-      val sum2  = sum + d3
-      val s4    = if (s3.nonEmpty) {
-        val r1    = sum2 / duration
-        val sum2b = sum2 - s3.head.dur
-        if (sum2b > 0 && r1 < duration / sum2b) {
-          s1 ++ s3
-        } else {
-          s1 ++ s3.tail
-        }
-      } else {
-        s1
-      }
-      s4 ++ s2
+    val e2d   = e2.dur
+    val fill  = duration - d1       // optimum duration of right-hand side
+    val miss  = fill - e2d
+    if (miss > 0) { // s1 (splitted e1) plus full e2 still too short, thus grow s1 and append e2
+      val r1  = e1.drop(i).accumDur
+      val t1  = r1.takeWhile { case (c, acc) => (acc - c.dur) < miss }
+      val s1b = t1.optimumEnd(miss)(_._2) .drop_2
+      s1b ++ e2
+
+    } else {  // find s2, the optimium truncation of e2 at its beginning, and prepend s1
+
+      val e2r   = e2.reverse
+      val e2d   = e2r.accumDur
+      val s2a   = e2d.takeWhile { case (n, acc) => (acc - n.dur) < fill }
+      val s2    = s2a.optimumEnd(fill)(_._2) .drop_2.reverse  // optimumEnd on reversed seq is actually an optimum start
+      s1 ++ s2
     }
   }
 

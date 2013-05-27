@@ -5,7 +5,8 @@ import scala.collection.immutable.{IndexedSeq => IIdxSeq}
 import at.iem.point.illism.rhythm.Cell
 
 package object sketches {
-  implicit val rationalNumeric = compat.numeric[Rational]
+  implicit val rationalNumeric    = compat.numeric   [Rational]
+  implicit val rationalFractional = compat.fractional[Rational]
 
   import scala.{Vector => v}
   import spire.syntax._

@@ -81,8 +81,9 @@ object Fitness {
 
     @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], start: Rational, res: IIdxSeq[Double]): IIdxSeq[Double] = {
       val stop    = start + window
-      val slice0  = xs.takeWhile(_._2 <= stop)
-      val slice   = (if (slice0.isEmpty) xs.take(1) else slice0).drop_2
+      val slice0  = xs.takeWhile { case (n, acc) => (acc - n.dur) < stop }
+      val slice1  = slice0.optimumEnd(stop)(_._2)
+      val slice   = (if (slice1.isEmpty) xs.take(1) else slice1).drop_2
       assert(slice.nonEmpty)
       val w       = math.min(1.0, start.toDouble / w2)
       val m       = fun(slice, w)
@@ -90,7 +91,8 @@ object Fitness {
       val start1  = start + step
       if (start1 < w1) {
         val tail0 = xs.dropWhile(_._2 < start1)
-        val tail  = if (tail0.size == xs.size) xs.tail else tail0
+        val tail1 = tail0.optimumStart(start1)(_._2)
+        val tail  = if (tail1.size == xs.size) xs.tail else tail1
         if (tail.nonEmpty) loop(tail, start1, res1) else res1
       } else res1
     }
@@ -117,15 +119,44 @@ object Fitness {
     }
 
     def idString(implicit ev: A <:< Chromosome): String =
-      seq.map(ev(_).map(_.id).mkString("<", ",", ">")).mkString("[", ", ", "]")
+      seq.map(a => {
+        val c = ev(a)
+        c.map(_.id).mkString("<", ",", f" @${c.dur.toDouble}%1.2f>")
+      }).mkString("[", ", ", "]")
 
     def dur(implicit ev: A <:< Cell): Rational = seq.map(ev(_).dur).sum
 
-    def accumDur(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] =
-      seq zip seq.scanLeft(r"0")(_ + ev(_).dur).tail
+    def accumDur/* (beginWithZero: Boolean) */(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] = {
+      val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
+      seq zip /* (if (beginWithZero) */ scan /* else scan.tail) */
+    }
 
-    def accumSeqDur(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] =
-      seq zip seq.scanLeft(r"0")(_ + ev(_).dur).tail
+    def accumSeqDur/* (beginWithZero: Boolean) */(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] = {
+      val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
+      seq zip /* (if (beginWithZero) */ scan /* else scan.tail) */
+    }
+
+    def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
+      case init :+ t2 :+ t1 if optimize(ref, t1, t2, init, view) => init :+ t2
+      case _ => seq
+    }
+
+    def optimumStart[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
+      case t1 +: t2 +: tail if optimize(ref, t1, t2, tail, view) => t2 +: tail
+      case _ => seq
+    }
+
+    // `true` if t1 should be dropped
+    private def optimize[B](ref: B, t1: A, t2: A, tail: IIdxSeq[A], view: A => B)
+                           (implicit num: Fractional[B]): Boolean = {
+      val before  = view(t1)
+      val after   = view(t2)
+      import num._
+      // r1 and r2 are the smallest ratios >= 1.0
+      val r1      = if (before < ref) ref / before else before / ref
+      val r2      = if (after  < ref) ref / after  else after  / ref
+      r2 < r1 // therefore, if r2 < r1, it means the solution with dropping t1 is better
+    }
   }
 
   def randomSequence(duration: Rational)(implicit rnd: Random): Chromosome = {
