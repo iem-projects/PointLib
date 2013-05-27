@@ -7,11 +7,11 @@ import spire.syntax._
 object FitnessApp extends App {
   import Fitness._
 
-  implicit val r = rng(3L)
+  implicit val r = rng(4L)
 
   val duration  = r"4"
   val pop       = 20
-  val iter      = 20
+  val iter      = 1 // 20
 
   val win       = r"1"
   val step      = win/2
@@ -22,7 +22,11 @@ object FitnessApp extends App {
     math.abs(e - target)
   }
 
-  def aggr(seq: IIdxSeq[Double]): Double = seq.sum / seq.size
+  def aggr(seq: IIdxSeq[Double]): Double = {
+    val res = seq.sum / seq.size
+    // println(s"aggr($seq) = $res")
+    res
+  }
 
   val fitness = slidingDuration(window = win, step = step)(fun = seqFit)(aggr = aggr) _
 
@@ -31,7 +35,9 @@ object FitnessApp extends App {
     Vector.fill(g.size) {
       val e1    = sel.choose()
       val e2    = sel.choose()
-      cross(e1, e2)
+      val res   = cross(e1, e2)
+      // println(s"cross($e1, $e2) = $res")
+      res
     }
   }
 
@@ -65,9 +71,9 @@ object FitnessApp extends App {
       val d3    = s3.dur
       val sum2  = sum + d3
       val s4    = if (s3.nonEmpty) {
-        val r1 = sum2 / duration
-        val r2 = duration / (sum2 - s3.head.dur)
-        if (r1 < r2) {
+        val r1    = sum2 / duration
+        val sum2b = sum2 - s3.head.dur
+        if (sum2b > 0 && r1 < duration / sum2b) {
           s1 ++ s3
         } else {
           s1 ++ s3.tail
@@ -81,5 +87,5 @@ object FitnessApp extends App {
 
   val res = produce(duration = duration, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
 
-  println(res)
+  res.foreach(println)
 }

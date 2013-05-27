@@ -13,8 +13,14 @@ object Fitness {
   type Genome         = IIdxSeq[Chromosome]
   type GenomeVal      = IIdxSeq[(Chromosome, Double)]
 
+  var showLog = true
+
   val corpus: IIdxSeq[Cell] = baseCells.flatMap(c => factors.map(c * _))
   val norm  : IIdxSeq[Cell] = corpus.map(_.normalized)
+
+  def log(what: => String) {
+    if (showLog) println(s"<ga> $what")
+  }
 
   def rng(seed: Long) = new Random(seed)
 
@@ -37,6 +43,7 @@ object Fitness {
   def iterate(pop: Genome, fitness: Chromosome => Double, selectAndBreed: GenomeVal => Genome): Genome = {
     val weighted  = weigh(pop)(fitness)
     val res       = selectAndBreed(weighted)
+    log(s"iterate(pop = ${pop.idString}) = ${res.idString}")
     res
   }
 
@@ -64,6 +71,7 @@ object Fitness {
                      (seq: Chromosome): Double = {
 
     require(step > 0 && window >= step)
+    require(seq.nonEmpty)
 
     val flat        = seq.flattenCells
     val zipped      = flat.accumSeqDur
@@ -75,6 +83,7 @@ object Fitness {
       val stop    = start + window
       val slice0  = xs.takeWhile(_._2 <= stop)
       val slice   = (if (slice0.isEmpty) xs.take(1) else slice0).drop_2
+      assert(slice.nonEmpty)
       val w       = math.min(1.0, start.toDouble / w2)
       val m       = fun(slice, w)
       val res1    = res :+ m
@@ -82,7 +91,7 @@ object Fitness {
       if (start1 < w1) {
         val tail0 = xs.dropWhile(_._2 < start1)
         val tail  = if (tail0.size == xs.size) xs.tail else tail0
-        loop(tail, start1, res1)
+        if (tail.nonEmpty) loop(tail, start1, res1) else res1
       } else res1
     }
 
@@ -106,6 +115,9 @@ object Fitness {
       val dur   = elems.map(_.dur).sum
       Cell(-1, elems, dur)
     }
+
+    def idString(implicit ev: A <:< Chromosome): String =
+      seq.map(ev(_).map(_.id).mkString("<", ",", ">")).mkString("[", ", ", "]")
 
     def dur(implicit ev: A <:< Cell): Rational = seq.map(ev(_).dur).sum
 
