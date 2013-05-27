@@ -13,7 +13,7 @@ object FitnessApp extends App {
   val pop       = 20
   val iter      = 20
 
-  val win       = 1
+  val win       = r"1"
   val step      = win/2
 
   def seqFit(seq: Sequence, w: Double): Double = {
@@ -41,8 +41,8 @@ object FitnessApp extends App {
     val d1    = s1.dur
     val fill  = duration - d1
     val e2r   = e2.reverse
-    val e2d   = e2r.scanLeft(r"0")(_ + _.dur)
-    val s2    = (e2r zip e2d).takeWhile(_._2 < fill).drop_2.reverse
+    val e2d   = e2r.accumDur
+    val s2    = e2d.takeWhile(_._2 < fill).drop_2.reverse
     val d2    = s2.dur
     val sum   = d1 + d2
     if (sum >= duration) {
@@ -59,9 +59,9 @@ object FitnessApp extends App {
       }
     } else {
       val rem   = e1.drop(i)
-      val remd  = e1.scanLeft(r"0")(_ + _.dur)
+      val remd  = rem.accumDur // scanLeft(r"0")(_ + _.dur)
       val remf  = duration - sum
-      val s3    = (rem zip remd).takeWhile(_._2 < remf).drop_2
+      val s3    = remd.takeWhile(_._2 < remf).drop_2
       val d3    = s3.dur
       val sum2  = sum + d3
       val s4    = if (s3.nonEmpty) {

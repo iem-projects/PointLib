@@ -63,21 +63,27 @@ object Fitness {
                      (aggr: IIdxSeq[Double] => Double)
                      (seq: Chromosome): Double = {
 
+    require(step > 0 && window >= step)
+
     val flat        = seq.flattenCells
-    val runningSum  = flat.scanLeft(r"0")(_ + _.dur)
-    val zipped      = flat zip runningSum
-    val totalDur    = runningSum.last
+    val zipped      = flat.accumSeqDur
+    val totalDur    = zipped.last._2
     val w1          = totalDur - window
     val w2          = w1.toDouble
 
     @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], start: Rational, res: IIdxSeq[Double]): IIdxSeq[Double] = {
       val stop    = start + window
-      val slice   = xs.takeWhile(_._2 <= stop).map(_._1)
+      val slice0  = xs.takeWhile(_._2 <= stop)
+      val slice   = (if (slice0.isEmpty) xs.take(1) else slice0).drop_2
       val w       = math.min(1.0, start.toDouble / w2)
       val m       = fun(slice, w)
       val res1    = res :+ m
       val start1  = start + step
-      if (start1 < w1) loop(xs.dropWhile(_._2 < start1), start1, res1) else res1
+      if (start1 < w1) {
+        val tail0 = xs.dropWhile(_._2 < start1)
+        val tail  = if (tail0.size == xs.size) xs.tail else tail0
+        loop(tail, start1, res1)
+      } else res1
     }
 
     val m = loop(zipped, r"0", Vector.empty)
@@ -102,6 +108,12 @@ object Fitness {
     }
 
     def dur(implicit ev: A <:< Cell): Rational = seq.map(ev(_).dur).sum
+
+    def accumDur(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] =
+      seq zip seq.scanLeft(r"0")(_ + ev(_).dur).tail
+
+    def accumSeqDur(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] =
+      seq zip seq.scanLeft(r"0")(_ + ev(_).dur).tail
   }
 
   def randomSequence(duration: Rational)(implicit rnd: Random): Chromosome = {
