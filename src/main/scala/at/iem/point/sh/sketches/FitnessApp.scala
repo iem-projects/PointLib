@@ -7,10 +7,10 @@ import spire.syntax._
 object FitnessApp extends App {
   import Fitness._
 
-  implicit val r = rng(4L)
+  implicit val r = rng(5L)
 
   val duration  = r"8"
-  val pop       = 20
+  val pop       = 100
   val iter      = 20
 
   val win       = r"3/2"
@@ -19,7 +19,8 @@ object FitnessApp extends App {
   def seqFit(seq: Sequence, w: Double): Double = {
     val e       = Ladma.entropy(seq.toCell)
     val target  = w.linlin(0, 1, 0.2, 2.0)
-    math.abs(e - target)
+    // math.abs(e - target)
+    math.abs(e - target) / target
   }
 
   def aggr(seq: IIdxSeq[Double]): Double = {
@@ -28,7 +29,8 @@ object FitnessApp extends App {
     res
   }
 
-  val fitness = slidingDuration(window = win, step = step)(fun = seqFit)(aggr = aggr) _
+  val fitnessSeq  = slidingFitnessByDuration(window = win, step = step)(fun = seqFit) _
+  val fitness     = fitnessSeq.andThen(aggr _)
 
   def selectAndBreed(g: GenomeVal): Genome = {
     val sel   = truncationSelection(0.25)(g)
@@ -67,7 +69,8 @@ object FitnessApp extends App {
     }
   }
 
-  val res = produce(duration = duration, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
+  val res     = produce(duration = duration, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
+  val sorted  = res.distinct.sortBy(-_._2)
 
-  res.foreach(println)
+  sorted.take(5).foreach(println)
 }

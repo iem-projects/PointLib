@@ -15,15 +15,28 @@ object Fitness {
 
   var showLog = false // true
 
+  /** The corpus consists of all cells with all stretching factors applied. */
   val corpus: IIdxSeq[Cell] = baseCells.flatMap(c => factors.map(c * _))
+  /** The normalized corpus is equal to the corpus, but cells are already normalized. */
   val norm  : IIdxSeq[Cell] = corpus.map(_.normalized)
 
   def log(what: => String) {
     if (showLog) println(s"<ga> $what")
   }
 
+  /** Creates a new random number generator with a given `seed` value. */
   def rng(seed: Long) = new Random(seed)
 
+  /** Runs the whole genetic algorithm, producing an initial population and running over a given number of iterations.
+    *
+    * @param duration       target duration of the chromosomes (in whole notes)
+    * @param iter           number of iterations
+    * @param pop            population size
+    * @param fitness        fitness function
+    * @param selectAndBreed function for selection and breeding
+    * @param rnd            random number generator
+    * @return               the output population after then `iter`'th iteration.
+    */
   def produce(duration: Rational, iter: Int, pop: Int)
              (fitness: Chromosome => Double, selectAndBreed: GenomeVal => Genome)
              (implicit rnd: Random): GenomeVal = {
@@ -38,8 +51,21 @@ object Fitness {
     weigh(res)(fitness)
   }
 
+  /** Evaluates a genome by zipping it with the applied fitness function.
+    *
+    * @param pop      the population to evaluate
+    * @param fitness  the fitness function
+    * @return         the population zipped with the result from the fitness function for each chromosome
+    */
   def weigh(pop: Genome)(fitness: Chromosome => Double): GenomeVal = pop.map(seq => seq -> fitness(seq))
 
+  /** Performs one iteration of the whole genetic algorithm.
+    *
+    * @param pop            the input population
+    * @param fitness        the fitness function
+    * @param selectAndBreed the selection and breeding function
+    * @return               the output population
+    */
   def iterate(pop: Genome, fitness: Chromosome => Double, selectAndBreed: GenomeVal => Genome): Genome = {
     val weighted  = weigh(pop)(fitness)
     val res       = selectAndBreed(weighted)
@@ -47,12 +73,27 @@ object Fitness {
     res
   }
 
+  /** Composes a selection and breeding function by applying an elitism bypass.
+    *
+    * @param sz             the size of the elite
+    * @param selectAndBreed the function to compose with. this will be called with the population after
+    *                       removing the elite
+    * @param g              the input population. this method will remove the elite from this set, apply the
+    *                       encapsulated `selectAndBreed` function, then re-add the elite to the result
+    * @return               the selected and breeded chromosomes, including the diverted elite
+    */
   def elitism(sz: Int)(selectAndBreed: GenomeVal => Genome)(g: GenomeVal): Genome = {
     val sorted = g.sortBy(_._2) // highest fitness = last
     val (a, b) = sorted.splitAt(sorted.size - sz)
     selectAndBreed(a) ++ b.drop_2
   }
 
+  /** Selection function which just takes a proportion of the best fitting chromosomes.
+    *
+    * @param p    the proportion between zero and one
+    * @param seq  the genome to select from
+    * @return     the selection (truncation) of the best fitting chromosomes
+    */
   def truncationSelection(p: Double)(seq: GenomeVal): Genome = {
     val sorted  = seq.sortBy(_._2)
     val sz      = (seq.size * p + 0.5).toInt
@@ -66,39 +107,75 @@ object Fitness {
   //
   //  }
 
-  def slidingDuration(window: Rational, step: Rational)(fun: (Sequence, Double) => Double)
-                     (aggr: IIdxSeq[Double] => Double)
-                     (seq: Chromosome): Double = {
+  /**
+   * Applies a sliding window to a chromosome, where the window and step size are defined by durations.
+   *
+   * @param window  the window size as duration (in whole notes). must be greater than or equal to `step`
+   * @param step    the step size as duration (in whole notes). must be greater than zero and less than or equal to `window`
+   * @param seq     the chromosome to slide across
+   * @return  the sliding windows in the order of their succession, annotated with start time and start index.
+   */
+  def slideByDuration(window: Rational, step: Rational)(seq: Chromosome): IIdxSeq[(Rational, Int, Sequence)] = {
+    type Result = IIdxSeq[(Rational, Int, Sequence)]
 
     require(step > 0 && window >= step)
     require(seq.nonEmpty)
 
-    val flat        = seq.flattenCells
-    val zipped      = flat.accumSeqDur
+    val zipped      = flatWithAccum(seq)
     val totalDur    = zipped.last._2
     val w1          = totalDur - window
-    val w2          = w1.toDouble
 
-    @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], start: Rational, res: IIdxSeq[Double]): IIdxSeq[Double] = {
+    @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], start: Rational, idx: Int, res: Result): Result = {
       val stop    = start + window
       val slice0  = xs.takeWhile { case (n, acc) => (acc - n.dur) < stop }
       val slice1  = slice0.optimumEnd(stop)(_._2)
       val slice   = (if (slice1.isEmpty) xs.take(1) else slice1).drop_2
       assert(slice.nonEmpty)
-      val w       = math.min(1.0, start.toDouble / w2)
-      val m       = fun(slice, w)
-      val res1    = res :+ m
+      val res1    = res :+ ((start, idx, slice))
       val start1  = start + step
       if (start1 < w1) {
         val tail0 = xs.dropWhile(_._2 < start1)
         val tail1 = tail0.optimumStart(start1)(_._2)
         val tail  = if (tail1.size == xs.size) xs.tail else tail1
-        if (tail.nonEmpty) loop(tail, start1, res1) else res1
+        val idx1  = idx + (xs.size - tail.size)
+        if (tail.nonEmpty) loop(tail, start1, idx1, res1) else res1
       } else res1
     }
 
-    val m = loop(zipped, r"0", Vector.empty)
-    aggr(m)
+    loop(zipped, r"0", 0, Vector.empty)
+  }
+
+  /**
+   * Calculates a sequence of fitness evaluations by applying a sliding window based on duration,
+   * and applying a fitness function for each slice.
+   *
+   * @param window  the window size as duration (in whole notes). must be greater than or equal to `step`
+   * @param step    the step size as duration (in whole notes). must be greater than zero and less than or equal to `window`
+   * @param fun     the fitness function which is given the sub-sequence and a weighting factor from zero
+   *                (first sliding window) to one (last sliding window)
+   * @param seq     the chromosome to slide across
+   * @return        the sequence of fitnesses thus calculated
+   */
+  def slidingFitnessByDuration(window: Rational, step: Rational)(fun: (Sequence, Double) => Double)
+                              (seq: Chromosome): IIdxSeq[Double] = {
+
+    val slices    = slideByDuration(window, step)(seq)
+    val zipped    = flatWithAccum(seq)
+    val totalDur  = zipped.last._2
+    val w1        = totalDur - window
+    val w2        = w1.toDouble
+    val m         = slices.map { case (start, _, slice) =>
+      val w       = math.min(1.0, start.toDouble / w2)
+      fun(slice, w)
+    }
+    m
+  }
+
+  /* Flattens a chromosome to a sequence of notes or rests, and zips it with the running sum of the durations */
+  private def flatWithAccum(seq: Chromosome): IIdxSeq[(NoteOrRest, Rational)] = {
+    val flat      = seq.flattenCells
+    val zipped    = flat.accumSeqDur
+    zipped
   }
 
   implicit final class RichIndexedSeq[A](val seq: IIdxSeq[A]) extends AnyVal {
@@ -159,6 +236,7 @@ object Fitness {
     }
   }
 
+  /** Generates a random sequence from the `corpus` which is at least as long as a given `duration`. */
   def randomSequence(duration: Rational)(implicit rnd: Random): Chromosome = {
     @tailrec def loop(seq: Chromosome, d: Rational): IIdxSeq[Cell] = {
       val c     = corpus.choose()
@@ -170,6 +248,9 @@ object Fitness {
     loop(Vector.empty, 0)
   }
 
+  /** This was a test to find alternative sequence slices by selectively dropping cells, until valid
+    * cell boundaries are found. Does not yield a lot of useful results.
+    */
   def boundaryVersions(seq: Sequence, drop: Double = 0, durTol: Rational = 0)
                       (implicit rnd: Random): Genome = {
     def loop(xs: Sequence): Genome = {
