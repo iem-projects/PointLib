@@ -110,6 +110,10 @@ trait FitnessLike extends App {
       |    % \override SpacingSpanner #'strict-grace-spacing = ##t
       |    % \override SpacingSpanner #'uniform-stretching = ##t
       |
+      |    % \override NonMusicalPaperColumn #'line-break-system-details #'((Y-offset . 0) (alignment-distances . (30 10)))
+      |
+      |    \override RehearsalMark #'padding = #7
+      |
       |    % non-proportional settings:
       |    \override SpacingSpanner #'base-shortest-duration = #(ly:make-moment 1 32)
       |  }
@@ -121,6 +125,11 @@ trait FitnessLike extends App {
       |#(set-default-paper-size "a4")
       |#(set-global-staff-size 16)
       |
+      |annotation = #(define-music-function (parser location text) (string?)
+      |#{
+      |  \mark \markup { \fontsize #-2 \italic #text }
+      |#})
+      |
       |\paper {
       |  markup-system-spacing #'padding = #5
       |}
@@ -131,16 +140,16 @@ trait FitnessLike extends App {
       raw"""
       |\score {
       |  \new RhythmicStaff {
-      |    ${sq.map(_.toLilypondString(timeSig = true)).mkString("\n")}
+      |    ${sq.map(cell => cell.toLilypondString(timeSig = true, annotation = s"#${cell.id+1}")).mkString("\n")}
       |  }
-      |  \header { piece = "#${idx + 1} - fitness $fitS" }
+      |  \header { piece = "No. ${idx + 1} - fitness $fitS" }
       |  ${if (midi) "\\midi { }" else ""}
       |  \layout { }
       |}
     """.stripMargin }
 
     val lyt = scores.mkString(header, "", "")
-    val lyf = IO.tempFile("point", ".ly", deleteOnExit = true)
+    val lyf = IO.tempFile("point", ".ly", deleteOnExit = false)
     val os  = new OutputStreamWriter(new FileOutputStream(lyf), "UTF-8")
     os.write(lyt)
     os.close()
