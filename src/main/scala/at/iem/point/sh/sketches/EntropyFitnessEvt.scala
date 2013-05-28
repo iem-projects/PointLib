@@ -9,6 +9,7 @@ object EntropyFitnessEvt extends FitnessLike {
 
   override lazy val title     = "Increasing Entropy"
   override lazy val subTitle  = s"0.2 to 2.0 using sliding window of $evt events"
+  override lazy val pop       = 200
 
   def seqFit(seq: Sequence, w: Double): Double = {
     val e       = Ladma.entropy(seq.toCell)

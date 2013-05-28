@@ -110,7 +110,9 @@ trait FitnessLike extends App {
       |    % \override SpacingSpanner #'strict-grace-spacing = ##t
       |    % \override SpacingSpanner #'uniform-stretching = ##t
       |
+      |    % nothing of this shit works
       |    % \override NonMusicalPaperColumn #'line-break-system-details #'((Y-offset . 0) (alignment-distances . (30 10)))
+      |    % \override VerticalAxisGroup #'staff-staff-spacing = #'((basic-distance . 10) (minimum-distance . 30) (padding . 30))
       |
       |    \override RehearsalMark #'padding = #7
       |
@@ -136,11 +138,12 @@ trait FitnessLike extends App {
     """.stripMargin
 
     val scores = sorted.take(numResults).zipWithIndex.map { case ((sq, fit), idx) =>
-      val fitS = f"$fit%1.3f"
+      val fitS  = f"$fit%1.3f"
+      val inner = sq.map(cell => cell.toLilypondString(timeSig = true, annotation = s"#${cell.id+1}")).mkString("\n")
       raw"""
       |\score {
       |  \new RhythmicStaff {
-      |    ${sq.map(cell => cell.toLilypondString(timeSig = true, annotation = s"#${cell.id+1}")).mkString("\n")}
+      |    $inner
       |  }
       |  \header { piece = "No. ${idx + 1} - fitness $fitS" }
       |  ${if (midi) "\\midi { }" else ""}
