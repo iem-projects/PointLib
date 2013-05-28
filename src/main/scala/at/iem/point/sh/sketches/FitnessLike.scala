@@ -31,7 +31,7 @@ trait FitnessLike extends App {
   def aggr(seq: IIdxSeq[Double]): Double = {
     val res = seq.sum / seq.size
     // println(s"aggr($seq) = $res")
-    res
+    -res    // higher error = lower fitness
   }
 
   lazy val fitnessSeq  = slidingFitnessByDuration(window = win, step = step)(fun = seqFit) _
@@ -140,7 +140,7 @@ trait FitnessLike extends App {
     """.stripMargin }
 
     val lyt = scores.mkString(header, "", "")
-    val lyf = IO.tempFile("point", ".ly", deleteOnExit = false)
+    val lyf = IO.tempFile("point", ".ly", deleteOnExit = true)
     val os  = new OutputStreamWriter(new FileOutputStream(lyf), "UTF-8")
     os.write(lyt)
     os.close()

@@ -146,6 +146,33 @@ object Fitness {
     loop(zipped, r"0", 0, Vector.empty)
   }
 
+  def slideByEvents(window: Int, step: Int)(seq: Chromosome): IIdxSeq[(Rational, Int, Sequence)] = {
+    type Result = IIdxSeq[(Rational, Int, Sequence)]
+
+    require(step > 0 && window >= step)
+    require(seq.nonEmpty)
+
+    val zipped      = flatWithAccum(seq)
+    val w1          = zipped.size - window
+
+    @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], idx: Int, res: Result): Result = {
+      val slice0  = xs.take(window)
+      val slice   = slice0.drop_2
+      assert(slice.nonEmpty)
+      val start   = slice0.head._2 - slice0.head._1.dur
+
+      val res1    = res :+ ((start, idx, slice))
+      val idx1    = idx + step
+      if (idx1 < w1) {
+        val tail  = xs.drop(step)
+        assert(tail.nonEmpty)
+        loop(tail, idx1, res1)
+      } else res1
+    }
+
+    loop(zipped, 0, Vector.empty)
+  }
+
   /**
    * Calculates a sequence of fitness evaluations by applying a sliding window based on duration,
    * and applying a fitness function for each slice.
@@ -167,6 +194,21 @@ object Fitness {
     val w2        = w1.toDouble
     val m         = slices.map { case (start, _, slice) =>
       val w       = math.min(1.0, start.toDouble / w2)
+      fun(slice, w)
+    }
+    m
+  }
+
+  def slidingFitnessByEvents(window: Int, step: Int)(fun: (Sequence, Double) => Double)
+                            (seq: Chromosome): IIdxSeq[Double] = {
+
+    val slices    = slideByEvents(window, step)(seq)
+    val zipped    = flatWithAccum(seq)
+    val w1        = math.max(1, zipped.size - window)
+    // require(w1 > 0, s"For $seq w1 is $w1")
+    val w2        = w1.toDouble
+    val m         = slices.map { case (_, idx, slice) =>
+      val w       = math.min(1.0, idx.toDouble / w2)
       fun(slice, w)
     }
     m
