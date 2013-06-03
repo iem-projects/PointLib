@@ -25,12 +25,12 @@ object ChromosomeView {
   private val ColorNote2          = Color.gray
   private val ColorRest1          = Color.lightGray
   private val ColorRest2          = new Color(224, 224, 224)
-}
-class ChromosomeView(c: Chromosome) {
-  import ChromosomeView._
 
-  private val cn        = c.map(_.normalized)
-  private val totalDur  = cn.dur.toDouble
+//}
+//class ChromosomeView {
+//  import ChromosomeView._
+
+  //  private val cn        = c.map(_.normalized)
 
   private def hgrad(x1: Double, c1: Color, x2: Double, c2: Color): Paint =
     new LinearGradientPaint(x1.toFloat, 0f, x2.toFloat, 0f, Array(0f, 1f), Array(c1, c2))
@@ -38,17 +38,20 @@ class ChromosomeView(c: Chromosome) {
   private def line(x1: Double, y1: Double, x2: Double, y2: Double): Shape = new Line2D     .Double(x1, y1, x2, y2)
   private def rect(x : Double, y : Double, w : Double, h : Double): Shape = new Rectangle2D.Double(x , y , w , h )
 
-  def preferredSize: Dimension = {
+  def preferredSize(cn: Chromosome): Dimension = {
+    val totalDur  = cn.dur.toDouble
     val w = (totalDur * PreferredScale + 0.5).toInt
     (w, PreferredHeight)
   }
 
-  def paint(g: Graphics2D, width: Int, height: Int) {
+  def paint(cn: Chromosome, g: Graphics2D, width: Int, height: Int) {
     val sz    = cn.size
     if (sz == 0) return
 
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
     g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
+
+    val totalDur = cn.dur.toDouble
 
     val stabs = (sz - 1) * StabWidth
     val netto = width - stabs

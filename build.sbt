@@ -20,6 +20,7 @@ libraryDependencies ++= Seq(
   "de.sciss"                 %% "pointillism-rhythm" % "0.2.+",           // Manipulating rhythmic cells
   "de.sciss"                 %% "fileutil"           % "1.0.+",           // Easy file representation
   "de.sciss"                 %% "desktop"            % "0.3.+",
+  "de.sciss"                 %% "treetable-scala"    % "1.3.+",
   "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
 )
 
