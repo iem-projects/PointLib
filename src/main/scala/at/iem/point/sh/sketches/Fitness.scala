@@ -26,7 +26,7 @@ object Fitness {
   }
 
   /** Creates a new random number generator with a given `seed` value. */
-  def rng(seed: Long) = new Random(seed)
+  def rng(seed: Long = System.currentTimeMillis()) = new Random(seed)
 
   /** Runs the whole genetic algorithm, producing an initial population and running over a given number of iterations.
     *
