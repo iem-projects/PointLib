@@ -18,6 +18,10 @@ trait FitnessLike extends App {
 
   lazy val win      = r"3/2"
   lazy val step     = win/2
+  lazy val evt      = 5
+  lazy val evtStep  = evt/2
+
+  lazy val useEvt   = true  // if `true`, use event sliding (evt, evtStep), if `false`, use duration sliding
 
   lazy val midi     = true
 
@@ -34,7 +38,11 @@ trait FitnessLike extends App {
     -res    // higher error = lower fitness
   }
 
-  lazy val fitnessSeq  = slidingFitnessByDuration(window = win, step = step)(fun = seqFit) _
+  lazy val fitnessSeq  = if (useEvt)
+    slidingFitnessByEvents(window = evt, step = evtStep)(fun = seqFit) _
+  else
+    slidingFitnessByDuration(window = win, step = step)(fun = seqFit) _
+
   lazy val fitness     = fitnessSeq.andThen(aggr _)
 
   def selectAndBreed(g: GenomeVal): Genome = {

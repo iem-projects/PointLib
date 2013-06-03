@@ -4,7 +4,7 @@ import spire.math.Rational
 import scala.util.Random
 import collection.immutable.{IndexedSeq => IIdxSeq}
 import scala.annotation.tailrec
-import at.iem.point.illism.rhythm.{Cell, NoteOrRest}
+import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
@@ -234,6 +234,17 @@ object Fitness {
     //      val dur   = elems.map(_.dur).sum
     //      Cell(-1, elems, dur)
     //    }
+
+    /** Removes rests by adding their duration to preceeding notes. */
+    def bindTrailingRests(implicit ev: A <:< NoteOrRest): IIdxSeq[Rational] = {
+      // for each successive element, if it is a note, add it to the result,
+      // if it is a rest, incorporate it to the last element in the result, if it exists
+      seq.foldLeft(Vector.empty[Rational]) {
+        case (res         , Note(dur)) => res   :+ dur
+        case (init :+ last, Rest(dur)) => init  :+ (last + dur)
+        case (empty       , Rest(dur)) => empty :+ dur
+      }
+    }
 
     /** Converts a flat sequence of note-or-rest elements to a single cell. */
     def toCell(implicit ev: A <:< NoteOrRest): Cell = {
