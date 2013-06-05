@@ -10,12 +10,12 @@ import scala.swing.event.SelectionChanged
 class EvaluationSettingsFrame() {
   var eval  = WindowedEvaluation()
 
-  val combo = new ComboBox[Meta](Evaluation.all) {
+  val combo = new ComboBox[Meta[Evaluation]](Evaluation.all) {
     listenTo(selection)
     selection.item = eval.meta
     reactions += {
       case SelectionChanged(_) =>
-
+        // eval = selection.item.instance()
     }
   }
 

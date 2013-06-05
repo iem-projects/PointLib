@@ -11,10 +11,10 @@ import language.existentials
 import scala.util.control.NonFatal
 
 object Evaluation {
-  val all: Vec[Meta] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
+  val all: Vec[Meta[Evaluation]] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
 }
 sealed trait Evaluation extends (Chromosome => Double) {
-  def meta: Meta
+  def meta: Meta[Evaluation]
 }
 
 case class GlobalEvaluation(fun   : GlobalFunction = GlobalFunction.Const(),
@@ -52,7 +52,7 @@ case class WindowedEvaluation(window: WindowFunction    = WindowFunction.Events(
 }
 
 object WindowFunction {
-  val all: Vec[Meta] = Vec(Meta[Events])
+  val all: Vec[Meta[WindowFunction]] = Vec(Meta[Events])
 
   case class Events(size: Int = 5, step: Int = 2) extends WindowFunction {
     require(step >= 1 && size >= step)
@@ -74,13 +74,13 @@ object WindowFunction {
   }
 }
 sealed trait WindowFunction extends (Chromosome => Vec[Slice]) {
-  def meta: Meta
+  def meta: Meta[WindowFunction]
 }
 
 case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double)
 
 object GlobalFunction {
-  val all: Vec[Meta] = Vec(Meta[Const])
+  val all: Vec[Meta[GlobalFunction]] = Vec(Meta[Const])
 
   case class Wrap(local: LocalFunction) extends GlobalFunction {
     def apply(sq: Chromosome): Double = {
@@ -98,11 +98,11 @@ object GlobalFunction {
   }
 }
 sealed trait GlobalFunction extends (Chromosome       => Double) {
-  def meta: Meta
+  def meta: Meta[GlobalFunction]
 }
 
 object LocalFunction {
-  val all: Vec[Meta] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
+  val all: Vec[Meta[LocalFunction]] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
 
   case object LadmaEntropy extends LocalFunction {
     def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
@@ -130,13 +130,13 @@ object LocalFunction {
   }
 }
 sealed trait LocalFunction  extends (Slice           => Double) {
-  def meta: Meta
+  def meta: Meta[LocalFunction]
 }
 
 // sealed trait LocalTarget    extends (Slice           => Double)
 
 object ErrorFunction {
-  val all: Vec[Meta] = Vec(Meta[Relative.type])
+  val all: Vec[Meta[ErrorFunction]] = Vec(Meta[Relative.type])
 
   case object Relative extends ErrorFunction {
     def apply(eval: Double, target: Double): Double = math.abs(eval - target) / target
@@ -145,11 +145,11 @@ object ErrorFunction {
   }
 }
 sealed trait ErrorFunction  extends ((Double, Double) => Double) {
-  def meta: Meta
+  def meta: Meta[ErrorFunction]
 }
 
 object AggregateFunction {
-  val all: Vec[Meta] = Vec(Meta[Mean.type], Meta[RMS.type])
+  val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])
 
   case object Mean extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = errors.sum / errors.size
@@ -164,21 +164,23 @@ sealed trait AggregateFunction extends (Vec[Double] => Double)
 ////////////////
 
 object Meta {
-  implicit def apply[A: TypeTag]: Meta = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
+  implicit def apply[A: TypeTag]: Meta[A] = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
 
   def isSingleton[A: TypeTag]: Boolean = typeOf[A] <:< typeOf[Singleton]
 }
-sealed trait Meta {
-  type A1
+sealed trait Meta[+A] {
+  // implicit protected def tt: TypeTag[A]
 
-  implicit protected def tt: TypeTag[A1]
+  protected def tpe: ru.Type
 
   lazy val name: String = {
-    val t = typeOf[A1]
-    val s = t.toString
+    // val t = typeOf[A]
+    val s = tpe.toString
     val i = s.lastIndexOf('.') + 1
     s.substring(i)
   }
+
+  def instance(): A
 
   override def toString = name
 }
@@ -216,20 +218,20 @@ object MetaCaseClass {
     new MetaCaseClass[A](defaults)
   }
 }
-case class MetaCaseClass[A](defaults: List[Any])(implicit val tt: TypeTag[A]) extends Meta {
-  type A1 = A
-
+case class MetaCaseClass[A: TypeTag](defaults: List[Any]) extends Meta[A] {
   def instance(): A = instance(defaults)
+
+  protected def tpe: ru.Type = typeOf[A]
 
   def instance(args: List[Any]): A = {
     val (im, _, mApply) = MetaCaseClass.getApplyMethod[A]
     im.reflectMethod(mApply)(args: _*).asInstanceOf[A]
   }
 }
-case class MetaCaseObject[A](implicit val tt: TypeTag[A]) extends Meta {
-  type A1 = A
+case class MetaCaseObject[A: TypeTag]() extends Meta[A] {
+  protected def tpe: ru.Type = typeOf[A]
 
-  def instance: A = {
+  def instance(): A = {
     import reflect.runtime.{currentMirror => cm}
     cm.runtimeClass(typeOf[A].typeSymbol.asClass).asInstanceOf[A]
   }
