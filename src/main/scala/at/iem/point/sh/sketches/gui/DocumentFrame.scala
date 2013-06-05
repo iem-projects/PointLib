@@ -1,17 +1,17 @@
 package at.iem.point.sh.sketches.gui
 
-import scala.swing.{Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
+import scala.swing.{FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.desktop.Window
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{Graphics, Graphics2D}
 import at.iem.point.sh.sketches.Fitness
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 
 object DocumentFrame {
-  final case class Node(index: Int, chromosome: Fitness.Chromosome, fitness: Double, children: IIdxSeq[Node])
+  final case class Node(index: Int, chromosome: Fitness.Chromosome, fitness: Double, children: Vec[Node])
 }
 final class DocumentFrame(val document: Document) {
   import DocumentFrame._
@@ -71,7 +71,7 @@ final class DocumentFrame(val document: Document) {
 
     def getParent(node: Node) = if (node == root) None else Some(root)
 
-    def refresh(nodes: IIdxSeq[Node]) {
+    def refresh(nodes: Vec[Node]) {
       root = Node(-1, Vector.empty, 0.0, nodes)
       fireStructureChanged(root)
       // fireRootChanged()
@@ -82,7 +82,7 @@ final class DocumentFrame(val document: Document) {
   tt.rootVisible  = false
   // tt.expandPath(TreeTable.Path.empty)
   // XXX TODO: working around TreeTable issue #1
-  tt.peer.setDefaultRenderer(classOf[IIdxSeq[_]], new j.DefaultTreeTableCellRenderer {
+  tt.peer.setDefaultRenderer(classOf[Vec[_]], new j.DefaultTreeTableCellRenderer {
     override def getTreeTableCellRendererComponent(treeTable: j.TreeTable, value: Any, selected: Boolean,
                                                    hasFocus: Boolean, row: Int, column: Int): java.awt.Component = {
       super.getTreeTableCellRendererComponent(treeTable, value, selected, hasFocus, row, column)
@@ -128,6 +128,12 @@ final class DocumentFrame(val document: Document) {
     contents += pGen
     contents += Swing.VStrut(4)
     contents += ggGen
+  }
+
+  val pBottom = new FlowPanel {
+    contents += Button("Evaluation Settings") {
+      new EvaluationSettingsFrame()
+    }
   }
 
   new WindowImpl {

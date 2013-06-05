@@ -2,24 +2,24 @@ package at.iem.point.sh.sketches
 
 import spire.math.Rational
 import scala.util.Random
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import scala.annotation.tailrec
 import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
-  type Sequence       = IIdxSeq[NoteOrRest]
-  type Chromosome     = IIdxSeq[Cell]
-  type Genome         = IIdxSeq[Chromosome]
-  type GenomeVal      = IIdxSeq[(Chromosome, Double)]
+  type Sequence       = Vec[NoteOrRest]
+  type Chromosome     = Vec[Cell]
+  type Genome         = Vec[Chromosome]
+  type GenomeVal      = Vec[(Chromosome, Double)]
 
   /** Whether to print log information (for debugging) during calculation or not. */
   var showLog = false // true
 
   /** The corpus consists of all cells with all stretching factors applied. */
-  val corpus: IIdxSeq[Cell] = baseCells.flatMap(c => factors.map(c * _))
+  val corpus: Vec[Cell] = baseCells.flatMap(c => factors.map(c * _))
   /** The normalized corpus is equal to the corpus, but cells are already normalized. */
-  val norm  : IIdxSeq[Cell] = corpus.map(_.normalized)
+  val norm  : Vec[Cell] = corpus.map(_.normalized)
 
   def log(what: => String) {
     if (showLog) println(s"<ga> $what")
@@ -116,8 +116,8 @@ object Fitness {
    * @param seq     the chromosome to slide across
    * @return  the sliding windows in the order of their succession, annotated with start time and start index.
    */
-  def slideByDuration(window: Rational, step: Rational)(seq: Chromosome): IIdxSeq[(Rational, Int, Sequence)] = {
-    type Result = IIdxSeq[(Rational, Int, Sequence)]
+  def slideByDuration(window: Rational, step: Rational)(seq: Chromosome): Vec[(Rational, Int, Sequence)] = {
+    type Result = Vec[(Rational, Int, Sequence)]
 
     require(step > 0 && window >= step)
     require(seq.nonEmpty)
@@ -126,7 +126,7 @@ object Fitness {
     val totalDur    = zipped.last._2
     val w1          = totalDur - window
 
-    @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], start: Rational, idx: Int, res: Result): Result = {
+    @tailrec def loop(xs: Vec[(NoteOrRest, Rational)], start: Rational, idx: Int, res: Result): Result = {
       val stop    = start + window
       val slice0  = xs.takeWhile { case (n, acc) => (acc - n.dur) < stop }
       val slice1  = slice0.optimumEnd(stop)(_._2)
@@ -146,8 +146,8 @@ object Fitness {
     loop(zipped, r"0", 0, Vector.empty)
   }
 
-  def slideByEvents(window: Int, step: Int)(seq: Chromosome): IIdxSeq[(Rational, Int, Sequence)] = {
-    type Result = IIdxSeq[(Rational, Int, Sequence)]
+  def slideByEvents(window: Int, step: Int)(seq: Chromosome): Vec[(Rational, Int, Sequence)] = {
+    type Result = Vec[(Rational, Int, Sequence)]
 
     require(step > 0 && window >= step)
     require(seq.nonEmpty)
@@ -155,7 +155,7 @@ object Fitness {
     val zipped      = flatWithAccum(seq)
     val w1          = zipped.size - window
 
-    @tailrec def loop(xs: IIdxSeq[(NoteOrRest, Rational)], idx: Int, res: Result): Result = {
+    @tailrec def loop(xs: Vec[(NoteOrRest, Rational)], idx: Int, res: Result): Result = {
       val slice0  = xs.take(window)
       val slice   = slice0.drop_2
       assert(slice.nonEmpty)
@@ -185,7 +185,7 @@ object Fitness {
    * @return        the sequence of fitnesses thus calculated
    */
   def slidingFitnessByDuration(window: Rational, step: Rational)(fun: (Sequence, Double) => Double)
-                              (seq: Chromosome): IIdxSeq[Double] = {
+                              (seq: Chromosome): Vec[Double] = {
 
     val slices    = slideByDuration(window, step)(seq)
     val zipped    = flatWithAccum(seq)
@@ -200,7 +200,7 @@ object Fitness {
   }
 
   def slidingFitnessByEvents(window: Int, step: Int)(fun: (Sequence, Double) => Double)
-                            (seq: Chromosome): IIdxSeq[Double] = {
+                            (seq: Chromosome): Vec[Double] = {
 
     val slices    = slideByEvents(window, step)(seq)
     val zipped    = flatWithAccum(seq)
@@ -214,20 +214,20 @@ object Fitness {
     m
   }
 
-  /* Flattens a chromosome to a sequence of notes or rests, and zips it with the running sum of the durations */
-  private def flatWithAccum(seq: Chromosome): IIdxSeq[(NoteOrRest, Rational)] = {
+  /** Flattens a chromosome to a sequence of notes or rests, and zips it with the running sum of the durations */
+  def flatWithAccum(seq: Chromosome): Vec[(NoteOrRest, Rational)] = {
     val flat      = seq.flattenCells
     val zipped    = flat.accumSeqDur
     zipped
   }
 
-  implicit final class RichIndexedSeq[A](val seq: IIdxSeq[A]) extends AnyVal {
+  implicit final class RichIndexedSeq[A](val seq: Vec[A]) extends AnyVal {
     /** Chooses a random element of the sequence. */
     def choose()(implicit rnd: Random): A = seq(rnd.nextInt(seq.size))
     /** Converts a sequence of cells to a flat sequence of note-or-rest elements. */
     def flattenCells(implicit ev: A <:< Cell): Sequence = seq.flatMap(c => ev(c).normalized.elements)
     /** For a sequence of `Tuple2`, drops the second tuple part. */
-    def drop_2[B](implicit ev: A <:< (B, _)): IIdxSeq[B] = seq.map(_._1)
+    def drop_2[B](implicit ev: A <:< (B, _)): Vec[B] = seq.map(_._1)
 
     //    def toCell(implicit ev: A <:< Rational): Cell = {
     //      val elems = seq.map(Note(_))
@@ -236,7 +236,7 @@ object Fitness {
     //    }
 
     /** Removes rests by adding their duration to preceeding notes. */
-    def bindTrailingRests(implicit ev: A <:< NoteOrRest): IIdxSeq[Rational] = {
+    def bindTrailingRests(implicit ev: A <:< NoteOrRest): Vec[Rational] = {
       // for each successive element, if it is a note, add it to the result,
       // if it is a rest, incorporate it to the last element in the result, if it exists
       seq.foldLeft(Vector.empty[Rational]) {
@@ -264,13 +264,13 @@ object Fitness {
     def dur(implicit ev: A <:< Cell): Rational = seq.map(ev(_).dur).sum
 
     /** Zips a chromosome with the running sum of its duration. */
-    def accumDur/* (beginWithZero: Boolean) */(implicit ev: A <:< Cell): IIdxSeq[(A, Rational)] = {
+    def accumDur/* (beginWithZero: Boolean) */(implicit ev: A <:< Cell): Vec[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
       seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
 
     /** Zips a note-or-rest sequence with the running sum of its duration. */
-    def accumSeqDur/* (beginWithZero: Boolean) */(implicit ev: A <:< NoteOrRest): IIdxSeq[(A, Rational)] = {
+    def accumSeqDur/* (beginWithZero: Boolean) */(implicit ev: A <:< NoteOrRest): Vec[(A, Rational)] = {
       val scan = seq.scanLeft(r"0")(_ + ev(_).dur)
       seq zip /* (if (beginWithZero) scan else */ scan.tail /* ) */
     }
@@ -286,7 +286,7 @@ object Fitness {
       * @return       either the input sequence, or the input sequence minus the last element, if that
       *               yields a smaller relative error with respect to the reference duration
       */
-    def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
+    def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): Vec[A] = seq match {
       case init :+ t2 :+ t1 if optimize(ref, t1, t2, init, view) => init :+ t2
       case _ => seq
     }
@@ -302,13 +302,13 @@ object Fitness {
       * @return       either the input sequence, or the input sequence minus the first element, if that
       *               yields a smaller relative error with respect to the reference duration
       */
-    def optimumStart[B](ref: B)(view: A => B)(implicit num: Fractional[B]): IIdxSeq[A] = seq match {
+    def optimumStart[B](ref: B)(view: A => B)(implicit num: Fractional[B]): Vec[A] = seq match {
       case t1 +: t2 +: tail if optimize(ref, t1, t2, tail, view) => t2 +: tail
       case _ => seq
     }
 
     // `true` if t1 should be dropped
-    private def optimize[B](ref: B, t1: A, t2: A, tail: IIdxSeq[A], view: A => B)
+    private def optimize[B](ref: B, t1: A, t2: A, tail: Vec[A], view: A => B)
                            (implicit num: Fractional[B]): Boolean = {
       val before  = view(t1)
       val after   = view(t2)
@@ -322,7 +322,7 @@ object Fitness {
 
   /** Generates a random sequence from the `corpus` which is at least as long as a given `duration`. */
   def randomSequence(duration: Rational)(implicit rnd: Random): Chromosome = {
-    @tailrec def loop(seq: Chromosome, d: Rational): IIdxSeq[Cell] = {
+    @tailrec def loop(seq: Chromosome, d: Rational): Vec[Cell] = {
       val c     = corpus.choose()
       val sqn   = seq :+ c
       val dn    = d + c.dur

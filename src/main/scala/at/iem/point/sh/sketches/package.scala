@@ -1,7 +1,7 @@
 package at.iem.point.sh
 
 import spire.math.{Rational, compat}
-import scala.collection.immutable.{IndexedSeq => IIdxSeq}
+import scala.collection.immutable.{IndexedSeq => Vec}
 import at.iem.point.illism.rhythm.Cell
 import de.sciss.file._
 
@@ -61,7 +61,7 @@ package object sketches {
   // assert(factors.size == 106)
 
   implicit class RichRational(val r: Rational) extends AnyVal {
-    def multiples(lo: Rational, hi: Rational): IIdxSeq[Rational] = {
+    def multiples(lo: Rational, hi: Rational): Vec[Rational] = {
       require(lo >= 0 && hi >= lo)
       val loF = (lo / r).ceil .toInt
       val hiF = (hi / r).floor.toInt + 1
@@ -86,7 +86,7 @@ package object sketches {
   }
 
   //  implicit final class RichCell(val cell: Cell) extends AnyVal {
-  //    private def dot(sq: IIdxSeq[Rational], doubleDotted: Boolean = false): IIdxSeq[Rational] =
+  //    private def dot(sq: Vec[Rational], doubleDotted: Boolean = false): Vec[Rational] =
   //      sq match {
   //        case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
   //          init :+ (a + b + c)

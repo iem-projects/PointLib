@@ -1,6 +1,6 @@
 package at.iem.point.sh.sketches
 
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import spire.syntax._
 import java.io.{FileOutputStream, OutputStreamWriter}
 import de.sciss.file._
@@ -32,7 +32,7 @@ trait FitnessLike extends App {
 
   def seqFit(seq: Sequence, w: Double): Double
 
-  def aggr(seq: IIdxSeq[Double]): Double = {
+  def aggr(seq: Vec[Double]): Double = {
     val res = seq.sum / seq.size
     // println(s"aggr($seq) = $res")
     -res    // higher error = lower fitness
