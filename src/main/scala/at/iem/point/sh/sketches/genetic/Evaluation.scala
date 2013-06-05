@@ -5,17 +5,12 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import at.iem.point.illism.rhythm.Ladma
 import spire.math.Rational
 import Fitness._
-import reflect.runtime.{universe => ru}
-import ru.{typeOf, TypeTag}
 import language.existentials
-import scala.util.control.NonFatal
 
 object Evaluation {
   val all: Vec[Meta[Evaluation]] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
 }
-sealed trait Evaluation extends (Chromosome => Double) {
-  def meta: Meta[Evaluation]
-}
+sealed trait Evaluation extends (Chromosome => Double) with HasMeta[Evaluation]
 
 case class GlobalEvaluation(fun   : GlobalFunction = GlobalFunction.Const(),
                             target: GlobalFunction = GlobalFunction.Const(),
@@ -73,9 +68,7 @@ object WindowFunction {
     def meta = Meta[Events]
   }
 }
-sealed trait WindowFunction extends (Chromosome => Vec[Slice]) {
-  def meta: Meta[WindowFunction]
-}
+sealed trait WindowFunction extends (Chromosome => Vec[Slice]) with HasMeta[WindowFunction]
 
 case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double)
 
@@ -97,9 +90,7 @@ object GlobalFunction {
     def meta = Meta[Const]
   }
 }
-sealed trait GlobalFunction extends (Chromosome       => Double) {
-  def meta: Meta[GlobalFunction]
-}
+sealed trait GlobalFunction extends (Chromosome => Double) with HasMeta[GlobalFunction]
 
 object LocalFunction {
   val all: Vec[Meta[LocalFunction]] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
@@ -129,9 +120,7 @@ object LocalFunction {
     def meta = Meta[ExpExp]
   }
 }
-sealed trait LocalFunction  extends (Slice           => Double) {
-  def meta: Meta[LocalFunction]
-}
+sealed trait LocalFunction extends (Slice => Double) with HasMeta[LocalFunction]
 
 // sealed trait LocalTarget    extends (Slice           => Double)
 
@@ -144,95 +133,21 @@ object ErrorFunction {
     def meta = Meta[Relative.type]
   }
 }
-sealed trait ErrorFunction  extends ((Double, Double) => Double) {
-  def meta: Meta[ErrorFunction]
-}
+sealed trait ErrorFunction  extends ((Double, Double) => Double) with HasMeta[ErrorFunction]
 
 object AggregateFunction {
   val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])
 
   case object Mean extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = errors.sum / errors.size
+
+    def meta = Meta[Mean.type]
   }
 
   case object RMS extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = math.sqrt(errors.map(x => x * x).sum / errors.size)
+
+    def meta = Meta[RMS.type]
   }
 }
-sealed trait AggregateFunction extends (Vec[Double] => Double)
-
-////////////////
-
-object Meta {
-  implicit def apply[A: TypeTag]: Meta[A] = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
-
-  def isSingleton[A: TypeTag]: Boolean = typeOf[A] <:< typeOf[Singleton]
-}
-sealed trait Meta[+A] {
-  // implicit protected def tt: TypeTag[A]
-
-  protected def tpe: ru.Type
-
-  lazy val name: String = {
-    // val t = typeOf[A]
-    val s = tpe.toString
-    val i = s.lastIndexOf('.') + 1
-    s.substring(i)
-  }
-
-  def instance(): A
-
-  override def toString = name
-}
-
-object MetaCaseClass {
-  import reflect.runtime.{currentMirror => cm}
-
-  private def collectDefaults[A](implicit tt: TypeTag[A]): List[Any] = {
-    val (im, ts, mApply) = getApplyMethod[A]
-    val syms   = mApply.paramss.flatten
-    val args   = syms.zipWithIndex.map { case (p, i) =>
-      try {
-        val mDef = ts.member(ru.newTermName(s"apply$$default$$${i+1}")).asMethod
-        im.reflectMethod(mDef)()
-      } catch {
-        case NonFatal(e) =>
-          println(s"For type ${typeOf[A]}, parameter $p at index $i has no default value")
-          throw e
-      }
-    }
-    args
-  }
-
-  private def getApplyMethod[A: TypeTag]: (ru.InstanceMirror, ru.Type, ru.MethodSymbol) = {
-    val clazz  = typeOf[A].typeSymbol.asClass
-    val mod    = clazz.companionSymbol.asModule
-    val im     = cm.reflect(cm.reflectModule(mod).instance)
-    val ts     = im.symbol.typeSignature
-    val mApply = ts.member(ru.newTermName("apply")).asMethod
-    (im, ts, mApply)
-  }
-
-  def apply[A: TypeTag]: MetaCaseClass[A] = {
-    val defaults  = collectDefaults[A]
-    new MetaCaseClass[A](defaults)
-  }
-}
-case class MetaCaseClass[A: TypeTag](defaults: List[Any]) extends Meta[A] {
-  def instance(): A = instance(defaults)
-
-  protected def tpe: ru.Type = typeOf[A]
-
-  def instance(args: List[Any]): A = {
-    val (im, _, mApply) = MetaCaseClass.getApplyMethod[A]
-    im.reflectMethod(mApply)(args: _*).asInstanceOf[A]
-  }
-}
-case class MetaCaseObject[A: TypeTag]() extends Meta[A] {
-  protected def tpe: ru.Type = typeOf[A]
-
-  def instance(): A = {
-    import reflect.runtime.{currentMirror => cm}
-    cm.runtimeClass(typeOf[A].typeSymbol.asClass).asInstanceOf[A]
-  }
-}
+sealed trait AggregateFunction extends (Vec[Double] => Double) with HasMeta[AggregateFunction]
