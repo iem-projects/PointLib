@@ -143,6 +143,7 @@ final class DocumentFrame(val document: Document) {
     contents = new BorderPanel {
       add(pTop    , BorderPanel.Position.North )
       add(ggScroll, BorderPanel.Position.Center)
+      add(pBottom , BorderPanel.Position.South )
     }
     pack()
     front()
