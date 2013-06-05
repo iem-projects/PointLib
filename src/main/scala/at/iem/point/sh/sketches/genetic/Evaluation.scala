@@ -5,6 +5,8 @@ import scala.collection.immutable.{IndexedSeq => Vec}
 import at.iem.point.illism.rhythm.Ladma
 import spire.math.Rational
 import Fitness._
+import reflect.runtime.{universe => ru}
+import language.existentials
 
 sealed trait Evaluation extends (Chromosome => Double)
 
@@ -34,9 +36,11 @@ case class WindowedEvaluation(window: WindowFunction, fun: LocalFunction, target
 }
 
 object WindowFunction {
-  // val all: Vec[WindowFunction] = ...
+  val all: Vec[Meta] = Vec(Meta[Events])
 
   case class Events(size: Int, step: Int) extends WindowFunction {
+    require(step >= 1 && size >= step)
+
     def apply(c: Chromosome): Vec[Window] = {
       val slices    = slideByEvents(size, step)(c)
       val zipped    = flatWithAccum(c)
@@ -56,6 +60,8 @@ sealed trait WindowFunction extends (Chromosome => Vec[Window])
 case class Window(sq: Sequence, idx: Int, offset: Rational, w: Double)
 
 object GlobalFunction {
+  val all: Vec[Meta] = Vec(Meta[Const])
+
   case class Wrap(local: LocalFunction) extends GlobalFunction {
     def apply(sq: Chromosome): Double = {
       val win = Window(sq.flattenCells, 0, 0, 0.5)
@@ -70,7 +76,7 @@ object GlobalFunction {
 sealed trait GlobalFunction extends (Chromosome       => Double)
 
 object LocalFunction {
-  val all: Vec[LocalFunction] = Vec(LadmaEntropy)
+  val all: Vec[Meta] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
 
   case object LadmaEntropy extends LocalFunction {
     def apply(win: Window): Double = Ladma.entropy(win.sq.toCell)
@@ -97,7 +103,7 @@ sealed trait LocalFunction  extends (Window           => Double)
 // sealed trait LocalTarget    extends (Window           => Double)
 
 object ErrorFunction {
-  val all: Vec[ErrorFunction] = Vec(Relative)
+  val all: Vec[Meta] = Vec(Meta[Relative.type])
 
   case object Relative extends ErrorFunction {
     def apply(eval: Double, target: Double): Double = math.abs(eval - target) / target
@@ -106,7 +112,7 @@ object ErrorFunction {
 sealed trait ErrorFunction  extends ((Double, Double) => Double)
 
 object AggregateFunction {
-  val all: Vec[AggregateFunction] = Vec(Mean, RMS)
+  val all: Vec[Meta] = Vec(Meta[Mean.type], Meta[RMS.type])
 
   case object Mean extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = errors.sum / errors.size
@@ -117,3 +123,53 @@ object AggregateFunction {
   }
 }
 sealed trait AggregateFunction extends (Vec[Double] => Double)
+
+////////////////
+
+object Meta {
+  implicit def apply[A: ru.TypeTag]: Meta = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
+
+  def isSingleton[A: ru.TypeTag]: Boolean = ru.typeOf[A] <:< ru.typeOf[Singleton]
+}
+sealed trait Meta
+object MetaCaseClass {
+  import reflect.runtime.{currentMirror => cm}
+
+  private def collectDefaults[A](implicit tt: ru.TypeTag[A]): List[Any] = {
+    val (im, ts, mApply) = getApplyMethod[A]
+    val syms   = mApply.paramss.flatten
+    val args   = syms.zipWithIndex.map { case (p, i) =>
+      val mDef = ts.member(ru.newTermName(s"apply$$default$$${i+1}")).asMethod
+      im.reflectMethod(mDef)()
+    }
+    args
+  }
+
+  private def getApplyMethod[A: ru.TypeTag]: (ru.InstanceMirror, ru.Type, ru.MethodSymbol) = {
+    val clazz  = ru.typeOf[A].typeSymbol.asClass
+    val mod    = clazz.companionSymbol.asModule
+    val im     = cm.reflect(cm.reflectModule(mod).instance)
+    val ts     = im.symbol.typeSignature
+    val mApply = ts.member(ru.newTermName("apply")).asMethod
+    (im, ts, mApply)
+  }
+
+  def apply[A: ru.TypeTag]: MetaCaseClass[A] = {
+    val defaults  = collectDefaults[A]
+    new MetaCaseClass[A](defaults)
+  }
+}
+case class MetaCaseClass[A: ru.TypeTag](defaults: List[Any]) extends Meta {
+  def instance(): A = instance(defaults)
+
+  def instance(args: List[Any]): A = {
+    val (im, _, mApply) = MetaCaseClass.getApplyMethod[A]
+    im.reflectMethod(mApply)(args: _*).asInstanceOf[A]
+  }
+}
+case class MetaCaseObject[A: ru.TypeTag]() extends Meta {
+  def instance: A = {
+    import reflect.runtime.{currentMirror => cm}
+    cm.runtimeClass(ru.typeOf[A].typeSymbol.asClass).asInstanceOf[A]
+  }
+}
