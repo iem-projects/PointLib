@@ -1,6 +1,7 @@
 package at.iem.point.sh.sketches
 
 import play.api.libs.json._
+import at.iem.point.sh.sketches.genetic.Evaluation
 
 object JSONTest extends App {
   case class EucalyptusTree(col: Int, row: Int)
@@ -31,4 +32,7 @@ object JSONTest extends App {
   //    )
 
   println(s"Back: $back")
+
+  // ok, that one needs more work (`unapply`)
+  // implicit val evalFmt = Json.format[Evaluation]
 }

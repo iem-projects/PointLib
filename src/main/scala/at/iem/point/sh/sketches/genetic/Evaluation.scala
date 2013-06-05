@@ -6,8 +6,12 @@ import at.iem.point.illism.rhythm.Ladma
 import spire.math.Rational
 import Fitness._
 import reflect.runtime.{universe => ru}
+import ru.{typeOf, TypeTag}
 import language.existentials
 
+object Evaluation {
+  val all: Vec[Meta] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
+}
 sealed trait Evaluation extends (Chromosome => Double)
 
 case class GlobalEvaluation(fun: GlobalFunction, target: GlobalFunction, error: ErrorFunction)
@@ -127,15 +131,25 @@ sealed trait AggregateFunction extends (Vec[Double] => Double)
 ////////////////
 
 object Meta {
-  implicit def apply[A: ru.TypeTag]: Meta = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
+  implicit def apply[A: TypeTag]: Meta = if (isSingleton[A]) MetaCaseObject[A] else MetaCaseClass[A]
 
-  def isSingleton[A: ru.TypeTag]: Boolean = ru.typeOf[A] <:< ru.typeOf[Singleton]
+  def isSingleton[A: TypeTag]: Boolean = typeOf[A] <:< typeOf[Singleton]
 }
-sealed trait Meta
+sealed trait Meta {
+  type A1
+
+  implicit protected def tt: TypeTag[A1]
+
+  def name: String = {
+    val t = typeOf[A1]
+    t.toString
+  }
+}
+
 object MetaCaseClass {
   import reflect.runtime.{currentMirror => cm}
 
-  private def collectDefaults[A](implicit tt: ru.TypeTag[A]): List[Any] = {
+  private def collectDefaults[A](implicit tt: TypeTag[A]): List[Any] = {
     val (im, ts, mApply) = getApplyMethod[A]
     val syms   = mApply.paramss.flatten
     val args   = syms.zipWithIndex.map { case (p, i) =>
@@ -145,8 +159,8 @@ object MetaCaseClass {
     args
   }
 
-  private def getApplyMethod[A: ru.TypeTag]: (ru.InstanceMirror, ru.Type, ru.MethodSymbol) = {
-    val clazz  = ru.typeOf[A].typeSymbol.asClass
+  private def getApplyMethod[A: TypeTag]: (ru.InstanceMirror, ru.Type, ru.MethodSymbol) = {
+    val clazz  = typeOf[A].typeSymbol.asClass
     val mod    = clazz.companionSymbol.asModule
     val im     = cm.reflect(cm.reflectModule(mod).instance)
     val ts     = im.symbol.typeSignature
@@ -154,12 +168,14 @@ object MetaCaseClass {
     (im, ts, mApply)
   }
 
-  def apply[A: ru.TypeTag]: MetaCaseClass[A] = {
+  def apply[A: TypeTag]: MetaCaseClass[A] = {
     val defaults  = collectDefaults[A]
     new MetaCaseClass[A](defaults)
   }
 }
-case class MetaCaseClass[A: ru.TypeTag](defaults: List[Any]) extends Meta {
+case class MetaCaseClass[A](defaults: List[Any])(implicit val tt: TypeTag[A]) extends Meta {
+  type A1 = A
+
   def instance(): A = instance(defaults)
 
   def instance(args: List[Any]): A = {
@@ -167,9 +183,11 @@ case class MetaCaseClass[A: ru.TypeTag](defaults: List[Any]) extends Meta {
     im.reflectMethod(mApply)(args: _*).asInstanceOf[A]
   }
 }
-case class MetaCaseObject[A: ru.TypeTag]() extends Meta {
+case class MetaCaseObject[A](implicit val tt: TypeTag[A]) extends Meta {
+  type A1 = A
+
   def instance: A = {
     import reflect.runtime.{currentMirror => cm}
-    cm.runtimeClass(ru.typeOf[A].typeSymbol.asClass).asInstanceOf[A]
+    cm.runtimeClass(typeOf[A].typeSymbol.asClass).asInstanceOf[A]
   }
 }
