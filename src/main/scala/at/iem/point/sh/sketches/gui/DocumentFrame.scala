@@ -4,14 +4,14 @@ import scala.swing.{FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, Scroll
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.desktop.Window
 import javax.swing.{Icon, SpinnerNumberModel}
-import de.sciss.treetable.{AbstractTreeModel, TreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
+import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{Graphics, Graphics2D}
 import at.iem.point.sh.sketches.Fitness
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{WindowedEvaluation, Evaluation}
+import at.iem.point.sh.sketches.genetic.{Selection, Evaluation}
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double, val children: Vec[Node])
@@ -70,7 +70,7 @@ final class DocumentFrame(val document: Document) {
   object tm extends AbstractTreeModel[Node] {
     var root = new Node(index = -1, chromosome = Vector.empty, fitness = Double.NaN, children = Vector.empty)
 
-    def getChildCount(parent: Node): Int = parent.children.size
+    def getChildCount(parent: Node            ): Int  = parent.children.size
     def getChild     (parent: Node, index: Int): Node = parent.children(index)
 
     def isLeaf(node: Node): Boolean = getChildCount(node) == 0
@@ -161,7 +161,8 @@ final class DocumentFrame(val document: Document) {
     contents += ggGen
   }
 
-  var evaluation: Evaluation = WindowedEvaluation()
+  var evaluation: Evaluation = Evaluation.Windowed()
+  var selection : Selection  = Selection .Roulette()
 
   val pBottom = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
@@ -177,14 +178,35 @@ final class DocumentFrame(val document: Document) {
       ggEval.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggEval.peer.putClientProperty("JButton.segmentPosition", "first")
       val ggEvalSettings = Button("Settings") {
-        val ef = new EvaluationSettingsFrame()
+        val ef = new EvaluationSettingsFrame(evaluation)
         ef.view.cell.addListener {
           case value => evaluation = value
         }
       }
       ggEvalSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggEvalSettings.peer.putClientProperty("JButton.segmentPosition", "last")
-      contents ++= Seq(ggEval, ggEvalSettings)
+
+      val ggSel = Button("Selection") {
+        // println("Bang!")
+        val genome  = tm.root.children
+        val fun     = evaluation
+        genome.foreach { node =>
+          node.fitness = fun(node.chromosome)
+        }
+        tm.refreshNodes()
+      }
+      ggSel.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggSel.peer.putClientProperty("JButton.segmentPosition", "first")
+      val ggSelSettings = Button("Settings") {
+        val sf = new SelectionSettingsFrame(selection)
+        sf.view.cell.addListener {
+          case value => selection = value
+        }
+      }
+      ggSelSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggSelSettings.peer.putClientProperty("JButton.segmentPosition", "last")
+
+      contents ++= Seq(ggEval, ggEvalSettings, Swing.HStrut(8), ggSel, ggSelSettings)
     }
   }
 

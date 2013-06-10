@@ -7,44 +7,42 @@ import spire.math.Rational
 import Fitness._
 import language.existentials
 
-//object Evaluation {
-//  val all: Vec[Meta[Evaluation]] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
-//}
+object Evaluation {
+  case class Windowed(window: WindowFunction    = WindowFunction.Events(),
+                      fun   : LocalFunction     = LocalFunction.LadmaEntropy,
+                      target: LocalFunction     = LocalFunction.Const(0.2),
+                      error : ErrorFunction     = ErrorFunction.Relative,
+                      aggr  : AggregateFunction = AggregateFunction.Mean)
+    extends Evaluation {
+
+    private val errorT = error.tupled.apply _
+
+    def apply(c: Chromosome): Double = {
+      val slices  = window(c)
+      val evals   = slices.map(fun   )
+      val targets = slices.map(target)
+      val errors  = (evals zip targets).map(errorT)
+      aggr(errors)
+    }
+
+    // def meta = Meta[WindowedEvaluation]
+  }
+
+  case class Global(fun   : GlobalFunction = GlobalFunction.Const(),
+                    target: GlobalFunction = GlobalFunction.Const(),
+                    error : ErrorFunction  = ErrorFunction.Relative)
+    extends Evaluation {
+
+    def apply(c: Chromosome): Double = {
+      val eval  = fun(c)
+      val t     = target(c)
+      error(eval, t)
+    }
+
+    // def meta = Meta[GlobalEvaluation]
+  }
+}
 sealed trait Evaluation extends (Chromosome => Double) /* with HasMeta[Evaluation] */
-
-case class GlobalEvaluation(fun   : GlobalFunction = GlobalFunction.Const(),
-                            target: GlobalFunction = GlobalFunction.Const(),
-                            error : ErrorFunction  = ErrorFunction.Relative)
-  extends Evaluation {
-
-  def apply(c: Chromosome): Double = {
-    val eval  = fun(c)
-    val t     = target(c)
-    error(eval, t)
-  }
-
-  // def meta = Meta[GlobalEvaluation]
-}
-
-case class WindowedEvaluation(window: WindowFunction    = WindowFunction.Events(),
-                              fun   : LocalFunction     = LocalFunction.LadmaEntropy,
-                              target: LocalFunction     = LocalFunction.Const(0.2),
-                              error : ErrorFunction     = ErrorFunction.Relative,
-                              aggr  : AggregateFunction = AggregateFunction.Mean)
-  extends Evaluation {
-  
-  private val errorT = error.tupled.apply _
-
-  def apply(c: Chromosome): Double = {
-    val slices  = window(c)
-    val evals   = slices.map(fun   )
-    val targets = slices.map(target)
-    val errors  = (evals zip targets).map(errorT)
-    aggr(errors)
-  }
-
-  // def meta = Meta[WindowedEvaluation]
-}
 
 object WindowFunction {
   // val all: Vec[Meta[WindowFunction]] = Vec(Meta[Events])
