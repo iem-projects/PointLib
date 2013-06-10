@@ -21,11 +21,12 @@ object Selection {
         } else {
           val norm        = in.map { case (c, f) => (c, f / sum) }
           val sorted      = norm.sortBy(_._2)
-          val roul        = rnd.nextDouble()
-          val accum       = sorted.scanLeft(0.0) { case (a, (_, f)) => a + f }
-          assert(accum.last == 1.0) // XXX TODO: this will probably fail due to floating point noise
+          val accum       = sorted.scanLeft(0.0) { case (a, (_, f)) => a + f } .tail
+          // val max         = accum.last  // ought to be 1.0, but may be slightly off due to floating point noise
+          val roul        = rnd.nextDouble // * max
           val idx         = accum.indexWhere(_ > roul)
-          val (chosen, _) = in(idx)
+          // println(f"in.size = ${in.size}, accum.size = ${accum.size}, idx = $idx, max $max%1.3f")
+          val (chosen, _) = in(if (idx >= 0) idx else in.size - 1)
           val in1         = in.patch(idx, Vec.empty, 1)
           loop(rem1, in1, out :+ chosen)
         }

@@ -98,6 +98,17 @@ object LocalFunction {
     // def meta = Meta[LadmaEntropy.type]
   }
 
+  case object Velocity extends LocalFunction {
+    def apply(win: Slice): Double = {
+      val seq1    = win.sq.bindTrailingRests
+
+      // the geometric average is n-th root of the product of the durations
+      val prod    = seq1.product
+      val e       = math.pow(prod.toDouble, 1.0/seq1.size)
+      e
+    }
+  }
+
   case class Const(d: Double = 0.0) extends LocalFunction {
     def apply(win: Slice): Double = d
     // def meta = Meta[Const]

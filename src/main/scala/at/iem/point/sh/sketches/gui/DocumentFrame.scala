@@ -12,17 +12,27 @@ import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
 import at.iem.point.sh.sketches.genetic.{Selection, Evaluation}
+import scala.swing.event.ValueChanged
 
 object DocumentFrame {
-  final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double, val children: Vec[Node])
+  final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
+                   var selected: Boolean = false, val children: Vec[Node] = Vec.empty)
 }
 final class DocumentFrame(val document: Document) {
   import DocumentFrame._
 
+  var random      = Fitness.rng(0L)
+
   val mDur        = new SpinnerNumberModel(8, 1, 128, 1)
   val ggDur       = new Spinner(mDur)
   val mSeed       = new SpinnerNumberModel(0L, 0L, Long.MaxValue, 1L)
-  val ggSeed      = new Spinner(mSeed)
+  val ggSeed      = new Spinner(mSeed) {
+    listenTo(this)
+    reactions += {
+      case ValueChanged(_) =>
+        random = Fitness.rng(mSeed.getNumber.longValue())
+    }
+  }
   val mPop        = new SpinnerNumberModel(20, 1, 10000, 1)
   val ggPop       = new Spinner(mPop)
   val ggRandSeed  = Button("Rand") {
@@ -35,8 +45,8 @@ final class DocumentFrame(val document: Document) {
           | Population:|$ggPop |"""
 
   import Fitness.Chromosome
-
-  type ColM = TreeColumnModel.Tuple3[Node, Int, Chromosome, Double]
+  //                                       index            fitness selected
+  type ColM = TreeColumnModel.Tuple4[Node, Int, Chromosome, Double, Boolean]
 
   val seqCol    = new TreeColumnModel.Column[Node, Int]("Index") {
     def apply     (node: Node): Int = node.index
@@ -53,22 +63,29 @@ final class DocumentFrame(val document: Document) {
   val fitCol    = new TreeColumnModel.Column[Node, Double]("Fitness") {
     def apply     (node: Node): Double = node.fitness
     def update    (node: Node, value: Double) {}
-    def isEditable(node: Node) = false
+    def isEditable(node: Node) = false  // could be...
   }
 
-  val tcm = new ColM(seqCol, chromoCol, fitCol) {
+  val selCol    = new TreeColumnModel.Column[Node, Boolean]("Selected") {
+    def apply     (node: Node): Boolean = node.selected
+    def update    (node: Node, value: Boolean) {}
+    def isEditable(node: Node) = false  // could be...
+  }
+
+  val tcm = new ColM(seqCol, chromoCol, fitCol, selCol) {
     def getParent(node: Node) = None
   }
 
   def suckerrrrrrrrrrrrs() {
     val tabcm = tt.peer.getColumnModel
-    tabcm.getColumn(0).setPreferredWidth(48)
+    tabcm.getColumn(0).setPreferredWidth( 48)
     tabcm.getColumn(1).setPreferredWidth(512)
-    tabcm.getColumn(2).setPreferredWidth(72)
+    tabcm.getColumn(2).setPreferredWidth( 72)
+    tabcm.getColumn(3).setPreferredWidth( 56) // XXX TODO: should be rendered as checkbox not string
   }
 
   object tm extends AbstractTreeModel[Node] {
-    var root = new Node(index = -1, chromosome = Vector.empty, fitness = Double.NaN, children = Vector.empty)
+    var root = new Node(index = -1, chromosome = Vec.empty)
 
     def getChildCount(parent: Node            ): Int  = parent.children.size
     def getChild     (parent: Node, index: Int): Node = parent.children(index)
@@ -86,7 +103,7 @@ final class DocumentFrame(val document: Document) {
       // root.children = Vec.empty
       // fireNodesRemoved(old: _*)
       // root.children = nodes
-      root = new Node(index = -1, chromosome = Vector.empty, fitness = Double.NaN, children = nodes)
+      root = new Node(index = -1, chromosome = Vec.empty, children = nodes)
       // fireNodesInserted(nodes: _*)
       fireStructureChanged(root)
       suckerrrrrrrrrrrrs()
@@ -139,26 +156,15 @@ final class DocumentFrame(val document: Document) {
   })
   tt.peer.setDefaultRenderer(classOf[Int]       , TreeTableCellRenderer.Default.peer)
   tt.peer.setDefaultRenderer(classOf[Double]    , TreeTableCellRenderer.Default.peer)
+  tt.peer.setDefaultRenderer(classOf[Boolean]   , TreeTableCellRenderer.Default.peer)
   suckerrrrrrrrrrrrs()
 
   val ggScroll = new ScrollPane(tt)
 
-  val ggGen = Button("Generate") {
-    implicit val r  = Fitness.rng(mSeed.getNumber.longValue())
-    val pop         = mPop.getNumber.intValue()
-    val dur         = Rational(mDur.getNumber.intValue(), 4)
-    val nodes       = Vector.tabulate(pop) { idx =>
-      val sq  = Fitness.randomSequence(dur)
-      val f   = Double.NaN  // XXX TODO
-      new Node(index = idx, chromosome = sq, fitness = f, children = Vector.empty)
-    }
-    tm.updateNodes(nodes)
-  }
-
   val pTop = new BoxPanel(Orientation.Vertical) {
     contents += pGen
     contents += Swing.VStrut(4)
-    contents += ggGen
+    // contents += ggGen
   }
 
   var evaluation: Evaluation = Evaluation.Windowed()
@@ -166,6 +172,19 @@ final class DocumentFrame(val document: Document) {
 
   val pBottom = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
+      val ggGen = Button("Generate") {
+        implicit val r  = random
+        val pop         = mPop.getNumber.intValue()
+        val dur         = Rational(mDur.getNumber.intValue(), 4)
+        val nodes       = Vector.tabulate(pop) { idx =>
+          val sq  = Fitness.randomSequence(dur)
+          new Node(index = idx, chromosome = sq)
+        }
+        tm.updateNodes(nodes)
+      }
+      ggGen.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggGen.peer.putClientProperty("JButton.segmentPosition", "only")
+
       val ggEval = Button("Evaluate") {
         // println("Bang!")
         val genome  = tm.root.children
@@ -188,10 +207,11 @@ final class DocumentFrame(val document: Document) {
 
       val ggSel = Button("Selection") {
         // println("Bang!")
-        val genome  = tm.root.children
-        val fun     = evaluation
+        val genome    = tm.root.children
+        val fun       = selection
+        val selected  = fun(genome.map(node => (node.chromosome, node.fitness)), random).toSet
         genome.foreach { node =>
-          node.fitness = fun(node.chromosome)
+          node.selected = selected.contains(node.chromosome)
         }
         tm.refreshNodes()
       }
@@ -206,7 +226,7 @@ final class DocumentFrame(val document: Document) {
       ggSelSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggSelSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
-      contents ++= Seq(ggEval, ggEvalSettings, Swing.HStrut(8), ggSel, ggSelSettings)
+      contents ++= Seq(ggGen, Swing.HStrut(8), ggEval, ggEvalSettings, Swing.HStrut(8), ggSel, ggSelSettings)
     }
   }
 
