@@ -1,6 +1,6 @@
 package at.iem.point.sh.sketches.gui
 
-import scala.swing.{FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
+import scala.swing.{SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.desktop.Window
 import javax.swing.{Icon, SpinnerNumberModel}
@@ -18,7 +18,7 @@ object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
                    var selected: Boolean = false, val children: Vec[Node] = Vec.empty)
 }
-final class DocumentFrame(val document: Document) {
+final class DocumentFrame(val document: Document) { outer =>
   import DocumentFrame._
 
   var random      = Fitness.rng(0L)
@@ -46,7 +46,8 @@ final class DocumentFrame(val document: Document) {
 
   import Fitness.Chromosome
   //                                       index            fitness selected
-  type ColM = TreeColumnModel.Tuple4[Node, Int, Chromosome, Double, Boolean]
+  type ColMTop = TreeColumnModel.Tuple4[Node, Int, Chromosome, Double, Boolean]
+  type ColMBot = TreeColumnModel.Tuple2[Node, Int, Chromosome]
 
   val seqCol    = new TreeColumnModel.Column[Node, Int]("Index") {
     def apply     (node: Node): Int = node.index
@@ -72,19 +73,26 @@ final class DocumentFrame(val document: Document) {
     def isEditable(node: Node) = false  // could be...
   }
 
-  val tcm = new ColM(seqCol, chromoCol, fitCol, selCol) {
+  val tcmTop = new ColMTop(seqCol, chromoCol, fitCol, selCol) {
     def getParent(node: Node) = None
   }
 
-  def suckerrrrrrrrrrrrs() {
-    val tabcm = tt.peer.getColumnModel
-    tabcm.getColumn(0).setPreferredWidth( 48)
-    tabcm.getColumn(1).setPreferredWidth(512)
-    tabcm.getColumn(2).setPreferredWidth( 72)
-    tabcm.getColumn(3).setPreferredWidth( 56) // XXX TODO: should be rendered as checkbox not string
+  val tcmBot = new ColMBot(seqCol, chromoCol) {
+    def getParent(node: Node) = None
   }
 
-  object tm extends AbstractTreeModel[Node] {
+  def adjustColumns(tt: TreeTable[_, _]) {
+    val tabcm = tt.peer.getColumnModel
+    val sz    = tabcm.getColumnCount
+    tabcm.getColumn(0).setPreferredWidth( 48)
+    tabcm.getColumn(1).setPreferredWidth(768)
+    if (sz >= 3) {
+      tabcm.getColumn(2).setPreferredWidth( 72)
+      tabcm.getColumn(3).setPreferredWidth( 56) // XXX TODO: should be rendered as checkbox not string
+    }
+  }
+
+  abstract class TreeModel extends AbstractTreeModel[Node] {
     var root = new Node(index = -1, chromosome = Vec.empty)
 
     def getChildCount(parent: Node            ): Int  = parent.children.size
@@ -98,6 +106,8 @@ final class DocumentFrame(val document: Document) {
 
     def getParent(node: Node) = if (node == root) None else Some(root)
 
+    protected def adjustColumns(): Unit
+
     def updateNodes(nodes: Vec[Node]) {
       // val old = root.children
       // root.children = Vec.empty
@@ -106,7 +116,7 @@ final class DocumentFrame(val document: Document) {
       root = new Node(index = -1, chromosome = Vec.empty, children = nodes)
       // fireNodesInserted(nodes: _*)
       fireStructureChanged(root)
-      suckerrrrrrrrrrrrs()
+      adjustColumns()
       // fireRootChanged()
     }
 
@@ -115,53 +125,71 @@ final class DocumentFrame(val document: Document) {
     }
   }
 
-  val tt                  = new TreeTable[Node, ColM](tm, tcm)
-  tt.rootVisible          = false
-  tt.autoCreateRowSorter  = true
-  val dtts = tt.peer.getRowSorter.asInstanceOf[DefaultTreeTableSorter[_, _, _]]
-  dtts.setSortsOnUpdates(true)
-
-    // val dtts = new DefaultTreeTableSorter(tm.pee, tcm.peer)
-  //  // tt.peer.setRowSorter(dtts)
-  //  println(s"Sortable(0)? ${dtts.isSortable(0)}; Sortable(2)? ${dtts.isSortable(2)}")
-  //  dtts.setSortable(0, true)
-  //  dtts.setSortable(2, true)
-
-  // tt.expandPath(TreeTable.Path.empty)
-  // XXX TODO: working around TreeTable issue #1
-  tt.peer.setDefaultRenderer(classOf[Vec[_]], new j.DefaultTreeTableCellRenderer {
-    override def getTreeTableCellRendererComponent(treeTable: j.TreeTable, value: Any, selected: Boolean,
-                                                   hasFocus: Boolean, row: Int, column: Int): java.awt.Component = {
-      super.getTreeTableCellRendererComponent(treeTable, value, selected, hasFocus, row, column)
-      value match {
-        case c: Chromosome =>
-          import Fitness._
-          val cn  = c.map(_.normalized)
-          val sz  = ChromosomeView.preferredSize(cn)
-          setText(null)
-          setIcon(new Icon {
-            def getIconWidth  = sz.width
-            def getIconHeight = sz.height
-
-            def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int) {
-              g.translate(x, y)
-              ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y)
-              g.translate(-x, -y)
-            }
-          })
-        case _ =>
-      }
-      this
+  object tmTop extends TreeModel {
+    protected def adjustColumns() {
+      outer.adjustColumns(ttTop)
     }
-  })
-  tt.peer.setDefaultRenderer(classOf[Int]       , TreeTableCellRenderer.Default.peer)
-  tt.peer.setDefaultRenderer(classOf[Double]    , TreeTableCellRenderer.Default.peer)
-  tt.peer.setDefaultRenderer(classOf[Boolean]   , TreeTableCellRenderer.Default.peer)
-  suckerrrrrrrrrrrrs()
+  }
 
-  val ggScroll = new ScrollPane(tt)
+  object tmBot extends TreeModel {
+    protected def adjustColumns() {
+      outer.adjustColumns(ttBot)
+    }
+  }
 
-  val pTop = new BoxPanel(Orientation.Vertical) {
+  def mkTreeTable[Col <: TreeColumnModel[Node]](tm: TreeModel, tcm: Col): TreeTable[Node, Col] = {
+    val tt                  = new TreeTable[Node, Col](tm, tcm)
+    tt.rootVisible          = false
+    tt.autoCreateRowSorter  = true
+    val dtts = tt.peer.getRowSorter.asInstanceOf[DefaultTreeTableSorter[_, _, _]]
+    dtts.setSortsOnUpdates(true)
+
+      // val dtts = new DefaultTreeTableSorter(tm.pee, tcm.peer)
+    //  // tt.peer.setRowSorter(dtts)
+    //  println(s"Sortable(0)? ${dtts.isSortable(0)}; Sortable(2)? ${dtts.isSortable(2)}")
+    //  dtts.setSortable(0, true)
+    //  dtts.setSortable(2, true)
+
+    // tt.expandPath(TreeTable.Path.empty)
+    // XXX TODO: working around TreeTable issue #1
+    tt.peer.setDefaultRenderer(classOf[Vec[_]], new j.DefaultTreeTableCellRenderer {
+      override def getTreeTableCellRendererComponent(treeTable: j.TreeTable, value: Any, selected: Boolean,
+                                                     hasFocus: Boolean, row: Int, column: Int): java.awt.Component = {
+        super.getTreeTableCellRendererComponent(treeTable, value, selected, hasFocus, row, column)
+        value match {
+          case c: Chromosome =>
+            import Fitness._
+            val cn  = c.map(_.normalized)
+            val sz  = ChromosomeView.preferredSize(cn)
+            setText(null)
+            setIcon(new Icon {
+              def getIconWidth  = sz.width
+              def getIconHeight = sz.height
+
+              def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int) {
+                g.translate(x, y)
+                ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y)
+                g.translate(-x, -y)
+              }
+            })
+          case _ =>
+        }
+        this
+      }
+    })
+    tt.peer.setDefaultRenderer(classOf[Int]       , TreeTableCellRenderer.Default.peer)
+    tt.peer.setDefaultRenderer(classOf[Double]    , TreeTableCellRenderer.Default.peer)
+    tt.peer.setDefaultRenderer(classOf[Boolean]   , TreeTableCellRenderer.Default.peer)
+    adjustColumns(tt)
+    tt
+  }
+
+  val ttTop       = mkTreeTable(tmTop, tcmTop)
+  val ggScrollTop = new ScrollPane(ttTop)
+  val ttBot       = mkTreeTable(tmBot, tcmBot)
+  val ggScrollBot = new ScrollPane(ttBot)
+
+  val pGenSettings = new BoxPanel(Orientation.Vertical) {
     contents += pGen
     contents += Swing.VStrut(4)
     // contents += ggGen
@@ -170,7 +198,7 @@ final class DocumentFrame(val document: Document) {
   var evaluation: Evaluation = Evaluation.Windowed()
   var selection : Selection  = Selection .Roulette()
 
-  val pBottom = new FlowPanel {
+  val pButtons = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
       val ggGen = Button("Generate") {
         implicit val r  = random
@@ -180,19 +208,20 @@ final class DocumentFrame(val document: Document) {
           val sq  = Fitness.randomSequence(dur)
           new Node(index = idx, chromosome = sq)
         }
-        tm.updateNodes(nodes)
+        tmTop.updateNodes(nodes)
       }
       ggGen.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggGen.peer.putClientProperty("JButton.segmentPosition", "only")
 
       val ggEval = Button("Evaluate") {
         // println("Bang!")
-        val genome  = tm.root.children
+        val genome  = tmTop.root.children
         val fun     = evaluation
         genome.foreach { node =>
           node.fitness = fun(node.chromosome)
         }
-        tm.refreshNodes()
+        tmTop.refreshNodes()
+        ttTop.repaint() // XXX TODO should not be necessary
       }
       ggEval.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggEval.peer.putClientProperty("JButton.segmentPosition", "first")
@@ -205,15 +234,16 @@ final class DocumentFrame(val document: Document) {
       ggEvalSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggEvalSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
-      val ggSel = Button("Selection") {
+      val ggSel = Button("Select") {
         // println("Bang!")
-        val genome    = tm.root.children
+        val genome    = tmTop.root.children
         val fun       = selection
         val selected  = fun(genome.map(node => (node.chromosome, node.fitness)), random).toSet
         genome.foreach { node =>
           node.selected = selected.contains(node.chromosome)
         }
-        tm.refreshNodes()
+        tmTop.refreshNodes()
+        ttTop.repaint() // XXX TODO should not be necessary
       }
       ggSel.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggSel.peer.putClientProperty("JButton.segmentPosition", "first")
@@ -226,19 +256,44 @@ final class DocumentFrame(val document: Document) {
       ggSelSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggSelSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
-      contents ++= Seq(ggGen, Swing.HStrut(8), ggEval, ggEvalSettings, Swing.HStrut(8), ggSel, ggSelSettings)
+      val ggBreed = Button("Breed") {
+        println("Bang!")
+      }
+      ggBreed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggBreed.peer.putClientProperty("JButton.segmentPosition", "first")
+      val ggBreedSettings = Button("Settings") {
+        println("Bang!")
+      }
+      ggBreedSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggBreedSettings.peer.putClientProperty("JButton.segmentPosition", "last")
+
+      contents ++= Seq(ggGen, Swing.HStrut(8), ggEval , ggEvalSettings,
+                              Swing.HStrut(8), ggSel  , ggSelSettings ,
+                              Swing.HStrut(8), ggBreed, ggBreedSettings)
     }
+  }
+
+  val splitTop = new BorderPanel {
+    add(pGenSettings, BorderPanel.Position.North )
+    add(ggScrollTop , BorderPanel.Position.Center)
+    add(pButtons    , BorderPanel.Position.South )
+  }
+
+  val splitBot = ggScrollBot
+
+  val ggSplit = new SplitPane(Orientation.Horizontal) {
+    // dividerLocation = 100
+    // dividerSize     = 10
+    resizeWeight    = 0.5
+    topComponent    = splitTop
+    bottomComponent = splitBot
   }
 
   new WindowImpl {
     def handler = GeneticApp.windowHandler
     protected def style = Window.Regular
 
-    contents = new BorderPanel {
-      add(pTop    , BorderPanel.Position.North )
-      add(ggScroll, BorderPanel.Position.Center)
-      add(pBottom , BorderPanel.Position.South )
-    }
+    contents = ggSplit
     pack()
     front()
   }

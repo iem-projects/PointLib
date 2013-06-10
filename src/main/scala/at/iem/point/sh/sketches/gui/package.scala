@@ -10,11 +10,11 @@ import language.reflectiveCalls
 package object gui {
   private object GroupPanelInterpolation {
     def mkPanel(comp: Vector[Vector[Component]]): GroupPanel = {
-      println(comp.map(_.map {
-        case lb: Label  => lb.text
-        case b : Button => b.text
-        case other      => other.getClass.getName
-      }))
+      //      println(comp.map(_.map {
+      //        case lb: Label  => lb.text
+      //        case b : Button => b.text
+      //        case other      => other.getClass.getName
+      //      }))
       // val numRows = comp.size
       val numCols = comp.headOption.map(_.size).getOrElse(0)
       new GroupPanel {

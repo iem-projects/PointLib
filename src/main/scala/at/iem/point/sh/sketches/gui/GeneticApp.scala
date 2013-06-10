@@ -18,6 +18,10 @@ object GeneticApp extends SwingApplicationImpl("Genetic Algorithm") {
           val doc = new Document
           new DocumentFrame(doc)
         }
+      ).add(
+        Group("export", "Export").add(
+          Item("lilypond", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
+        )
       )
     )
   }
