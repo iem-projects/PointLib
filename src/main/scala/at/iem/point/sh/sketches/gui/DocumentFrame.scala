@@ -10,9 +10,11 @@ import at.iem.point.sh.sketches.Fitness
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
+import de.sciss.treetable.j.DefaultTreeTableSorter
+import at.iem.point.sh.sketches.genetic.{WindowedEvaluation, Evaluation}
 
 object DocumentFrame {
-  final case class Node(index: Int, chromosome: Fitness.Chromosome, fitness: Double, children: Vec[Node])
+  final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double, val children: Vec[Node])
 }
 final class DocumentFrame(val document: Document) {
   import DocumentFrame._
@@ -58,8 +60,15 @@ final class DocumentFrame(val document: Document) {
     def getParent(node: Node) = None
   }
 
+  def suckerrrrrrrrrrrrs() {
+    val tabcm = tt.peer.getColumnModel
+    tabcm.getColumn(0).setPreferredWidth(48)
+    tabcm.getColumn(1).setPreferredWidth(512)
+    tabcm.getColumn(2).setPreferredWidth(72)
+  }
+
   object tm extends AbstractTreeModel[Node] {
-    var root = Node(-1, Vector.empty, 0.0, Vector.empty)
+    var root = new Node(index = -1, chromosome = Vector.empty, fitness = Double.NaN, children = Vector.empty)
 
     def getChildCount(parent: Node): Int = parent.children.size
     def getChild     (parent: Node, index: Int): Node = parent.children(index)
@@ -72,15 +81,35 @@ final class DocumentFrame(val document: Document) {
 
     def getParent(node: Node) = if (node == root) None else Some(root)
 
-    def refresh(nodes: Vec[Node]) {
-      root = Node(-1, Vector.empty, 0.0, nodes)
+    def updateNodes(nodes: Vec[Node]) {
+      // val old = root.children
+      // root.children = Vec.empty
+      // fireNodesRemoved(old: _*)
+      // root.children = nodes
+      root = new Node(index = -1, chromosome = Vector.empty, fitness = Double.NaN, children = nodes)
+      // fireNodesInserted(nodes: _*)
       fireStructureChanged(root)
+      suckerrrrrrrrrrrrs()
       // fireRootChanged()
+    }
+
+    def refreshNodes() {
+      fireNodesChanged(root.children: _*)
     }
   }
 
-  val tt          = new TreeTable[Node, ColM](tm, tcm)
-  tt.rootVisible  = false
+  val tt                  = new TreeTable[Node, ColM](tm, tcm)
+  tt.rootVisible          = false
+  tt.autoCreateRowSorter  = true
+  val dtts = tt.peer.getRowSorter.asInstanceOf[DefaultTreeTableSorter[_, _, _]]
+  dtts.setSortsOnUpdates(true)
+
+    // val dtts = new DefaultTreeTableSorter(tm.pee, tcm.peer)
+  //  // tt.peer.setRowSorter(dtts)
+  //  println(s"Sortable(0)? ${dtts.isSortable(0)}; Sortable(2)? ${dtts.isSortable(2)}")
+  //  dtts.setSortable(0, true)
+  //  dtts.setSortable(2, true)
+
   // tt.expandPath(TreeTable.Path.empty)
   // XXX TODO: working around TreeTable issue #1
   tt.peer.setDefaultRenderer(classOf[Vec[_]], new j.DefaultTreeTableCellRenderer {
@@ -110,6 +139,7 @@ final class DocumentFrame(val document: Document) {
   })
   tt.peer.setDefaultRenderer(classOf[Int]       , TreeTableCellRenderer.Default.peer)
   tt.peer.setDefaultRenderer(classOf[Double]    , TreeTableCellRenderer.Default.peer)
+  suckerrrrrrrrrrrrs()
 
   val ggScroll = new ScrollPane(tt)
 
@@ -119,10 +149,10 @@ final class DocumentFrame(val document: Document) {
     val dur         = Rational(mDur.getNumber.intValue(), 4)
     val nodes       = Vector.tabulate(pop) { idx =>
       val sq  = Fitness.randomSequence(dur)
-      val f   = 1.0 // XXX TODO
-      Node(index = idx, chromosome = sq, fitness = f, children = Vector.empty)
+      val f   = Double.NaN  // XXX TODO
+      new Node(index = idx, chromosome = sq, fitness = f, children = Vector.empty)
     }
-    tm.refresh(nodes)
+    tm.updateNodes(nodes)
   }
 
   val pTop = new BoxPanel(Orientation.Vertical) {
@@ -131,9 +161,30 @@ final class DocumentFrame(val document: Document) {
     contents += ggGen
   }
 
+  var evaluation: Evaluation = WindowedEvaluation()
+
   val pBottom = new FlowPanel {
-    contents += Button("Evaluation Settings") {
-      new EvaluationSettingsFrame()
+    contents += new BoxPanel(Orientation.Horizontal) {
+      val ggEval = Button("Evaluate") {
+        // println("Bang!")
+        val genome  = tm.root.children
+        val fun     = evaluation
+        genome.foreach { node =>
+          node.fitness = fun(node.chromosome)
+        }
+        tm.refreshNodes()
+      }
+      ggEval.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggEval.peer.putClientProperty("JButton.segmentPosition", "first")
+      val ggEvalSettings = Button("Settings") {
+        val ef = new EvaluationSettingsFrame()
+        ef.view.cell.addListener {
+          case value => evaluation = value
+        }
+      }
+      ggEvalSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggEvalSettings.peer.putClientProperty("JButton.segmentPosition", "last")
+      contents ++= Seq(ggEval, ggEvalSettings)
     }
   }
 

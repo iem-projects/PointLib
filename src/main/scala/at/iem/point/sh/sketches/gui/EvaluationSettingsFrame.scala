@@ -9,21 +9,18 @@ import scala.swing.event.SelectionChanged
 import javax.swing.SpinnerNumberModel
 import de.sciss.guiflitz.AutoView
 
-class EvaluationSettingsFrame() {
-  var eval: Evaluation = WindowedEvaluation()
+class EvaluationSettingsFrame(init: Evaluation = WindowedEvaluation()) {
+  val view = AutoView(init)
 
-  // val pane = new BoxPanel(Orientation.Vertical)
-
-  // pane.contents += combo
-
-  val view = AutoView(eval)
+  def value       : Evaluation  = view.cell()
+  def value_=(eval: Evaluation) { view.cell() = eval }
 
   new WindowImpl {
-    def handler = GeneticApp.windowHandler
-
-    protected def style = Window.Regular
-
-    contents = view.component
+    def handler     = GeneticApp.windowHandler
+    def style       = Window.Regular
+    title           = "Evaluation Settings"
+    closeOperation  = Window.CloseDispose
+    contents        = view.component
     pack()
     front()
   }
