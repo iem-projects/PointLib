@@ -1,6 +1,6 @@
 package at.iem.point.sh.sketches
 
-import scala.swing.{ScrollPane, SimpleSwingApplication}
+import scala.swing.{Frame, ScrollPane, SimpleSwingApplication}
 import gui._
 import spire.syntax._
 import de.sciss.treetable._
@@ -9,6 +9,8 @@ import collection.immutable.{IndexedSeq => IIdxSeq}
 import Fitness.Chromosome
 import javax.swing.Icon
 import java.awt.{Graphics2D, Graphics, Component}
+import de.sciss.swingplus.Implicits._
+import de.sciss.swingplus.CloseOperation
 
 object ChromosomeViewTest extends SimpleSwingApplication {
   final case class Node(index: Int, chromosome: Chromosome, fitness: Double, children: IIdxSeq[Node])
@@ -101,6 +103,6 @@ object ChromosomeViewTest extends SimpleSwingApplication {
 
     contents = new ScrollPane(tt)
 
-    this.defaultCloseOperation = Frame.CloseExit
+    this.defaultCloseOperation = CloseOperation.Exit
   }
 }

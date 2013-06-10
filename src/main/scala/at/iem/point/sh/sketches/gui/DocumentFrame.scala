@@ -9,6 +9,7 @@ import java.awt.{Graphics, Graphics2D}
 import at.iem.point.sh.sketches.Fitness
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
+import de.sciss.swingplus.Spinner
 
 object DocumentFrame {
   final case class Node(index: Int, chromosome: Fitness.Chromosome, fitness: Double, children: Vec[Node])

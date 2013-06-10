@@ -7,10 +7,10 @@ import spire.math.Rational
 import Fitness._
 import language.existentials
 
-object Evaluation {
-  val all: Vec[Meta[Evaluation]] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
-}
-sealed trait Evaluation extends (Chromosome => Double) with HasMeta[Evaluation]
+//object Evaluation {
+//  val all: Vec[Meta[Evaluation]] = Vec(Meta[GlobalEvaluation], Meta[WindowedEvaluation])
+//}
+sealed trait Evaluation extends (Chromosome => Double) /* with HasMeta[Evaluation] */
 
 case class GlobalEvaluation(fun   : GlobalFunction = GlobalFunction.Const(),
                             target: GlobalFunction = GlobalFunction.Const(),
@@ -23,7 +23,7 @@ case class GlobalEvaluation(fun   : GlobalFunction = GlobalFunction.Const(),
     error(eval, t)
   }
 
-  def meta = Meta[GlobalEvaluation]
+  // def meta = Meta[GlobalEvaluation]
 }
 
 case class WindowedEvaluation(window: WindowFunction    = WindowFunction.Events(),
@@ -43,11 +43,11 @@ case class WindowedEvaluation(window: WindowFunction    = WindowFunction.Events(
     aggr(errors)
   }
 
-  def meta = Meta[WindowedEvaluation]
+  // def meta = Meta[WindowedEvaluation]
 }
 
 object WindowFunction {
-  val all: Vec[Meta[WindowFunction]] = Vec(Meta[Events])
+  // val all: Vec[Meta[WindowFunction]] = Vec(Meta[Events])
 
   case class Events(size: Int = 5, step: Int = 2) extends WindowFunction {
     require(step >= 1 && size >= step)
@@ -65,15 +65,15 @@ object WindowFunction {
       m
     }
 
-    def meta = Meta[Events]
+    // def meta = Meta[Events]
   }
 }
-sealed trait WindowFunction extends (Chromosome => Vec[Slice]) with HasMeta[WindowFunction]
+sealed trait WindowFunction extends (Chromosome => Vec[Slice]) /* with HasMeta[WindowFunction] */
 
 case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double)
 
 object GlobalFunction {
-  val all: Vec[Meta[GlobalFunction]] = Vec(Meta[Const])
+  // val all: Vec[Meta[GlobalFunction]] = Vec(Meta[Const])
 
   case class Wrap(local: LocalFunction) extends GlobalFunction {
     def apply(sq: Chromosome): Double = {
@@ -81,73 +81,73 @@ object GlobalFunction {
       local(win)
     }
 
-    def meta = Meta[Wrap]
+    // def meta = Meta[Wrap]
   }
 
   case class Const(d: Double = 0.0) extends GlobalFunction {
     def apply(sq: Chromosome): Double = d
 
-    def meta = Meta[Const]
+    // def meta = Meta[Const]
   }
 }
-sealed trait GlobalFunction extends (Chromosome => Double) with HasMeta[GlobalFunction]
+sealed trait GlobalFunction extends (Chromosome => Double) /* with HasMeta[GlobalFunction] */
 
 object LocalFunction {
-  val all: Vec[Meta[LocalFunction]] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
+  // val all: Vec[Meta[LocalFunction]] = Vec(Meta[LadmaEntropy.type], Meta[Const], Meta[Line], Meta[Exp], Meta[ExpExp])
 
   case object LadmaEntropy extends LocalFunction {
     def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
-    def meta = Meta[LadmaEntropy.type]
+    // def meta = Meta[LadmaEntropy.type]
   }
 
   case class Const(d: Double = 0.0) extends LocalFunction {
     def apply(win: Slice): Double = d
-    def meta = Meta[Const]
+    // def meta = Meta[Const]
   }
 
   case class Line(lo: Double = 0.0, hi: Double = 1.0) extends LocalFunction {
     def apply(win: Slice): Double = win.w.linlin(0, 1, lo, hi)
-    def meta = Meta[Line]
+    // def meta = Meta[Line]
   }
 
   case class Exp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
     def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi)
-    def meta = Meta[Exp]
+    // def meta = Meta[Exp]
   }
 
   case class ExpExp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
     def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi).linexp(lo, hi, lo, hi)
-    def meta = Meta[ExpExp]
+    // def meta = Meta[ExpExp]
   }
 }
-sealed trait LocalFunction extends (Slice => Double) with HasMeta[LocalFunction]
+sealed trait LocalFunction extends (Slice => Double) /* with HasMeta[LocalFunction] */
 
 // sealed trait LocalTarget    extends (Slice           => Double)
 
 object ErrorFunction {
-  val all: Vec[Meta[ErrorFunction]] = Vec(Meta[Relative.type])
+  // val all: Vec[Meta[ErrorFunction]] = Vec(Meta[Relative.type])
 
   case object Relative extends ErrorFunction {
     def apply(eval: Double, target: Double): Double = math.abs(eval - target) / target
 
-    def meta = Meta[Relative.type]
+    // def meta = Meta[Relative.type]
   }
 }
-sealed trait ErrorFunction  extends ((Double, Double) => Double) with HasMeta[ErrorFunction]
+sealed trait ErrorFunction  extends ((Double, Double) => Double) /* with HasMeta[ErrorFunction] */
 
 object AggregateFunction {
-  val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])
+  // val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])
 
   case object Mean extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = errors.sum / errors.size
 
-    def meta = Meta[Mean.type]
+    // def meta = Meta[Mean.type]
   }
 
   case object RMS extends AggregateFunction {
     def apply(errors: Vec[Double]): Double = math.sqrt(errors.map(x => x * x).sum / errors.size)
 
-    def meta = Meta[RMS.type]
+    // def meta = Meta[RMS.type]
   }
 }
-sealed trait AggregateFunction extends (Vec[Double] => Double) with HasMeta[AggregateFunction]
+sealed trait AggregateFunction extends (Vec[Double] => Double) /* with HasMeta[AggregateFunction] */

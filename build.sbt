@@ -4,7 +4,7 @@ version := "0.0.1-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.1"
+scalaVersion := "2.10.2"
 
 homepage := Some(url("https://github.com/iem-projects/PointLib"))
 
@@ -21,6 +21,7 @@ libraryDependencies ++= Seq(
   "de.sciss"                 %% "fileutil"           % "1.0.+",           // Easy file representation
   "de.sciss"                 %% "desktop"            % "0.3.+",
   "de.sciss"                 %% "treetable-scala"    % "1.3.+",
+  "de.sciss"                 %% "guiflitz"           % "0.0.+",           // Automatic configuration GUIs
   "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
 )
 
