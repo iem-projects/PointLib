@@ -82,7 +82,8 @@ object ChromosomeViewTest extends SimpleSwingApplication {
 
               def paintIcon(c: Component, g: Graphics, x: Int, y: Int) {
                 g.translate(x, y)
-                ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y)
+                import Fitness._
+                ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y, cn.dur.toDouble)
                 g.translate(-x, -y)
               }
             })

@@ -44,9 +44,11 @@ object ChromosomeView {
     (w, PreferredHeight)
   }
 
-  def paint(cn: Chromosome, g: Graphics2D, width: Int, height: Int) {
+  def paint(cn: Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double) {
     val sz    = cn.size
     if (sz == 0) return
+
+    // assert(cn == cn.map(_.normalized))
 
     g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
     g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE )
@@ -54,7 +56,7 @@ object ChromosomeView {
     val totalDur = cn.dur.toDouble
 
     val stabs = (sz - 1) * StabWidth
-    val netto = width - stabs
+    val netto = width * totalDur / widthDur - stabs
     val scale = netto / totalDur
     val nh    = math.min(PreferredNoteHeight, height * 0.5)
     val ny    = (height - nh) / 2

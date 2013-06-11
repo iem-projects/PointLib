@@ -10,7 +10,7 @@ import language.existentials
 object Evaluation {
   case class Windowed(window: WindowFunction    = WindowFunction.Events(),
                       fun   : LocalFunction     = LocalFunction.Velocity,
-                      target: LocalFunction     = LocalFunction.Exp(0.1, 1.0),
+                      target: LocalFunction     = LocalFunction.Exp(0.0625, 0.25),
                       fit   : MatchFunction     = MatchFunction.RelativeReciprocal,
                       aggr  : AggregateFunction = AggregateFunction.Mean)
     extends Evaluation {
@@ -19,7 +19,7 @@ object Evaluation {
 
     def apply(c: Chromosome): Double = {
       val slices  = window(c)
-      val evals   = slices.map(fun   )
+        val evals   = slices.map(fun   )
       val targets = slices.map(target)
       val errors  = (evals zip targets).map(fitT)
       aggr(errors)
@@ -34,7 +34,7 @@ object Evaluation {
     extends Evaluation {
 
     def apply(c: Chromosome): Double = {
-      val eval  = fun(c)
+      val eval  = fun(c.map(_.normalized))
       val t     = target(c)
       error(eval, t)
     }
@@ -162,13 +162,19 @@ object AggregateFunction {
   // val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])
 
   case object Mean extends AggregateFunction {
-    def apply(errors: Vec[Double]): Double = errors.sum / errors.size
+    def apply(fits: Vec[Double]): Double = fits.sum / fits.size
 
     // def meta = Meta[Mean.type]
   }
 
   case object RMS extends AggregateFunction {
-    def apply(errors: Vec[Double]): Double = math.sqrt(errors.map(x => x * x).sum / errors.size)
+    def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
+
+    // def meta = Meta[RMS.type]
+  }
+
+  case object Min extends AggregateFunction {
+    def apply(fits: Vec[Double]): Double = fits.min
 
     // def meta = Meta[RMS.type]
   }

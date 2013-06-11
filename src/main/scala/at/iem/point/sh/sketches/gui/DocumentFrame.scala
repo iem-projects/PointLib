@@ -25,7 +25,7 @@ final class DocumentFrame(val document: Document) { outer =>
 
   var random      = Fitness.rng(0L)
 
-  val mDur        = new SpinnerNumberModel(8, 1, 128, 1)
+  val mDur        = new SpinnerNumberModel(16, 1, 128, 1)
   val ggDur       = new Spinner(mDur)
   val mSeed       = new SpinnerNumberModel(0L, 0L, Long.MaxValue, 1L)
   val ggSeed      = new Spinner(mSeed) {
@@ -87,10 +87,13 @@ final class DocumentFrame(val document: Document) { outer =>
     val tabcm = tt.peer.getColumnModel
     val sz    = tabcm.getColumnCount
     tabcm.getColumn(0).setPreferredWidth( 48)
+    tabcm.getColumn(0).setMaxWidth      ( 48)
     tabcm.getColumn(1).setPreferredWidth(768)
     if (sz >= 4) {
       tabcm.getColumn(2).setPreferredWidth( 72)
+      tabcm.getColumn(2).setMaxWidth      (128)
       tabcm.getColumn(3).setPreferredWidth( 56) // XXX TODO: should be rendered as checkbox not string
+      tabcm.getColumn(3).setMaxWidth      ( 56) // XXX TODO: should be rendered as checkbox not string
     }
   }
 
@@ -175,7 +178,8 @@ final class DocumentFrame(val document: Document) { outer =>
 
               def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int) {
                 g.translate(x, y)
-                ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y)
+                val widthDur = duration.toDouble * 1.1
+                ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y, widthDur)
                 g.translate(-x, -y)
               }
             })

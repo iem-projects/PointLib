@@ -8,6 +8,8 @@ import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
+  val TEST_CORPUS = true
+
   type Sequence   = Vec[NoteOrRest]
   type Chromosome = Vec[Cell]
   type Genome     = Vec[Chromosome]
@@ -18,7 +20,12 @@ object Fitness {
   var showLog = false // true
 
   /** The corpus consists of all cells with all stretching factors applied. */
-  val corpus: Vec[Cell] = baseCells.flatMap(c => factors.map(c * _))
+
+  val corpus: Vec[Cell] = if (TEST_CORPUS)
+    (1 to 400).map { i => val d = Rational(2, i); Cell(i, Vec(Note(d)), d) }
+  else
+    baseCells.flatMap(c => factors.map(c * _))
+
   /** The normalized corpus is equal to the corpus, but cells are already normalized. */
   val norm  : Vec[Cell] = corpus.map(_.normalized)
 
@@ -164,7 +171,7 @@ object Fitness {
 
       val res1    = res :+ ((start, idx, slice))
       val idx1    = idx + step
-      if (idx1 < w1) {
+      if (idx1 <= w1) {
         val tail  = xs.drop(step)
         assert(tail.nonEmpty)
         loop(tail, idx1, res1)
