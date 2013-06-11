@@ -8,7 +8,7 @@ import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
-  val TEST_CORPUS = true
+  val TEST_CORPUS = false // `true` to use test corpus of single note cells, `false` to use Sonja's cells
 
   type Sequence   = Vec[NoteOrRest]
   type Chromosome = Vec[Cell]
