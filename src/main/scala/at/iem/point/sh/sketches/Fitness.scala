@@ -8,10 +8,11 @@ import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
 
 object Fitness {
-  type Sequence       = Vec[NoteOrRest]
-  type Chromosome     = Vec[Cell]
-  type Genome         = Vec[Chromosome]
-  type GenomeVal      = Vec[(Chromosome, Double)]
+  type Sequence   = Vec[NoteOrRest]
+  type Chromosome = Vec[Cell]
+  type Genome     = Vec[Chromosome]
+  type GenomeVal  = Vec[(Chromosome, Double)]
+  type GenomeSel  = Vec[(Chromosome, Double, Boolean)]
 
   /** Whether to print log information (for debugging) during calculation or not. */
   var showLog = false // true
@@ -235,6 +236,18 @@ object Fitness {
     //      Cell(-1, elems, dur)
     //    }
 
+    /** Removes an element at a given index (0 <= index < size), and returns the new sequence. */
+    def removeAt(idx: Int): Vec[A] = {
+      if (idx < 0 || idx >= seq.size) throw new IndexOutOfBoundsException(idx.toString)
+      seq.patch(idx, Vec.empty, 1)
+    }
+
+    /** Inserts an element at a given index (0 <= index <= size), and returns the new sequence. */
+    def insertAt(idx: Int, elem: A): Vec[A] = {
+      if (idx < 0 || idx > seq.size) throw new IndexOutOfBoundsException(idx.toString)
+      seq.patch(idx, Vec(elem), 0)
+    }
+
     /** Removes rests by adding their duration to preceeding notes. */
     def bindTrailingRests(implicit ev: A <:< NoteOrRest): Vec[Rational] = {
       // for each successive element, if it is a note, add it to the result,
@@ -287,7 +300,7 @@ object Fitness {
       *               yields a smaller relative error with respect to the reference duration
       */
     def optimumEnd[B](ref: B)(view: A => B)(implicit num: Fractional[B]): Vec[A] = seq match {
-      case init :+ t2 :+ t1 if optimize(ref, t1, t2, init, view) => init :+ t2
+      case (drop @ init :+ t2) :+ t1 if optimize(ref, t1, t2 /*, init */)(view) == t2 => drop
       case _ => seq
     }
 
@@ -303,21 +316,32 @@ object Fitness {
       *               yields a smaller relative error with respect to the reference duration
       */
     def optimumStart[B](ref: B)(view: A => B)(implicit num: Fractional[B]): Vec[A] = seq match {
-      case t1 +: t2 +: tail if optimize(ref, t1, t2, tail, view) => t2 +: tail
+      case t1 +: (drop @ t2 +: tail) if optimize(ref, t1, t2 /*, tail */)(view) == t2 => drop
       case _ => seq
     }
 
     // `true` if t1 should be dropped
-    private def optimize[B](ref: B, t1: A, t2: A, tail: Vec[A], view: A => B)
-                           (implicit num: Fractional[B]): Boolean = {
-      val before  = view(t1)
-      val after   = view(t2)
-      import num._
-      // r1 and r2 are the smallest ratios >= 1.0
-      val r1      = if (before < ref) ref / before else before / ref
-      val r2      = if (after  < ref) ref / after  else after  / ref
-      r2 < r1 // therefore, if r2 < r1, it means the solution with dropping t1 is better
-    }
+  }
+
+  /** Given a reference value `ref` and two elements `t1` and `t2` which can be translated to values,
+    * calculate the relative errors of the latter with respect to the reference, and indicate which
+    * is the element with smaller error.
+    *
+    * @param ref    the reference value
+    * @param t1     the first  alternative element
+    * @param t2     the second alternative element
+    * @param view   the value view of the elements
+    * @param num    a numeric type class to work with the values
+    * @return       the element with the smaller relative error
+    */
+  def optimize[A, B](ref: B, t1: A, t2: A)(view: A => B)(implicit num: Fractional[B]): A = {
+    val before  = view(t1)
+    val after   = view(t2)
+    import num._
+    // r1 and r2 are the smallest ratios >= 1.0
+    val r1      = if (before < ref) ref / before else before / ref
+    val r2      = if (after  < ref) ref / after  else after  / ref
+    if (r2 < r1) t2 else t1 // therefore, if r2 < r1, it means the solution with dropping t1 is better
   }
 
   /** Generates a random sequence from the `corpus` which is at least as long as a given `duration`. */

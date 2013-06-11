@@ -27,7 +27,7 @@ object Selection {
           val idx         = accum.indexWhere(_ > roul)
           // println(f"in.size = ${in.size}, accum.size = ${accum.size}, idx = $idx, max $max%1.3f")
           val (chosen, _) = in(if (idx >= 0) idx else in.size - 1)
-          val in1         = in.patch(idx, Vec.empty, 1)
+          val in1         = in.removeAt(idx)
           loop(rem1, in1, out :+ chosen)
         }
       }
@@ -63,7 +63,7 @@ object SelectionSize {
     * @param value  the percentage value ranging from 0 to 100
     */
   case class Percentage(value: Int = 20) extends SelectionSize {
-    require(value > 0 && value <= 100)
+    require(value >= 0 && value <= 100)
     override def apply(pop: Int): Int = pop * value / 100
   }
 }

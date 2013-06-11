@@ -11,7 +11,7 @@ import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{Selection, Evaluation}
+import at.iem.point.sh.sketches.genetic.{Breeding, Selection, Evaluation}
 import scala.swing.event.ValueChanged
 
 object DocumentFrame {
@@ -197,13 +197,16 @@ final class DocumentFrame(val document: Document) { outer =>
 
   var evaluation: Evaluation = Evaluation.Windowed()
   var selection : Selection  = Selection .Roulette()
+  var breeding  : Breeding   = Breeding           ()
+
+  def duration = Rational(mDur.getNumber.intValue(), 4)
 
   val pButtons = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
       val ggGen = Button("Generate") {
         implicit val r  = random
         val pop         = mPop.getNumber.intValue()
-        val dur         = Rational(mDur.getNumber.intValue(), 4)
+        val dur         = duration
         val nodes       = Vector.tabulate(pop) { idx =>
           val sq  = Fitness.randomSequence(dur)
           new Node(index = idx, chromosome = sq)
@@ -257,19 +260,32 @@ final class DocumentFrame(val document: Document) { outer =>
       ggSelSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
       val ggBreed = Button("Breed") {
-        println("Bang!")
+        val oldGenome = tmTop.root.children
+        val fun       = breeding
+        val newGenome = fun(oldGenome.map(node => (node.chromosome, node.fitness, node.selected)), duration, random)
+        tmBot.updateNodes(newGenome.zipWithIndex.map { case (c, idx) => new Node(index = idx, chromosome = c)})
       }
       ggBreed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggBreed.peer.putClientProperty("JButton.segmentPosition", "first")
       val ggBreedSettings = Button("Settings") {
-        println("Bang!")
+        val bf = new BreedingSettingsFrame(breeding)
+        bf.view.cell.addListener {
+          case value => breeding = value
+        }
       }
       ggBreedSettings.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggBreedSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
-      contents ++= Seq(ggGen, Swing.HStrut(8), ggEval , ggEvalSettings,
-                              Swing.HStrut(8), ggSel  , ggSelSettings ,
-                              Swing.HStrut(8), ggBreed, ggBreedSettings)
+      val ggFeed = Button("\u21E7") {
+        tmTop.updateNodes(tmBot.root.children)
+      }
+      ggFeed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggFeed.peer.putClientProperty("JButton.segmentPosition", "only")
+
+      contents ++= Seq(ggGen, Swing.HStrut(32), ggEval , ggEvalSettings ,
+                              Swing.HStrut( 8), ggSel  , ggSelSettings  ,
+                              Swing.HStrut( 8), ggBreed, ggBreedSettings,
+                              Swing.HStrut( 8), ggFeed)
     }
   }
 
@@ -279,7 +295,10 @@ final class DocumentFrame(val document: Document) { outer =>
     add(pButtons    , BorderPanel.Position.South )
   }
 
-  val splitBot = ggScrollBot
+  val splitBot = new BoxPanel(Orientation.Horizontal) {
+    contents += ggScrollBot
+    contents += Swing.HStrut(128 + 7)
+  }
 
   val ggSplit = new SplitPane(Orientation.Horizontal) {
     // dividerLocation = 100
