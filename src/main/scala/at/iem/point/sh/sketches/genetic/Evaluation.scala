@@ -9,19 +9,19 @@ import language.existentials
 
 object Evaluation {
   case class Windowed(window: WindowFunction    = WindowFunction.Events(),
-                      fun   : LocalFunction     = LocalFunction.LadmaEntropy,
-                      target: LocalFunction     = LocalFunction.Const(0.2),
-                      error : ErrorFunction     = ErrorFunction.Relative,
+                      fun   : LocalFunction     = LocalFunction.Velocity,
+                      target: LocalFunction     = LocalFunction.Exp(0.1, 1.0),
+                      fit   : MatchFunction     = MatchFunction.Relative,
                       aggr  : AggregateFunction = AggregateFunction.Mean)
     extends Evaluation {
 
-    private val errorT = error.tupled.apply _
+    private val fitT = fit.tupled.apply _
 
     def apply(c: Chromosome): Double = {
       val slices  = window(c)
       val evals   = slices.map(fun   )
       val targets = slices.map(target)
-      val errors  = (evals zip targets).map(errorT)
+      val errors  = (evals zip targets).map(fitT)
       aggr(errors)
     }
 
@@ -30,7 +30,7 @@ object Evaluation {
 
   case class Global(fun   : GlobalFunction = GlobalFunction.Const(),
                     target: GlobalFunction = GlobalFunction.Const(),
-                    error : ErrorFunction  = ErrorFunction.Relative)
+                    error : MatchFunction  = MatchFunction.Relative)
     extends Evaluation {
 
     def apply(c: Chromosome): Double = {
@@ -133,16 +133,22 @@ sealed trait LocalFunction extends (Slice => Double) /* with HasMeta[LocalFuncti
 
 // sealed trait LocalTarget    extends (Slice           => Double)
 
-object ErrorFunction {
-  // val all: Vec[Meta[ErrorFunction]] = Vec(Meta[Relative.type])
+object MatchFunction {
+  // val all: Vec[Meta[MatchFunction]] = Vec(Meta[Relative.type])
 
-  case object Relative extends ErrorFunction {
-    def apply(eval: Double, target: Double): Double = math.abs(eval - target) / target
+  /** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
+    * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
+    */
+  case object Relative extends MatchFunction {
+    def apply(eval: Double, target: Double): Double = {
+      // math.abs(eval - target) / target
+      math.min(1000, target / math.abs(eval - target))
+    }
 
     // def meta = Meta[Relative.type]
   }
 }
-sealed trait ErrorFunction  extends ((Double, Double) => Double) /* with HasMeta[ErrorFunction] */
+sealed trait MatchFunction  extends ((Double, Double) => Double) /* with HasMeta[MatchFunction] */
 
 object AggregateFunction {
   // val all: Vec[Meta[AggregateFunction]] = Vec(Meta[Mean.type], Meta[RMS.type])

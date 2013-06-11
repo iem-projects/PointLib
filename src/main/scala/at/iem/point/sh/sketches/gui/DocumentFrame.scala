@@ -33,7 +33,7 @@ final class DocumentFrame(val document: Document) { outer =>
         random = Fitness.rng(mSeed.getNumber.longValue())
     }
   }
-  val mPop        = new SpinnerNumberModel(20, 1, 10000, 1)
+  val mPop        = new SpinnerNumberModel(100, 1, 10000, 1)
   val ggPop       = new Spinner(mPop)
   val ggRandSeed  = Button("Rand") {
     mSeed.setValue(util.Random.nextLong()) // System.currentTimeMillis())
@@ -201,6 +201,29 @@ final class DocumentFrame(val document: Document) { outer =>
 
   def duration = Rational(mDur.getNumber.intValue(), 4)
 
+  def stepEval(genome: Vec[Node]) {
+    val fun = evaluation
+    genome.foreach { node =>
+      node.fitness = fun(node.chromosome)
+    }
+  }
+
+  def stepSelect(genome: Vec[Node]) {
+    val fun       = selection
+    val selected  = fun(genome.map(node => (node.chromosome, node.fitness)), random).toSet
+    genome.foreach { node =>
+      node.selected = selected.contains(node.chromosome)
+    }
+  }
+
+  def stepBreed(genome: Vec[Node]): Vec[Node] = {
+    val fun = breeding
+    val dur = duration
+    val r   = random
+    val n   = fun(genome.map(node => (node.chromosome, node.fitness, node.selected)), dur, r)
+    n.zipWithIndex.map { case (c, idx) => new Node(index = idx, chromosome = c)}
+  }
+
   val pButtons = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
       val ggGen = Button("Generate") {
@@ -217,12 +240,7 @@ final class DocumentFrame(val document: Document) { outer =>
       ggGen.peer.putClientProperty("JButton.segmentPosition", "only")
 
       val ggEval = Button("Evaluate") {
-        // println("Bang!")
-        val genome  = tmTop.root.children
-        val fun     = evaluation
-        genome.foreach { node =>
-          node.fitness = fun(node.chromosome)
-        }
+        stepEval(tmTop.root.children)
         tmTop.refreshNodes()
         ttTop.repaint() // XXX TODO should not be necessary
       }
@@ -238,13 +256,7 @@ final class DocumentFrame(val document: Document) { outer =>
       ggEvalSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
       val ggSel = Button("Select") {
-        // println("Bang!")
-        val genome    = tmTop.root.children
-        val fun       = selection
-        val selected  = fun(genome.map(node => (node.chromosome, node.fitness)), random).toSet
-        genome.foreach { node =>
-          node.selected = selected.contains(node.chromosome)
-        }
+        stepSelect(tmTop.root.children)
         tmTop.refreshNodes()
         ttTop.repaint() // XXX TODO should not be necessary
       }
@@ -260,10 +272,8 @@ final class DocumentFrame(val document: Document) { outer =>
       ggSelSettings.peer.putClientProperty("JButton.segmentPosition", "last")
 
       val ggBreed = Button("Breed") {
-        val oldGenome = tmTop.root.children
-        val fun       = breeding
-        val newGenome = fun(oldGenome.map(node => (node.chromosome, node.fitness, node.selected)), duration, random)
-        tmBot.updateNodes(newGenome.zipWithIndex.map { case (c, idx) => new Node(index = idx, chromosome = c)})
+        val newNodes = stepBreed(tmTop.root.children)
+        tmBot.updateNodes(newNodes)
       }
       ggBreed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggBreed.peer.putClientProperty("JButton.segmentPosition", "first")
@@ -282,10 +292,31 @@ final class DocumentFrame(val document: Document) { outer =>
       ggFeed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggFeed.peer.putClientProperty("JButton.segmentPosition", "only")
 
+      val mNumIter  = new SpinnerNumberModel(10, 1, 10000, 1)
+      val ggNumIter = new Spinner(mNumIter)
+      val ggIter = Button("Iterate") { // \u238C \u260D \u267B
+        val num = mNumIter.getNumber.intValue()
+        val in  = tmTop.root.children
+        // we want to stop the iteration with evaluation, so that the fitnesses are shown in the top pane
+        // ; ensure that initially the nodes have been evaluation
+        if (in.exists(_.fitness.isNaN)) stepEval(in)
+        val out = (in /: (0 until num)) { (itIn, _) =>
+          stepSelect(itIn)
+          val itOut = stepBreed(itIn)
+          stepEval(itOut)
+          itOut
+        }
+        tmTop.updateNodes(out)
+        tmBot.updateNodes(Vec.empty)
+      }
+      ggIter.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+      ggIter.peer.putClientProperty("JButton.segmentPosition", "last")
+
       contents ++= Seq(ggGen, Swing.HStrut(32), ggEval , ggEvalSettings ,
                               Swing.HStrut( 8), ggSel  , ggSelSettings  ,
                               Swing.HStrut( 8), ggBreed, ggBreedSettings,
-                              Swing.HStrut( 8), ggFeed)
+                              Swing.HStrut( 8), ggFeed,
+                              Swing.HStrut( 8), ggNumIter, ggIter)
     }
   }
 
@@ -301,8 +332,6 @@ final class DocumentFrame(val document: Document) { outer =>
   }
 
   val ggSplit = new SplitPane(Orientation.Horizontal) {
-    // dividerLocation = 100
-    // dividerSize     = 10
     resizeWeight    = 0.5
     topComponent    = splitTop
     bottomComponent = splitBot
@@ -310,9 +339,8 @@ final class DocumentFrame(val document: Document) { outer =>
 
   new WindowImpl {
     def handler = GeneticApp.windowHandler
-    protected def style = Window.Regular
-
-    contents = ggSplit
+    def style   = Window.Regular
+    contents    = ggSplit
     pack()
     front()
   }
