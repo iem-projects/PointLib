@@ -21,8 +21,12 @@ case class Breeding(elitism: SelectionSize = SelectionSize.Number(5),
   override def apply(g: GenomeSel, duration: Rational, r: util.Random): Genome = {
     val szOut = g.size
     val szEl  = elitism(szOut)
-    val szBr  = szOut - szEl
-    val out1  = if (szEl == 0) Vec.empty else g.sortBy(_._2).takeRight(szEl).map(_._1)
+    val out1  = if (szEl == 0) Vec.empty else {
+      // ensure that elite choices are distinct (don't want to accumulate five identical chromosomes over time)!
+      val eliteCandidates = g.map { case (c, f, _) => (c, f) } .distinct.sortBy(_._2).map(_._1)
+      eliteCandidates.takeRight(szEl)
+    }
+    val szBr  = szOut - out1.size
     val szX   = crossoverWeight(szBr)
     val szMut = szBr - szX
     val sel   = g.collect {
