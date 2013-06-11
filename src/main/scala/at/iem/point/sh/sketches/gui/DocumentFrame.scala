@@ -1,18 +1,20 @@
 package at.iem.point.sh.sketches.gui
 
-import scala.swing.{SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
+import scala.swing.{Action, SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
 import de.sciss.desktop.impl.WindowImpl
-import de.sciss.desktop.Window
+import de.sciss.desktop.{FileDialog, Menu, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{Graphics, Graphics2D}
-import at.iem.point.sh.sketches.Fitness
+import at.iem.point.sh.sketches.{ExportLilypond, Fitness}
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
 import at.iem.point.sh.sketches.genetic.{Breeding, Selection, Evaluation}
 import scala.swing.event.ValueChanged
+import de.sciss.file._
+import scala.annotation.tailrec
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
@@ -343,10 +345,32 @@ final class DocumentFrame(val document: Document) { outer =>
     bottomComponent = splitBot
   }
 
-  new WindowImpl {
+  def exportAsLilypond(nodes: Vec[Node], f: File) {
+    ExportLilypond(nodes.map(n => (n.chromosome, n.fitness)), f)
+  }
+
+  new WindowImpl { me =>
     def handler = GeneticApp.windowHandler
     def style   = Window.Regular
     contents    = ggSplit
+
+    bindMenu("file.export.lilypond", Action("") {
+      val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
+      if (nodes.nonEmpty) {
+        val desktop = userHome / "Desktop"
+        val dir     = if (desktop.canWrite) desktop else userHome
+
+        @tailrec def loop(i: Int): File = {
+          val test = dir / s"out${if (i == 0) "" else (i+1).toString}.pdf"
+          if (test.exists()) loop(i + 1) else test
+        }
+
+        val initFile = loop(0)
+        val dlg = FileDialog.save(init = Some(initFile), title = "Export As Lilypond Score")
+        val res = dlg.show(Some(me))
+        res.foreach(f => exportAsLilypond(nodes, f)) // .replaceExt("pdf")))
+      }
+    })
     pack()
     front()
   }
