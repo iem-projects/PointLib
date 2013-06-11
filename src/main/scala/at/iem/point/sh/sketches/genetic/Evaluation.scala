@@ -11,7 +11,7 @@ object Evaluation {
   case class Windowed(window: WindowFunction    = WindowFunction.Events(),
                       fun   : LocalFunction     = LocalFunction.Velocity,
                       target: LocalFunction     = LocalFunction.Exp(0.1, 1.0),
-                      fit   : MatchFunction     = MatchFunction.Relative,
+                      fit   : MatchFunction     = MatchFunction.RelativeReciprocal,
                       aggr  : AggregateFunction = AggregateFunction.Mean)
     extends Evaluation {
 
@@ -30,7 +30,7 @@ object Evaluation {
 
   case class Global(fun   : GlobalFunction = GlobalFunction.Const(),
                     target: GlobalFunction = GlobalFunction.Const(),
-                    error : MatchFunction  = MatchFunction.Relative)
+                    error : MatchFunction  = MatchFunction.RelativeReciprocal)
     extends Evaluation {
 
     def apply(c: Chromosome): Double = {
@@ -139,10 +139,18 @@ object MatchFunction {
   /** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
     * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
     */
-  case object Relative extends MatchFunction {
+  case object RelativeReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
       // math.abs(eval - target) / target
       math.min(1000, target / math.abs(eval - target))
+    }
+
+    // def meta = Meta[Relative.type]
+  }
+
+  case object RelativeNegative extends MatchFunction {
+    def apply(eval: Double, target: Double): Double = {
+      -math.min(1000, math.abs(eval - target) / target)
     }
 
     // def meta = Meta[Relative.type]
