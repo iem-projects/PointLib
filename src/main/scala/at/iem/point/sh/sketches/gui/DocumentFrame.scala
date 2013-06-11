@@ -86,7 +86,7 @@ final class DocumentFrame(val document: Document) { outer =>
     val sz    = tabcm.getColumnCount
     tabcm.getColumn(0).setPreferredWidth( 48)
     tabcm.getColumn(1).setPreferredWidth(768)
-    if (sz >= 3) {
+    if (sz >= 4) {
       tabcm.getColumn(2).setPreferredWidth( 72)
       tabcm.getColumn(3).setPreferredWidth( 56) // XXX TODO: should be rendered as checkbox not string
     }
@@ -143,6 +143,11 @@ final class DocumentFrame(val document: Document) { outer =>
     tt.autoCreateRowSorter  = true
     val dtts = tt.peer.getRowSorter.asInstanceOf[DefaultTreeTableSorter[_, _, _]]
     dtts.setSortsOnUpdates(true)
+    dtts.setComparator(0, Ordering.Int)
+    if (tcm.columnCount >= 4) {
+      dtts.setComparator(2, Ordering.Double)
+      dtts.setComparator(3, Ordering.Boolean)
+    }
 
       // val dtts = new DefaultTreeTableSorter(tm.pee, tcm.peer)
     //  // tt.peer.setRowSorter(dtts)
@@ -180,6 +185,7 @@ final class DocumentFrame(val document: Document) { outer =>
     tt.peer.setDefaultRenderer(classOf[Int]       , TreeTableCellRenderer.Default.peer)
     tt.peer.setDefaultRenderer(classOf[Double]    , TreeTableCellRenderer.Default.peer)
     tt.peer.setDefaultRenderer(classOf[Boolean]   , TreeTableCellRenderer.Default.peer)
+
     adjustColumns(tt)
     tt
   }
