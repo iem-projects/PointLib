@@ -2,14 +2,14 @@ package at.iem.point.sh.sketches
 package genetic
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import at.iem.point.illism.rhythm.{Note, Cell, Ladma}
+import at.iem.point.illism.rhythm.{Note, Ladma}
 import spire.math.Rational
 import Fitness._
 import language.existentials
 
 object Evaluation {
   case class Windowed(window: WindowFunction    = WindowFunction.Events(),
-                      fun   : LocalFunction     = LocalFunction.Velocity,
+                      fun   : LocalFunction     = LocalFunction.GeomMean,
                       target: LocalFunction     = LocalFunction.Exp(0.0625, 0.25),
                       fit   : MatchFunction     = MatchFunction.RelativeNegative,
                       aggr  : AggregateFunction = AggregateFunction.Mean)
@@ -133,14 +133,40 @@ object LocalFunction {
     def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
   }
 
-  case object Velocity extends LocalFunction {
+  /** Geometric mean of the durations within a slice */
+  case object GeomMean extends LocalFunction {
     def apply(win: Slice): Double = {
-      val seq1    = if (win.size > 1) win.sq.bindTrailingRests else win.sq.map(_.dur)
-
+      if (win.size == 1) return win.sq.head.dur.toDouble
+      val seq1    = win.sq.map(_.dur) // win.sq.bindTrailingRests // note: we can do this through serial function now
       // the geometric average is n-th root of the product of the durations
       val prod    = seq1.product
       val e       = math.pow(prod.toDouble, 1.0/seq1.size)
       e
+    }
+  }
+
+  case object StdDev extends LocalFunction {
+    def apply(win: Slice): Double = {
+      if (win.size == 1) return 0.0
+      val seq1    = win.sq.map(_.dur)
+      // the geometric average is n-th root of the product of the durations
+      val mean    = (seq1.sum / seq1.size).toDouble
+      val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
+      val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
+      stdDev
+    }
+  }
+
+  /** Relative standard deviation, aka coefficient of variation. */
+  case object VariationCoeff extends LocalFunction {
+    def apply(win: Slice): Double = {
+      if (win.size == 1) return 0.0
+      val seq1    = win.sq.map(_.dur)
+      // the geometric average is n-th root of the product of the durations
+      val mean    = (seq1.sum / seq1.size).toDouble
+      val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
+      val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
+      math.min(10000, stdDev / mean)
     }
   }
 
@@ -194,6 +220,11 @@ object MatchFunction {
 
   case object LessThan extends MatchFunction {
     def apply(a: Double, b: Double): Double = if (a < b) 1 else 0
+  }
+
+  /** Linearly fades between purely `a` (when `w = 0`) purely `b` (when `w = 1`) */
+  case class FadeLin(w: Double = 0.5) extends MatchFunction {
+    def apply(a: Double, b: Double): Double = a * (1 - w) + b * w
   }
 }
 sealed trait MatchFunction  extends ((Double, Double) => Double)

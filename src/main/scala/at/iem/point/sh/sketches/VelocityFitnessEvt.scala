@@ -7,7 +7,7 @@ object VelocityFitnessEvt extends FitnessLike {
   lazy val veloStart  = r"1/4" // r"1/32" // r"1/64"
   lazy val veloStop   = r"1/4" // r"1/2"  // r"1/1"
 
-  override lazy val title     = "Increasing Velocity"
+  override lazy val title     = "Increasing GeomMean"
   override lazy val subTitle  = s"$veloStart to $veloStop using sliding window of $evt events across duration of $duration"
   override lazy val pop       = 10000 // 200
   override lazy val iter      = 1
