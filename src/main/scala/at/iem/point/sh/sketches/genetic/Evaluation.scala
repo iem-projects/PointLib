@@ -11,7 +11,7 @@ object Evaluation {
   case class Windowed(window: WindowFunction    = WindowFunction.Events(),
                       fun   : LocalFunction     = LocalFunction.Velocity,
                       target: LocalFunction     = LocalFunction.Exp(0.0625, 0.25),
-                      fit   : MatchFunction     = MatchFunction.RelativeReciprocal,
+                      fit   : MatchFunction     = MatchFunction.RelativeNegative,
                       aggr  : AggregateFunction = AggregateFunction.Mean)
     extends Evaluation {
 
