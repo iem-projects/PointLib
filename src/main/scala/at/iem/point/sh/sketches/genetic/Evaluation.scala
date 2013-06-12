@@ -49,9 +49,32 @@ object Evaluation {
     def apply(sq: Chromosome): Double = d
   }
 
-  case class Prepare(fun: PreparationFunction = PreparationFunction.BindTrailingRests,
-                     main: Evaluation = Windowed())  extends Evaluation {
-    override def apply(c: Chromosome): Double = main(fun(c))
+  /** Counts the number of duplicate cells in a chromosome. */
+  case class DuplicateCells(ignoreStretch: Boolean = true) extends Evaluation {
+    def apply(sq: Chromosome): Double = {
+      val grouped = if (ignoreStretch) {
+        sq.groupBy(_.id)
+      } else {
+        sq.groupBy(c => (c.id, c.dur))
+      }
+      val numUnique = grouped.size
+      val numDup    = sq.size - numUnique
+      numDup
+    }
+  }
+
+  /** Produces a sequential evaluation, by passing the chromosome first through a `Chromosome => Chromosome`
+    * function and then through a subsequent `Chromosome => Double` evaluation.
+    */
+  case class Serial(a: ChromosomeFunction = ChromosomeFunction.BindTrailingRests,
+                    b: Evaluation = Windowed())  extends Evaluation {
+    override def apply(c: Chromosome): Double = b(a(c))
+  }
+
+  case class Parallel(a: Evaluation     = Windowed(),
+                      b: Evaluation     = Global(DuplicateCells(), Const(1), MatchFunction.LessThan),
+                      op: MatchFunction = MatchFunction.Times) extends Evaluation {
+    override def apply(c: Chromosome): Double = op(a(c), b(c))
   }
 }
 
@@ -60,8 +83,8 @@ object Evaluation {
   */
 sealed trait Evaluation extends (Chromosome => Double)
 
-object PreparationFunction {
-  case object BindTrailingRests extends PreparationFunction {
+object ChromosomeFunction {
+  case object BindTrailingRests extends ChromosomeFunction {
     override def apply(c: Chromosome): Chromosome = {
       val durs  = c.flattenCells.bindTrailingRests
       val cell  = durs.map(Note(_)).toCell
@@ -69,8 +92,8 @@ object PreparationFunction {
     }
   }
 }
-/** A `PreparationFunction` pre-processes a chromosome before it is sent to another evaluation. */
-sealed trait PreparationFunction extends (Chromosome => Chromosome)
+/** A `ChromosomeFunction` pre-processes a chromosome before it is sent to another evaluation. */
+sealed trait ChromosomeFunction extends (Chromosome => Chromosome)
 
 object WindowFunction {
   case class Events(size: Int = 5, step: Int = 2) extends WindowFunction {
@@ -145,15 +168,32 @@ object MatchFunction {
     */
   case object RelativeReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
-      // math.abs(eval - target) / target
-      math.min(1000, target / math.abs(eval - target))
+      if (eval == target) 1000 else math.min(1000, target / math.abs(eval - target))
     }
   }
 
   case object RelativeNegative extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
-      -math.min(1000, math.abs(eval - target) / target)
+      1000 - (if (eval == target) 0 else math.min(1000, math.abs(eval - target) / target))
     }
+  }
+
+  case object AbsoluteReciprocal extends MatchFunction {
+    def apply(eval: Double, target: Double): Double = {
+      math.min(1000, 1.0 / math.abs(eval - target))
+    }
+  }
+
+  case object Min extends MatchFunction {
+    def apply(a: Double, b: Double): Double = math.min(a, b)
+  }
+
+  case object Times extends MatchFunction {
+    def apply(a: Double, b: Double): Double = a * b
+  }
+
+  case object LessThan extends MatchFunction {
+    def apply(a: Double, b: Double): Double = if (a < b) 1 else 0
   }
 }
 sealed trait MatchFunction  extends ((Double, Double) => Double)

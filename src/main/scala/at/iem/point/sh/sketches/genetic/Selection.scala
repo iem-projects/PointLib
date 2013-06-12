@@ -8,7 +8,7 @@ import scala.util.Random
 
 object Selection {
   // cf. http://en.wikipedia.org/wiki/Fitness_proportionate_selection
-  case class Roulette(size: SelectionSize = SelectionSize.Percentage()) extends Selection {
+  case class Roulette(size: SelectionSize = SelectionSize.Percentage(33)) extends Selection {
     override def apply(pop: GenomeVal, rnd: util.Random): Genome = {
       val n = size(pop.size)
 
