@@ -72,7 +72,7 @@ object ExportLilypond {
     """.stripMargin
 
     val scores = genome.zipWithIndex.map { case ((sq, fit), idx) =>
-      val fitS  = f"$fit%1.3f"
+      val fitS  = f"$fit%1.5f"
       val inner = sq.map(cell => cell.toLilypondString(timeSig = true, annotation = s"#${cell.id+1}")).mkString("\n")
       raw"""
       |\score {

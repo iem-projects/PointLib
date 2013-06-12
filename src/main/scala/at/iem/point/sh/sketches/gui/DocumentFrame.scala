@@ -303,9 +303,11 @@ final class DocumentFrame(val document: Document) { outer =>
       }
       ggFeed.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggFeed.peer.putClientProperty("JButton.segmentPosition", "only")
+      ggFeed.tooltip = "Feed offspring back for next iteration"
 
       val mNumIter  = new SpinnerNumberModel(10, 1, 10000, 1)
       val ggNumIter = new Spinner(mNumIter)
+      ggNumIter.tooltip = "Number of iterations to perform at once"
       val ggIter = Button("Iterate") { // \u238C \u260D \u267B
         val num = mNumIter.getNumber.intValue()
         val in  = tmTop.root.children

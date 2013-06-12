@@ -168,19 +168,19 @@ object MatchFunction {
     */
   case object RelativeReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
-      if (eval == target) 1000 else math.min(1000, target / math.abs(eval - target))
+      if (eval == target) 1.0 else math.min(1.0, target / (1000 * math.abs(eval - target)))
     }
   }
 
   case object RelativeNegative extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
-      1000 - (if (eval == target) 0 else math.min(1000, math.abs(eval - target) / target))
+      1.0 - (if (eval == target) 0.0 else math.min(1.0, math.abs(eval - target) / (1000 * target)))
     }
   }
 
   case object AbsoluteReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
-      math.min(1000, 1.0 / math.abs(eval - target))
+      math.min(1.0, 1.0 / (1000 * math.abs(eval - target)))
     }
   }
 
