@@ -4,6 +4,7 @@ import collection.immutable.{IndexedSeq => Vec}
 import spire.syntax._
 import java.io.{FileOutputStream, OutputStreamWriter}
 import de.sciss.file._
+import at.iem.point.illism.rhythm.LilyTimeSignature
 
 trait FitnessLike extends App {
   import Fitness._
@@ -147,7 +148,8 @@ trait FitnessLike extends App {
 
     val scores = sorted.take(numResults).zipWithIndex.map { case ((sq, fit), idx) =>
       val fitS  = f"$fit%1.3f"
-      val inner = sq.map(cell => cell.toLilypondString(timeSig = true, annotation = s"#${cell.id+1}")).mkString("\n")
+      val inner = sq.map(cell => cell.toLilypondString(timeSig = Some(LilyTimeSignature.Raw),
+        annotation = s"#${cell.id+1}")).mkString("\n")
       raw"""
       |\score {
       |  \new RhythmicStaff {

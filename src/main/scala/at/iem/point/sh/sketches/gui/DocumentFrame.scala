@@ -351,9 +351,9 @@ final class DocumentFrame(val document: Document) { outer =>
     bottomComponent = splitBot
   }
 
-  def exportAsLilypond(nodes: Vec[Node], f: File) {
-    ExportLilypond(nodes.map(n => (n.chromosome, n.fitness)), f)
-  }
+  //  def exportAsLilypond(nodes: Vec[Node], f: File) {
+  //    ExportLilypond.dialog(nodes.map(n => (n.chromosome, n.fitness)), f)
+  //  }
 
   new WindowImpl { me =>
     def handler = GeneticApp.windowHandler
@@ -363,18 +363,7 @@ final class DocumentFrame(val document: Document) { outer =>
     bindMenu("file.export.lilypond", Action("") {
       val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
       if (nodes.nonEmpty) {
-        val desktop = userHome / "Desktop"
-        val dir     = if (desktop.canWrite) desktop else userHome
-
-        @tailrec def loop(i: Int): File = {
-          val test = dir / s"out${if (i == 0) "" else (i+1).toString}.pdf"
-          if (test.exists()) loop(i + 1) else test
-        }
-
-        val initFile = loop(0)
-        val dlg = FileDialog.save(init = Some(initFile), title = "Export As Lilypond Score")
-        val res = dlg.show(Some(me))
-        res.foreach(f => exportAsLilypond(nodes, f)) // .replaceExt("pdf")))
+        ExportLilypond.dialog(nodes.map(n => (n.chromosome, n.fitness)))
       }
     })
     pack()
