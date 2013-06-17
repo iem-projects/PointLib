@@ -1,20 +1,24 @@
 package at.iem.point.sh.sketches.gui
 
 import scala.swing.{Action, SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
+import Swing._
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.desktop.{FileDialog, Menu, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
-import java.awt.{Graphics, Graphics2D}
+import java.awt.{EventQueue, Graphics, Graphics2D}
 import at.iem.point.sh.sketches.{ExportLilypond, Fitness}
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
 import at.iem.point.sh.sketches.genetic.{Breeding, Selection, Evaluation}
-import scala.swing.event.ValueChanged
+import scala.swing.event.{ButtonClicked, ValueChanged}
 import de.sciss.file._
 import scala.annotation.tailrec
+import de.sciss.processor.impl.ProcessorImpl
+import de.sciss.processor.Processor
+import scala.concurrent.ExecutionContext
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
@@ -203,7 +207,7 @@ final class DocumentFrame(val document: Document) { outer =>
 
   val pGenSettings = new BoxPanel(Orientation.Vertical) {
     contents += pGen
-    contents += Swing.VStrut(4)
+    contents += VStrut(4)
     // contents += ggGen
   }
 
@@ -234,6 +238,10 @@ final class DocumentFrame(val document: Document) { outer =>
     val r   = random
     val n   = fun(genome.map(node => (node.chromosome, node.fitness, node.selected)), dur, r)
     n.zipWithIndex.map { case (c, idx) => new Node(index = idx, chromosome = c)}
+  }
+
+  def defer(thunk: => Unit) {
+    if (EventQueue.isDispatchThread) thunk else onEDT(thunk)
   }
 
   val pButtons = new FlowPanel {
@@ -308,29 +316,59 @@ final class DocumentFrame(val document: Document) { outer =>
       val mNumIter  = new SpinnerNumberModel(10, 1, 10000, 1)
       val ggNumIter = new Spinner(mNumIter)
       ggNumIter.tooltip = "Number of iterations to perform at once"
-      val ggIter = Button("Iterate") { // \u238C \u260D \u267B
-        val num = mNumIter.getNumber.intValue()
-        val in  = tmTop.root.children
-        // we want to stop the iteration with evaluation, so that the fitnesses are shown in the top pane
-        // ; ensure that initially the nodes have been evaluation
-        if (in.exists(_.fitness.isNaN)) stepEval(in)
-        val out = (in /: (0 until num)) { (itIn, _) =>
-          stepSelect(itIn)
-          val itOut = stepBreed(itIn)
-          stepEval(itOut)
-          itOut
-        }
-        tmTop.updateNodes(out)
-        tmBot.updateNodes(Vec.empty)
-      }
-      ggIter.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
-      ggIter.peer.putClientProperty("JButton.segmentPosition", "last")
+      val ggIter = new Button("Iterate") { // \u238C \u260D \u267B
+        var proc      = Option.empty[Proc]
+        val progIcon  = new ProgressIcon(33)
 
-      contents ++= Seq(ggGen, Swing.HStrut(32), ggEval , ggEvalSettings ,
-                              Swing.HStrut( 8), ggSel  , ggSelSettings  ,
-                              Swing.HStrut( 8), ggBreed, ggBreedSettings,
-                              Swing.HStrut( 8), ggFeed,
-                              Swing.HStrut( 8), ggNumIter, ggIter)
+        listenTo(this)
+        reactions += {
+          case ButtonClicked(_) =>
+            proc match {
+              case Some(p) => p.abort()
+              case _ =>
+                val num = mNumIter.getNumber.intValue()
+                val in  = tmTop.root.children
+                val p   = new Proc(in, num)
+                proc    = Some(p)
+                p.addListener {
+                  case prog @ Processor.Progress(_, _) => defer {
+                    progIcon.value = prog.toInt
+                    repaint()
+                  }
+                }
+                import ExecutionContext.Implicits.global
+                p.start()
+                text            = "\u2716"
+                progIcon.value  = 0
+                icon            = progIcon
+                p.onComplete {
+                  case _ => defer {
+                    icon  = EmptyIcon
+                    text  = "Iterate"
+                    proc  = None
+                  }
+                }
+                p.onSuccess {
+                  case out => defer {
+                    tmTop.updateNodes(out)
+                    tmBot.updateNodes(Vec.empty)
+                  }
+                }
+            }
+        }
+
+        peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
+        peer.putClientProperty("JButton.segmentPosition", "last")
+        preferredSize = (72, preferredSize.height)
+        minimumSize   = preferredSize
+        maximumSize   = preferredSize
+      }
+
+      contents ++= Seq(ggGen, HStrut(32), ggEval , ggEvalSettings ,
+                              HStrut( 8), ggSel  , ggSelSettings  ,
+                              HStrut( 8), ggBreed, ggBreedSettings,
+                              HStrut( 8), ggFeed,
+                              HStrut( 8), ggNumIter, ggIter)
     }
   }
 
@@ -342,7 +380,7 @@ final class DocumentFrame(val document: Document) { outer =>
 
   val splitBot = new BoxPanel(Orientation.Horizontal) {
     contents += ggScrollBot
-    contents += Swing.HStrut(128 + 7)
+    contents += HStrut(128 + 7)
   }
 
   val ggSplit = new SplitPane(Orientation.Horizontal) {
@@ -368,5 +406,24 @@ final class DocumentFrame(val document: Document) { outer =>
     })
     pack()
     front()
+  }
+
+  class Proc(in: Vec[Node], num: Int) extends ProcessorImpl[Vec[Node], Proc] {
+    protected def body(): Vec[Node] = {
+      // we want to stop the iteration with evaluation, so that the fitnesses are shown in the top pane
+      // ; ensure that initially the nodes have been evaluation
+      if (in.exists(_.fitness.isNaN)) stepEval(in)
+      checkAborted()
+      val out = (in /: (0 until num)) { (itIn, idx) =>
+        stepSelect(itIn)
+        val itOut = stepBreed(itIn)
+        stepEval(itOut)
+        val f = (idx + 1).toFloat / num
+        progress(f)
+        checkAborted()
+        itOut
+      }
+      out
+    }
   }
 }

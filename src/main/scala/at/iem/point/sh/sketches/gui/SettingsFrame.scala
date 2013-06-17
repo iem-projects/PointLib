@@ -5,6 +5,7 @@ import de.sciss.guiflitz.AutoView
 import de.sciss.desktop.Window
 import de.sciss.desktop.impl.WindowImpl
 import reflect.runtime.universe.TypeTag
+import scala.swing.ScrollPane
 
 abstract class SettingsFrame[A: TypeTag](init: A, title: String) { me =>
   final val view = AutoView(init)
@@ -17,7 +18,7 @@ abstract class SettingsFrame[A: TypeTag](init: A, title: String) { me =>
     def style       = Window.Regular
     title           = s"${me.title} Settings"
     closeOperation  = Window.CloseDispose
-    contents        = view.component
+    contents        = new ScrollPane(view.component)
     pack()
     front()
   }
