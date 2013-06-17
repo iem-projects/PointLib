@@ -1,6 +1,6 @@
 package at.iem.point.sh.sketches
 
-import play.api.libs.json.{JsValue, JsString, JsObject, Json}
+import play.api.libs.json.{JsError, JsResult, Format, JsValue, JsString, JsObject, Json}
 
 object JSONEval extends App {
 //  //  implicit object EvaluationFormat extends Format[Evaluation] {
@@ -22,7 +22,7 @@ object JSONEval extends App {
   implicit val barFmt = Json.format[Bar]
   implicit val bazFmt = Json.format[Baz]
 
-  trait SealedTraitCompanion[A] {
+  trait SealedTraitFormat[A] {
     def unapply(value: A): Option[(String, JsValue)] = {
       ???
     }
@@ -30,6 +30,8 @@ object JSONEval extends App {
     def apply(`class`: String, data: JsValue): A = {
       ???
     }
+
+    // private def
   }
 
   object Foo {
@@ -52,7 +54,28 @@ object JSONEval extends App {
   case class Bar(i: Int  ) extends Foo
   case class Baz(f: Float) extends Foo
 
-  implicit val fooFmt = Json.format[Foo]
+  // implicit val fooFmt = Json.format[Foo]
+
+  implicit val fooFmt: Format[Foo] = new Format[Foo] {
+    def reads(json: JsValue): JsResult[Foo] = json match {
+      case JsObject(Seq(("class", JsString(name)), ("data", data))) =>
+        name match {
+          case "Bar"  => Json.fromJson[Bar](data)(barFmt)
+          case "Baz"  => Json.fromJson[Baz](data)(bazFmt)
+          case _      => JsError(s"Unknown class '$name'")
+        }
+
+      case _ => JsError(s"Unexpected JSON value $json")
+    }
+
+    def writes(foo: Foo): JsValue = {
+      val (prod: Product, sub) = foo match {
+        case b: Bar => (b, Json.toJson(b)(barFmt))
+        case b: Baz => (b, Json.toJson(b)(bazFmt))
+      }
+      JsObject(Seq("class" -> JsString(prod.productPrefix), "data" -> sub))
+    }
+  }
 
   val in: Foo = Bar(33)
   val js  = Json.toJson(in)
