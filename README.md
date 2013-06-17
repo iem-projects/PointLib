@@ -5,3 +5,5 @@ The repository acts as a hub for sketches, routines and algorithms developed for
 All source code released under the GNU General Public License.
 
 ## composer_sh branch
+
+The main part of this branch is an evolutionary (genetic) algorithm framework, through which sequences of rhythmic cells can be optimised, using a composed fitness function.
