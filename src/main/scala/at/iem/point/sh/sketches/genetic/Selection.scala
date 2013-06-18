@@ -8,7 +8,7 @@ import scala.util.Random
 
 object Selection {
   // cf. http://en.wikipedia.org/wiki/Fitness_proportionate_selection
-  case class Roulette(size: SelectionSize = SelectionSize.Percentage(33)) extends Selection {
+  case class Roulette(size: SelectionSize = /* SelectionSize. */ Percentage(33)) extends Selection {
     override def apply(pop: GenomeVal, rnd: util.Random): Genome = {
       val n = size(pop.size)
 
@@ -37,7 +37,7 @@ object Selection {
   }
 
   // cf. http://en.wikipedia.org/wiki/Truncation_selection
-  case class Truncation(size: SelectionSize = SelectionSize.Percentage()) extends Selection {
+  case class Truncation(size: SelectionSize = /* SelectionSize. */ Percentage()) extends Selection {
     override def apply(pop: GenomeVal, rnd: Random): Genome = {
       val n       = size(pop.size)
       val sorted  = pop.sortBy(_._2)
@@ -47,7 +47,7 @@ object Selection {
 }
 sealed trait Selection extends ((GenomeVal, util.Random) => Genome)
 
-object SelectionSize {
+// object SelectionSize {
 
   /** Selects an absolute number of individuals
     *
@@ -66,5 +66,5 @@ object SelectionSize {
     require(value >= 0 && value <= 100)
     override def apply(pop: Int): Int = pop * value / 100
   }
-}
+// }
 sealed trait SelectionSize extends (Int => Int)

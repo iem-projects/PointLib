@@ -12,8 +12,8 @@ import collection.immutable.{IndexedSeq => Vec}
   * @param crossover        the crossover breeding function, applied with the selected chromosomes and number of children to produce
   * @param mutation         the mutation  breeding function, applied with the selected chromosomes and number of children to produce
   */
-case class Breeding(elitism: SelectionSize = SelectionSize.Number(5),
-                    crossoverWeight: SelectionSize.Percentage = SelectionSize.Percentage(80),
+case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
+                    crossoverWeight: /* SelectionSize. */ Percentage = /* SelectionSize. */ Percentage(80),
                     crossover: BreedingFunction = BreedingFunction.OnePointCrossover,
                     mutation : BreedingFunction = BreedingFunction.SingleCellMutation)
   extends ((GenomeSel, Rational, util.Random) => Genome) {

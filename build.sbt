@@ -23,7 +23,8 @@ libraryDependencies ++= Seq(
   "de.sciss"                 %% "treetable-scala"    % "1.3.+",
   "de.sciss"                 %% "guiflitz"           % "0.0.+",           // Automatic configuration GUIs
   "de.sciss"                 %% "processor"          % "0.2.+",           // Asynchronous iteration
-  "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
+  // "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
+  "de.sciss"                 %% "play-json-sealed"   % "0.0.+"
 )
 
 retrieveManaged := true
