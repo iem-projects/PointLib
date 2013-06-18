@@ -7,11 +7,11 @@ import de.sciss.desktop.{FileDialog, OptionPane, Window}
 import scala.annotation.tailrec
 import de.sciss.guiflitz.{Springs, SpringPanel}
 import at.iem.point.illism.rhythm.{LilyTimeSignature, Cell}
-import at.iem.point.sh.sketches.genetic.{Formats, Evaluation}
+import at.iem.point.sh.sketches.genetic.{Settings, Formats, Evaluation}
 import play.api.libs.json.Json
 
 object ExportLilypond {
-  def dialog(evaluation: Evaluation, genome: GenomeVal, parent: Option[Window] = None) {
+  def dialog(settings: Settings, genome: GenomeVal, parent: Option[Window] = None) {
     import swing._
 
     val lbTitle = new Label("Title:"          , null, Alignment.Trailing)
@@ -58,7 +58,7 @@ object ExportLilypond {
       val dlg = FileDialog.save(init = Some(defaultFile()), title = "Export As Lilypond Score")
       val res = dlg.show(parent)
       res.foreach { f =>
-        ExportLilypond(evaluation = evaluation, genome = genome, out = f, title = ggTitle.text, subTitle = ggSub.text,
+        ExportLilypond(settings = settings, genome = genome, out = f, title = ggTitle.text, subTitle = ggSub.text,
           timeSig = LilyTimeSignature(ggTime.selection.index), tupletBrackets = ggTuplet.selected,
           midi = ggMIDI.selected)
       }
@@ -85,7 +85,7 @@ object ExportLilypond {
     * @param subTitle sub title for the score
     * @param midi     whether to output to MIDI file as well or not
     */
-  def apply(evaluation: Evaluation, genome: GenomeVal, out: File, title: String = "Title", subTitle: String = "Sub Title",
+  def apply(settings: Settings, genome: GenomeVal, out: File, title: String = "Title", subTitle: String = "Sub Title",
             timeSig: LilyTimeSignature = LilyTimeSignature.Raw, tupletBrackets: Boolean = true,
             midi: Boolean = true) {
     // ---- lilypond test output ----
@@ -180,7 +180,7 @@ object ExportLilypond {
     if (cmdRes != 0 && cmdRes != 1) sys.error(s"Lilypond exited with code $cmdRes")
 
     val jsonPath  = lyf.replaceExt("json")
-    EvalIO.write(evaluation, jsonPath)
+    SettingsIO.write(settings, jsonPath)
 
     Seq(pdfViewer, lyf.replaceExt("pdf").path).!
   }

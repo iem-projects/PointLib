@@ -7,12 +7,12 @@ import de.sciss.desktop.{FileDialog, Menu, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{EventQueue, Graphics, Graphics2D}
-import at.iem.point.sh.sketches.{EvalIO, ExportLilypond, Fitness}
+import at.iem.point.sh.sketches.{SettingsIO, ExportLilypond, Fitness}
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{EvalWindowed, Roulette, Breeding, Selection, Evaluation}
+import at.iem.point.sh.sketches.genetic.{Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
 import scala.swing.event.{ButtonClicked, ValueChanged}
 import de.sciss.file._
 import scala.annotation.tailrec
@@ -215,6 +215,13 @@ final class DocumentFrame(val document: Document) { outer =>
   var selection : Selection  = /* Selection . */ Roulette()
   var breeding  : Breeding   = Breeding           ()
 
+  def settings: Settings = Settings(evaluation, selection, breeding)
+  def settings_=(s: Settings) {
+    evaluation  = s.evaluation
+    selection   = s.selection
+    breeding    = s.breeding
+  }
+
   def duration = Rational(mDur.getNumber.intValue(), 4)
 
   def stepEval(genome: Vec[Node]) {
@@ -401,19 +408,19 @@ final class DocumentFrame(val document: Document) { outer =>
     bindMenu("file.export.lily", Action("") {
       val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
       if (nodes.nonEmpty) {
-        ExportLilypond.dialog(evaluation, nodes.map(n => (n.chromosome, n.fitness)))
+        ExportLilypond.dialog(settings, nodes.map(n => (n.chromosome, n.fitness)))
       }
     })
-    bindMenu("file.export.eval", Action("") {
-      val dlg = FileDialog.save(title = "Export Evaluation Settings")
+    bindMenu("file.export.settings", Action("") {
+      val dlg = FileDialog.save(title = "Export Algorithm Settings")
       dlg.show(Some(me)).foreach { f =>
-        EvalIO.write(evaluation, f.replaceExt("json"))
+        SettingsIO.write(settings, f.replaceExt("json"))
       }
     })
-    bindMenu("file.import.eval", Action("") {
-      val dlg = FileDialog.open(title = "Import Evaluation Settings")
+    bindMenu("file.import.settings", Action("") {
+      val dlg = FileDialog.open(title = "Import Algorithm Settings")
       dlg.show(Some(me)).foreach { f =>
-        evaluation = EvalIO.read(f)
+        settings = SettingsIO.read(f)
       }
     })
     pack()

@@ -20,13 +20,13 @@ object GeneticApp extends SwingApplicationImpl("Genetic Algorithm") {
         }
       ).add(
         Group("import", "Import").add(
-          Item("eval", proxy("Evaluation Settings..."         -> (menu1 + alt   + VK_O)))
+          Item("settings", proxy("Algorithm Settings..."      -> (menu1 + alt   + VK_O)))
         )
       ).add(
         Group("export", "Export").add(
           Item("lily", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
         ).add(
-          Item("eval", proxy("Evaluation Settings..."         -> (menu1 + alt   + VK_S)))
+          Item("settings", proxy("Algorithm Settings..."      -> (menu1 + alt   + VK_S)))
         )
       )
     )
