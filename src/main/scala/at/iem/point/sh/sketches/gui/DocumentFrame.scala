@@ -7,7 +7,7 @@ import de.sciss.desktop.{FileDialog, Menu, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{EventQueue, Graphics, Graphics2D}
-import at.iem.point.sh.sketches.{ExportLilypond, Fitness}
+import at.iem.point.sh.sketches.{EvalIO, ExportLilypond, Fitness}
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
@@ -398,10 +398,22 @@ final class DocumentFrame(val document: Document) { outer =>
     def style   = Window.Regular
     contents    = ggSplit
 
-    bindMenu("file.export.lilypond", Action("") {
+    bindMenu("file.export.lily", Action("") {
       val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
       if (nodes.nonEmpty) {
         ExportLilypond.dialog(evaluation, nodes.map(n => (n.chromosome, n.fitness)))
+      }
+    })
+    bindMenu("file.export.eval", Action("") {
+      val dlg = FileDialog.save(title = "Export Evaluation Settings")
+      dlg.show(Some(me)).foreach { f =>
+        EvalIO.write(evaluation, f.replaceExt("json"))
+      }
+    })
+    bindMenu("file.import.eval", Action("") {
+      val dlg = FileDialog.open(title = "Import Evaluation Settings")
+      dlg.show(Some(me)).foreach { f =>
+        evaluation = EvalIO.read(f)
       }
     })
     pack()

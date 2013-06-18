@@ -180,11 +180,7 @@ object ExportLilypond {
     if (cmdRes != 0 && cmdRes != 1) sys.error(s"Lilypond exited with code $cmdRes")
 
     val jsonPath  = lyf.replaceExt("json")
-    import Formats.{evaluation => fmt}
-    val json      = Json.toJson(evaluation)
-    val jsonF     = new FileWriter(jsonPath)
-    jsonF.write(Json.prettyPrint(json))
-    jsonF.close()
+    EvalIO.write(evaluation, jsonPath)
 
     Seq(pdfViewer, lyf.replaceExt("pdf").path).!
   }

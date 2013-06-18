@@ -19,8 +19,14 @@ object GeneticApp extends SwingApplicationImpl("Genetic Algorithm") {
           new DocumentFrame(doc)
         }
       ).add(
+        Group("import", "Import").add(
+          Item("eval", proxy("Evaluation Settings..."         -> (menu1 + alt   + VK_O)))
+        )
+      ).add(
         Group("export", "Export").add(
-          Item("lilypond", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
+          Item("lily", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
+        ).add(
+          Item("eval", proxy("Evaluation Settings..."         -> (menu1 + alt   + VK_S)))
         )
       )
     )
