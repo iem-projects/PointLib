@@ -89,24 +89,32 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
     * until the target duration is reached again.
     */
   case object SingleCellMutation extends BreedingFunction {
-    override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
+    override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome =
+      applyN(1)(g, num, duration, r)
+
+    private[genetic] def applyN(numMut: Int)(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
       val res = Vec.newBuilder[Chromosome]
       res.sizeHint(num)
       var sz  = 0
       val urn = new Urn(g)
       while (sz < num) {
         val e1  = urn()(r)
-        val i   = r.nextInt(e1.size)      // removal index
-        val e2  = e1.removeAt(i)
-        val e3  = if (e2.dur >= duration) e2 else {
-          val j   = r.nextInt(e2.size + 1)  // insertion point
-          var t1  = e2
-          var t2  = e2
-          while (t2.dur < duration) {
-            t1 = t2
-            t2 = t2.insertAt(j, corpus.choose()(r))
+        var k   = 0
+        var e3  = e1
+        while (k < numMut) {
+          val i   = r.nextInt(e1.size)      // removal index
+          val e2  = e1.removeAt(i)
+          e3      = if (e2.dur >= duration) e2 else {
+            val j   = r.nextInt(e2.size + 1)  // insertion point
+            var t1  = e2
+            var t2  = e2
+            while (t2.dur < duration) {
+              t1 = t2
+              t2 = t2.insertAt(j, corpus.choose()(r))
+            }
+            if (t1.isEmpty) t2 else optimize(duration, t1, t2)(_.dur)
           }
-          if (t1.isEmpty) t2 else optimize(duration, t1, t2)(_.dur)
+          k += 1
         }
         res += e3
         sz  += 1
@@ -114,5 +122,49 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
       res.result()
     }
   }
+
+  case class MultiCellMutation(n: Int = 2) extends BreedingFunction {
+    override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome =
+      SingleCellMutation.applyN(n)(g, num, duration, r)
+  }
+
+  case class SwapMutation(n: Int = 2) extends BreedingFunction {
+    override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
+      val res = Vec.newBuilder[Chromosome]
+      res.sizeHint(num)
+      var sz  = 0
+      val urn = new Urn(g)
+      while (sz < num) {
+        val e1  = urn()(r)
+        var k   = 0
+        var e3  = e1
+        while (k < n) {
+          val i   = r.nextInt(e1.size)      // removal index
+          val c   = e1(i)
+          val e2  = e1.removeAt(i)
+          val j   = r.nextInt(e2.size + 1)  // insertion point
+          e3      = e2.insertAt(j, c)
+          k += 1
+        }
+        res += e3
+        sz  += 1
+      }
+      res.result()
+    }
+  }
+
+  case class CombinedMutation(a: BreedingFunction = MultiCellMutation(),
+                              b: BreedingFunction = SwapMutation(), balance: Percentage = Percentage(50))
+    extends BreedingFunction {
+
+    override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
+      val bNum  = balance(num)
+      val aNum  = num - bNum
+      val aGen  = a(g, aNum, duration, r)
+      val bGen  = a(g, aNum, duration, r)
+      aGen ++ bGen
+    }
+  }
+
 // }
 sealed trait BreedingFunction extends ((Genome, Int, Rational, util.Random) => Genome)

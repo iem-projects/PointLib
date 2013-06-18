@@ -8,7 +8,7 @@ object Formats {
   implicit val selectionSize      = SealedTraitFormat[SelectionSize]
   implicit val selection          = SealedTraitFormat[Selection]
 
-  implicit val breedingFunction   = SealedTraitFormat[BreedingFunction]
+  implicit lazy val breedingFunction: Format[BreedingFunction] = SealedTraitFormat[BreedingFunction]
   implicit val breeding           = SealedTraitFormat[Breeding]
 
   implicit val matchFunction      = SealedTraitFormat[MatchFunction]

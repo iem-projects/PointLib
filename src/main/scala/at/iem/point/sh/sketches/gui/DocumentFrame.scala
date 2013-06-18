@@ -404,6 +404,7 @@ final class DocumentFrame(val document: Document) { outer =>
     def handler = GeneticApp.windowHandler
     def style   = Window.Regular
     contents    = ggSplit
+    title       = "Genetic Algorithm"
 
     bindMenu("file.export.lily", Action("") {
       val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
