@@ -401,7 +401,7 @@ final class DocumentFrame(val document: Document) { outer =>
     bindMenu("file.export.lilypond", Action("") {
       val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
       if (nodes.nonEmpty) {
-        ExportLilypond.dialog(nodes.map(n => (n.chromosome, n.fitness)))
+        ExportLilypond.dialog(evaluation, nodes.map(n => (n.chromosome, n.fitness)))
       }
     })
     pack()
