@@ -83,6 +83,9 @@ package object sketches {
 
     def linexp(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
       math.pow(dstHi / dstLo, (d - srcLo) / (srcHi - srcLo)).toFloat * dstLo
+
+    def explin(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
+      math.log(d / srcLo) / math.log(srcHi / srcLo) * (dstHi - dstLo) + srcLo
   }
 
   //  implicit final class RichCell(val cell: Cell) extends AnyVal {

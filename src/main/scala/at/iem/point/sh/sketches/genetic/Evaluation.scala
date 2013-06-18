@@ -226,6 +226,11 @@ sealed trait LocalFunction extends (Slice => Double)
   case class MatchFadeLin(w: Double = 0.5) extends MatchFunction {
     def apply(a: Double, b: Double): Double = a * (1 - w) + b * w
   }
+
+  case class MatchScale(a: ScaleFunction = ScaleLinLin(), b: ScaleFunction = ScaleLinLin(),
+                        combine: MatchFunction = MatchTimes) extends MatchFunction { me =>
+    def apply(a: Double, b: Double): Double = combine(me.a(a), me.b(b))
+  }
 // }
 sealed trait MatchFunction  extends ((Double, Double) => Double)
 
@@ -238,8 +243,20 @@ sealed trait MatchFunction  extends ((Double, Double) => Double)
     def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
   }
 
-  case object AggrMin extends AggregateFunction {
-    def apply(fits: Vec[Double]): Double = fits.min
-  }
+case object AggrMin extends AggregateFunction {
+  def apply(fits: Vec[Double]): Double = fits.min
+}
+
 // }
 sealed trait AggregateFunction extends (Vec[Double] => Double)
+
+case class ScaleLinLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0, dstHi: Double = 1) extends ScaleFunction {
+  override def apply(in: Double): Double = in.linlin(srcLo, srcHi, dstLo, dstHi)
+}
+case class ScaleLinExp(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0.1, dstHi: Double = 1) extends ScaleFunction {
+  override def apply(in: Double): Double = in.linexp(srcLo, srcHi, dstLo, dstHi)
+}
+case class ScaleExpLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0.1, dstHi: Double = 1) extends ScaleFunction {
+  override def apply(in: Double): Double = in.explin(srcLo, srcHi, dstLo, dstHi)
+}
+sealed trait ScaleFunction extends (Double => Double)
