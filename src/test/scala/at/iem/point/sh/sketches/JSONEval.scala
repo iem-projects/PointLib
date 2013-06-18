@@ -15,7 +15,7 @@
 ////
 ////  implicit val evalFmt = Json.format[Evaluation]
 ////
-////  val eval: Evaluation = WindowedEvaluation()
+////  val eval: Evaluation = EvalWindowed()
 ////  val forth = Json.toJson(eval)
 ////  println(Json.prettyPrint(forth))
 //

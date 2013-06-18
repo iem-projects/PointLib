@@ -12,7 +12,7 @@ import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{Breeding, Selection, Evaluation}
+import at.iem.point.sh.sketches.genetic.{EvalWindowed, Roulette, Breeding, Selection, Evaluation}
 import scala.swing.event.{ButtonClicked, ValueChanged}
 import de.sciss.file._
 import scala.annotation.tailrec
@@ -211,8 +211,8 @@ final class DocumentFrame(val document: Document) { outer =>
     // contents += ggGen
   }
 
-  var evaluation: Evaluation = Evaluation.Windowed()
-  var selection : Selection  = Selection .Roulette()
+  var evaluation: Evaluation = /* Evaluation. */ EvalWindowed()
+  var selection : Selection  = /* Selection . */ Roulette()
   var breeding  : Breeding   = Breeding           ()
 
   def duration = Rational(mDur.getNumber.intValue(), 4)

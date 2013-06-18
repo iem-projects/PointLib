@@ -6,7 +6,7 @@ import Fitness._
 import scala.annotation.tailrec
 import scala.util.Random
 
-object Selection {
+// object Selection {
   // cf. http://en.wikipedia.org/wiki/Fitness_proportionate_selection
   case class Roulette(size: SelectionSize = /* SelectionSize. */ Percentage(33)) extends Selection {
     override def apply(pop: GenomeVal, rnd: util.Random): Genome = {
@@ -44,7 +44,7 @@ object Selection {
       sorted.takeRight(n).map(_._1)
     }
   }
-}
+// }
 sealed trait Selection extends ((GenomeVal, util.Random) => Genome)
 
 // object SelectionSize {

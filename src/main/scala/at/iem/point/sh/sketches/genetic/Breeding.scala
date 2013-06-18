@@ -14,8 +14,8 @@ import collection.immutable.{IndexedSeq => Vec}
   */
 case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
                     crossoverWeight: /* SelectionSize. */ Percentage = /* SelectionSize. */ Percentage(80),
-                    crossover: BreedingFunction = BreedingFunction.OnePointCrossover,
-                    mutation : BreedingFunction = BreedingFunction.SingleCellMutation)
+                    crossover: BreedingFunction = /* BreedingFunction. */ OnePointCrossover,
+                    mutation : BreedingFunction = /* BreedingFunction. */ SingleCellMutation)
   extends ((GenomeSel, Rational, util.Random) => Genome) {
 
   override def apply(g: GenomeSel, duration: Rational, r: util.Random): Genome = {
@@ -38,7 +38,7 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
   }
 }
 
-object BreedingFunction {
+// object BreedingFunction {
   case object OnePointCrossover extends BreedingFunction {
     def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
       val res = Vec.newBuilder[Chromosome]
@@ -114,5 +114,5 @@ object BreedingFunction {
       res.result()
     }
   }
-}
+// }
 sealed trait BreedingFunction extends ((Genome, Int, Rational, util.Random) => Genome)

@@ -7,12 +7,12 @@ import spire.math.Rational
 import Fitness._
 import language.existentials
 
-object Evaluation {
-  case class Windowed(window: WindowFunction    = WindowFunction.Events(),
-                      fun   : LocalFunction     = LocalFunction.GeomMean,
-                      target: LocalFunction     = LocalFunction.Exp(0.0625, 0.25),
-                      fit   : MatchFunction     = MatchFunction.RelativeNegative,
-                      aggr  : AggregateFunction = AggregateFunction.Mean)
+// object Evaluation {
+  case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),
+                          fun   : LocalFunction     = /* LocalFunction. */ GeomMean,
+                          target: LocalFunction     = /* LocalFunction. */ Exp(0.0625, 0.25),
+                          fit   : MatchFunction     = /* MatchFunction. */ MatchRelNegative,
+                          aggr  : AggregateFunction = /* AggregateFunction. */ AggrMean)
     extends Evaluation {
 
     private val fitT = fit.tupled.apply _
@@ -26,9 +26,9 @@ object Evaluation {
     }
   }
 
-  case class Global(fun   : Evaluation    = Evaluation.Const(),
-                    target: Evaluation    = Evaluation.Const(),
-                    error : MatchFunction = MatchFunction.RelativeReciprocal)
+  case class EvalGlobal(fun   : Evaluation    = /* Evaluation. */ EvalConst(),
+                        target: Evaluation    = /* Evaluation. */ EvalConst(),
+                        error : MatchFunction = /* MatchFunction. */ MatchRelReciprocal)
     extends Evaluation {
 
     def apply(c: Chromosome): Double = {
@@ -38,19 +38,19 @@ object Evaluation {
     }
   }
 
-  case class Wrap(local: LocalFunction) extends Evaluation {
+  case class EvalWrap(local: LocalFunction) extends Evaluation {
     def apply(sq: Chromosome): Double = {
       val win = Slice(sq.flattenCells, 0, 0, 0.5)
       local(win)
     }
   }
 
-  case class Const(d: Double = 0.0) extends Evaluation {
+  case class EvalConst(d: Double = 0.0) extends Evaluation {
     def apply(sq: Chromosome): Double = d
   }
 
   /** Counts the number of duplicate cells in a chromosome. */
-  case class DuplicateCells(ignoreStretch: Boolean = true) extends Evaluation {
+  case class EvalDuplicateCells(ignoreStretch: Boolean = true) extends Evaluation {
     def apply(sq: Chromosome): Double = {
       val grouped = if (ignoreStretch) {
         sq.groupBy(_.id)
@@ -66,24 +66,24 @@ object Evaluation {
   /** Produces a sequential evaluation, by passing the chromosome first through a `Chromosome => Chromosome`
     * function and then through a subsequent `Chromosome => Double` evaluation.
     */
-  case class Serial(a: ChromosomeFunction = ChromosomeFunction.BindTrailingRests,
-                    b: Evaluation = Windowed())  extends Evaluation {
+  case class EvalSerial(a: ChromosomeFunction = /* ChromosomeFunction. */ BindTrailingRests,
+                        b: Evaluation = EvalWindowed())  extends Evaluation {
     override def apply(c: Chromosome): Double = b(a(c))
   }
 
-  case class Parallel(a: Evaluation     = Windowed(),
-                      b: Evaluation     = Global(DuplicateCells(), Const(1), MatchFunction.LessThan),
-                      op: MatchFunction = MatchFunction.Times) extends Evaluation {
+  case class EvalParallel(a: Evaluation     = EvalWindowed(),
+                          b: Evaluation     = EvalGlobal(EvalDuplicateCells(), EvalConst(1), /* MatchFunction. */ MatchLessThan),
+                          op: MatchFunction = /* MatchFunction. */ MatchTimes) extends Evaluation {
     override def apply(c: Chromosome): Double = op(a(c), b(c))
   }
-}
+// }
 
 /** An `Evaluation` is the container for the whole fitness evaluation process, taking an input chromosome
   * and returning a single fitness value.
   */
 sealed trait Evaluation extends (Chromosome => Double)
 
-object ChromosomeFunction {
+// object ChromosomeFunction {
   case object BindTrailingRests extends ChromosomeFunction {
     override def apply(c: Chromosome): Chromosome = {
       val durs  = c.flattenCells.bindTrailingRests
@@ -91,12 +91,12 @@ object ChromosomeFunction {
       Vec(cell)
     }
   }
-}
+// }
 /** A `ChromosomeFunction` pre-processes a chromosome before it is sent to another evaluation. */
 sealed trait ChromosomeFunction extends (Chromosome => Chromosome)
 
-object WindowFunction {
-  case class Events(size: Int = 5, step: Int = 2) extends WindowFunction {
+// object WindowFunction {
+  case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
     require(step >= 1 && size >= step)
 
     def apply(c: Chromosome): Vec[Slice] = {
@@ -112,7 +112,7 @@ object WindowFunction {
       m
     }
   }
-}
+// }
 /** A `WindowFunction` produces a sliding window view of a chromosome, by flattening its cells and returning a
   *  sequence of cell sequences. */
 sealed trait WindowFunction extends (Chromosome => Vec[Slice])
@@ -128,7 +128,7 @@ case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double) {
   def size: Int = sq.size
 }
 
-object LocalFunction {
+// object LocalFunction {
   case object LadmaEntropy extends LocalFunction {
     def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
   }
@@ -185,61 +185,61 @@ object LocalFunction {
   case class ExpExp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
     def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi).linexp(lo, hi, lo, hi)
   }
-}
+// }
 sealed trait LocalFunction extends (Slice => Double)
 
-object MatchFunction {
+// object MatchFunction {
   /** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
     * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
     */
-  case object RelativeReciprocal extends MatchFunction {
+  case object MatchRelReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
       if (eval == target) 1.0 else math.min(1.0, target / (1000 * math.abs(eval - target)))
     }
   }
 
-  case object RelativeNegative extends MatchFunction {
+  case object MatchRelNegative extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
       1.0 - (if (eval == target) 0.0 else math.min(1.0, math.abs(eval - target) / (1000 * target)))
     }
   }
 
-  case object AbsoluteReciprocal extends MatchFunction {
+  case object MatchAbsReciprocal extends MatchFunction {
     def apply(eval: Double, target: Double): Double = {
       math.min(1.0, 1.0 / (1000 * math.abs(eval - target)))
     }
   }
 
-  case object Min extends MatchFunction {
+  case object MatchMin extends MatchFunction {
     def apply(a: Double, b: Double): Double = math.min(a, b)
   }
 
-  case object Times extends MatchFunction {
+  case object MatchTimes extends MatchFunction {
     def apply(a: Double, b: Double): Double = a * b
   }
 
-  case object LessThan extends MatchFunction {
+  case object MatchLessThan extends MatchFunction {
     def apply(a: Double, b: Double): Double = if (a < b) 1 else 0
   }
 
   /** Linearly fades between purely `a` (when `w = 0`) purely `b` (when `w = 1`) */
-  case class FadeLin(w: Double = 0.5) extends MatchFunction {
+  case class MatchFadeLin(w: Double = 0.5) extends MatchFunction {
     def apply(a: Double, b: Double): Double = a * (1 - w) + b * w
   }
-}
+// }
 sealed trait MatchFunction  extends ((Double, Double) => Double)
 
-object AggregateFunction {
-  case object Mean extends AggregateFunction {
+// object AggregateFunction {
+  case object AggrMean extends AggregateFunction {
     def apply(fits: Vec[Double]): Double = fits.sum / fits.size
   }
 
-  case object RMS extends AggregateFunction {
+  case object AggrRMS extends AggregateFunction {
     def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
   }
 
-  case object Min extends AggregateFunction {
+  case object AggrMin extends AggregateFunction {
     def apply(fits: Vec[Double]): Double = fits.min
   }
-}
+// }
 sealed trait AggregateFunction extends (Vec[Double] => Double)
