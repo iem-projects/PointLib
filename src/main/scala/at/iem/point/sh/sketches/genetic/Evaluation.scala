@@ -2,7 +2,8 @@ package at.iem.point.sh.sketches
 package genetic
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import at.iem.point.illism.rhythm.{Note, Ladma}
+import at.iem.point.illism.rhythm.{NoteOrRest, Note, Ladma}
+import collection.breakOut
 import spire.math.Rational
 import Fitness._
 import language.existentials
@@ -44,6 +45,18 @@ import language.existentials
       local(win)
     }
   }
+
+case class EvalEvenOdd(even: Evaluation, odd: Evaluation, combine: MatchFunction) extends Evaluation {
+  override def apply(c: Chromosome): Double = {
+    val sq          = c.flattenCells
+    val (ite, ito)  = sq.view.zipWithIndex.partition(_._2 % 2 == 0)
+    val sqe         = ite.map(_._1).toIndexedSeq.toCell
+    val sqo         = ito.map(_._1).toIndexedSeq.toCell
+    val rese        = even(Vec(sqe))
+    val reso        = odd (Vec(sqo))
+    combine(rese, reso)
+  }
+}
 
   case class EvalConst(d: Double = 0.0) extends Evaluation {
     def apply(sq: Chromosome): Double = d
@@ -144,6 +157,10 @@ case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double) {
       e
     }
   }
+
+case object NumPauses extends LocalFunction {
+  def apply(win: Slice): Double = win.sq.count(_.isRest)
+}
 
   case object StdDev extends LocalFunction {
     def apply(win: Slice): Double = {

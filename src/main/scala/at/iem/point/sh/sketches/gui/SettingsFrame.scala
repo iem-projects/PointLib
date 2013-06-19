@@ -8,7 +8,11 @@ import reflect.runtime.universe.TypeTag
 import scala.swing.ScrollPane
 
 abstract class SettingsFrame[A: TypeTag](init: A, title: String) { me =>
-  final val view = AutoView(init)
+  final val view = {
+    val c = AutoView.Config()
+    c.small = true
+    AutoView(init, c)
+  }
 
   final def value       : A  = view.cell()
   final def value_=(eval: A) { view.cell() = eval }
