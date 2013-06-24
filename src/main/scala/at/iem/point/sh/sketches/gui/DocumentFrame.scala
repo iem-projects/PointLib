@@ -13,7 +13,7 @@ import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
 import genetic.{Generation, HeaderInfo, Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
-import scala.swing.event.{ButtonClicked, ValueChanged}
+import scala.swing.event.ButtonClicked
 import de.sciss.file._
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.Processor
@@ -35,6 +35,10 @@ final class DocumentFrame(val document: Document) { outer =>
   // var generation: Generation  = Generation  ()
   def generation: Generation  = pGen .cell()
   def info      : HeaderInfo  = pInfo.cell()
+  def iterations: Int         = info.iterations
+  def iterations_=(value: Int) {
+    pInfo.cell() = info.copy(iterations = value)
+  }
 
   //  val mDur        = new SpinnerNumberModel(16, 1, 128, 1)
   //  val ggDur       = new Spinner(mDur)
@@ -274,7 +278,8 @@ final class DocumentFrame(val document: Document) { outer =>
   val pButtons = new FlowPanel {
     contents += new BoxPanel(Orientation.Horizontal) {
       val ggGen = Button("Generate") {
-        implicit val r  = random
+        implicit val r  = Fitness.rng(generation.seed)
+        random          = r
         val pop         = generation.size
         val dur         = duration
         val nodes       = Vector.tabulate(pop) { idx =>
@@ -282,6 +287,7 @@ final class DocumentFrame(val document: Document) { outer =>
           new Node(index = idx, chromosome = sq)
         }
         tmTop.updateNodes(nodes)
+        iterations = 0
       }
       ggGen.peer.putClientProperty("JButton.buttonType", "segmentedCapsule")
       ggGen.peer.putClientProperty("JButton.segmentPosition", "only")
@@ -378,6 +384,7 @@ final class DocumentFrame(val document: Document) { outer =>
                 p.onSuccess {
                   case out => defer {
                     tmTop.updateNodes(out)
+                    iterations += num
                     tmBot.updateNodes(Vec.empty)
                   }
                 }

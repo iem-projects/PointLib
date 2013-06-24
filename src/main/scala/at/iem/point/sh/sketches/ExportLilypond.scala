@@ -87,13 +87,13 @@ object ExportLilypond {
             timeSig: LilyTimeSignature = LilyTimeSignature.Raw, tupletBrackets: Boolean = true,
             midi: Boolean = true) {
 
-    import settings.info.{title, subtitle}
+    import settings.info.{title, subtitle, iterations}
 
     // ---- lilypond test output ----
     val header = raw"""\header {
       |  title = \markup { \fontsize #-1 \sans { $title }}
       |  tagline = ""
-      |  subtitle = \markup { \sans { $subtitle }}
+      |  subtitle = \markup { \sans { $subtitle (it = $iterations) }}
       |}
       |\version "2.16.2"
       |
