@@ -232,8 +232,21 @@ final class DocumentFrame(val document: Document) { outer =>
 
   def stepEval(genome: Vec[Node]) {
     val fun = evaluation
+    var min = Double.MaxValue
+    var max = Double.MinValue
     genome.foreach { node =>
-      node.fitness = fun(node.chromosome)
+      val f = fun(node.chromosome)
+      node.fitness = f
+      if (f < min) min = f
+      if (f > max) max = f
+    }
+    // normalize
+    if (max > min) {
+      val off     = -min
+      val scale   = 1.0/(max - min)
+      genome.foreach { node =>
+        node.fitness = (node.fitness + off) * scale
+      }
     }
   }
 
