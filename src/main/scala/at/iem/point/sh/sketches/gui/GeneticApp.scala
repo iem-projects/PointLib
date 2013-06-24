@@ -27,6 +27,8 @@ object GeneticApp extends SwingApplicationImpl("Genetic Algorithm") {
           Item("lily", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
         ).add(
           Item("settings", proxy("Algorithm Settings..."      -> (menu1 + alt   + VK_S)))
+        ).add(
+          Item("table", proxy("Selection As PDF Table..."     -> (menu1 +         VK_T)))
         )
       )
     )

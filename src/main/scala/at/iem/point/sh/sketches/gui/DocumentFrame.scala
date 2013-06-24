@@ -1,4 +1,5 @@
-package at.iem.point.sh.sketches.gui
+package at.iem.point.sh.sketches
+package gui
 
 import scala.swing.{Action, SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
 import Swing._
@@ -7,18 +8,18 @@ import de.sciss.desktop.{FileDialog, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{EventQueue, Graphics, Graphics2D}
-import at.iem.point.sh.sketches.{SettingsIO, ExportLilypond, Fitness}
 import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{Generation, HeaderInfo, Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
+import genetic.{Generation, HeaderInfo, Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
 import scala.swing.event.{ButtonClicked, ValueChanged}
 import de.sciss.file._
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.Processor
 import scala.concurrent.ExecutionContext
 import de.sciss.guiflitz.AutoView
+import de.sciss.pdflitz
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
@@ -35,21 +36,21 @@ final class DocumentFrame(val document: Document) { outer =>
   def generation: Generation  = pGen .cell()
   def info      : HeaderInfo  = pInfo.cell()
 
-  val mDur        = new SpinnerNumberModel(16, 1, 128, 1)
-  val ggDur       = new Spinner(mDur)
-  val mSeed       = new SpinnerNumberModel(0L, 0L, Long.MaxValue, 1L)
-  val ggSeed      = new Spinner(mSeed) {
-    listenTo(this)
-    reactions += {
-      case ValueChanged(_) =>
-        random = Fitness.rng(mSeed.getNumber.longValue())
-    }
-  }
-  val mPop        = new SpinnerNumberModel(100, 1, 10000, 1)
-  val ggPop       = new Spinner(mPop)
-  val ggRandSeed  = Button("Rand") {
-    mSeed.setValue(util.Random.nextLong()) // System.currentTimeMillis())
-  }
+  //  val mDur        = new SpinnerNumberModel(16, 1, 128, 1)
+  //  val ggDur       = new Spinner(mDur)
+  //  val mSeed       = new SpinnerNumberModel(0L, 0L, Long.MaxValue, 1L)
+  //  val ggSeed      = new Spinner(mSeed) {
+  //    listenTo(this)
+  //    reactions += {
+  //      case ValueChanged(_) =>
+  //        random = Fitness.rng(mSeed.getNumber.longValue())
+  //    }
+  //  }
+  //  val mPop        = new SpinnerNumberModel(100, 1, 10000, 1)
+  //  val ggPop       = new Spinner(mPop)
+  //  val ggRandSeed  = Button("Rand") {
+  //    mSeed.setValue(util.Random.nextLong()) // System.currentTimeMillis())
+  //  }
 
   val avCfg       = AutoView.Config()
   avCfg.scroll    = false
@@ -228,7 +229,7 @@ final class DocumentFrame(val document: Document) { outer =>
     breeding    = s.breeding
   }
 
-  def duration = Rational(mDur.getNumber.intValue(), 4)
+  def duration = Rational(generation.duration, 4)
 
   def stepEval(genome: Vec[Node]) {
     val fun = evaluation
@@ -274,7 +275,7 @@ final class DocumentFrame(val document: Document) { outer =>
     contents += new BoxPanel(Orientation.Horizontal) {
       val ggGen = Button("Generate") {
         implicit val r  = random
-        val pop         = mPop.getNumber.intValue()
+        val pop         = generation.size
         val dur         = duration
         val nodes       = Vector.tabulate(pop) { idx =>
           val sq  = Fitness.randomSequence(dur)
@@ -437,6 +438,10 @@ final class DocumentFrame(val document: Document) { outer =>
         SettingsIO.write(settings, f.replaceExt("json"))
       }
     })
+    bindMenu("file.export.table", Action("") {
+      val dlg = FileDialog.save(title = "Export Selection as PDF Table")
+      dlg.show(Some(me)).foreach(exportTableAsPDF)
+    })
     bindMenu("file.import.settings", Action("") {
       val dlg = FileDialog.open(title = "Import Algorithm Settings")
       dlg.show(Some(me)).foreach { f =>
@@ -445,6 +450,13 @@ final class DocumentFrame(val document: Document) { outer =>
     })
     pack()
     front()
+  }
+
+  def exportTableAsPDF(f: File) {
+    import sys.process._
+    val f1 = f.replaceExt("pdf")
+    pdflitz.Generate(f1, view = ttTop, usePreferredSize = false, margin = 0, overwrite = true)
+    Seq(pdfViewer, f1.path).!
   }
 
   class Proc(in: Vec[Node], num: Int) extends ProcessorImpl[Vec[Node], Proc] {
