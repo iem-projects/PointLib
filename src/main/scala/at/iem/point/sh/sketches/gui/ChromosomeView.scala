@@ -16,7 +16,7 @@ import Swing._
 import Fitness._
 
 object ChromosomeView {
-  private val StabWidth           = 5.0
+  private val StabWidth           = 4.0 // 5.0
   private val PreferredScale      = 4 / (1.0/32)
   private val PreferredHeight     = 32
   private val PreferredNoteHeight = 16
@@ -26,11 +26,8 @@ object ChromosomeView {
   private val ColorRest1          = Color.lightGray
   private val ColorRest2          = new Color(224, 224, 224)
 
-//}
-//class ChromosomeView {
-//  import ChromosomeView._
-
-  //  private val cn        = c.map(_.normalized)
+  def preferredHeight: Int    = PreferredHeight
+  def preferredScale: Double  = PreferredScale
 
   private def hgrad(x1: Double, c1: Color, x2: Double, c2: Color): Paint =
     new LinearGradientPaint(x1.toFloat, 0f, x2.toFloat, 0f, Array(0f, 1f), Array(c1, c2))
@@ -44,6 +41,14 @@ object ChromosomeView {
     (w, PreferredHeight)
   }
 
+  /** Paints a given chromosome using a given graphics context.
+    *
+    * @param cn       the chromosome
+    * @param g        the graphics contexrt
+    * @param width    the nominal width in pixels
+    * @param height   the height in pixels
+    * @param widthDur the duration (in wholes) corresponding to the nominal `width`
+    */
   def paint(cn: Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double) {
     val sz    = cn.size
     if (sz == 0) return
@@ -64,7 +69,7 @@ object ChromosomeView {
     cn.foldLeft(0.0) { (x, cell) =>
       val x1 = if (x > 0) {
         g.setPaint(ColorStab)
-        val x0 = x + StabWidth/2 - 0.5
+        val x0 = x + StabWidth/2 // - 0.5
         g.draw(line(x0, 0, x0, height))
         x + StabWidth
       } else x

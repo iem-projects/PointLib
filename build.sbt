@@ -41,7 +41,8 @@ initialCommands in console :=
 
 // ---- app bundle ----
 
-// seq(appbundle.settings: _*)
+seq(appbundle.settings: _*)
 
-// appbundle.target <<= baseDirectory
+appbundle.target <<= baseDirectory
 
+appbundle.icon := Some(file("icon.png"))

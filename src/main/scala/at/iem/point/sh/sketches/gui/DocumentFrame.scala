@@ -9,7 +9,6 @@ import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{EventQueue, Graphics, Graphics2D}
 import collection.immutable.{IndexedSeq => Vec}
-import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
 import genetic.{Generation, HeaderInfo, Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
@@ -233,7 +232,7 @@ final class DocumentFrame(val document: Document) { outer =>
     breeding    = s.breeding
   }
 
-  def duration = Rational(generation.duration, 4)
+  def duration = generation.wholeDur
 
   def stepEval(genome: Vec[Node]) {
     val fun = evaluation
@@ -270,6 +269,8 @@ final class DocumentFrame(val document: Document) { outer =>
     val n   = fun(genome.map(node => (node.chromosome, node.fitness, node.selected)), dur, r)
     n.zipWithIndex.map { case (c, idx) => new Node(index = idx, chromosome = c)}
   }
+
+  def selectedNodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
 
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else onEDT(thunk)
@@ -423,10 +424,6 @@ final class DocumentFrame(val document: Document) { outer =>
     bottomComponent = splitBot
   }
 
-  //  def exportAsLilypond(nodes: Vec[Node], f: File) {
-  //    ExportLilypond.dialog(nodes.map(n => (n.chromosome, n.fitness)), f)
-  //  }
-
   new WindowImpl { me =>
     def handler = GeneticApp.windowHandler
     def style   = Window.Regular
@@ -434,7 +431,7 @@ final class DocumentFrame(val document: Document) { outer =>
     title       = "Genetic Algorithm"
 
     bindMenu("file.export.lily", Action("") {
-      val nodes = ttTop.selection.paths.map(_.last).toIndexedSeq.sortBy(-_.fitness)
+      val nodes = selectedNodes
       if (nodes.nonEmpty) {
         ExportLilypond.dialog(settings, nodes.map(n => (n.chromosome, n.fitness)))
       }
@@ -446,8 +443,11 @@ final class DocumentFrame(val document: Document) { outer =>
       }
     })
     bindMenu("file.export.table", Action("") {
-      val dlg = FileDialog.save(title = "Export Selection as PDF Table")
-      dlg.show(Some(me)).foreach(exportTableAsPDF)
+      val nodes = selectedNodes
+      if (nodes.nonEmpty) {
+        val dlg = FileDialog.save(title = "Export Selection as PDF Table")
+        dlg.show(Some(me)).foreach(f => exportTableAsPDF(f, nodes.map(n => (n.chromosome, n.fitness))))
+      }
     })
     bindMenu("file.import.settings", Action("") {
       val dlg = FileDialog.open(title = "Import Algorithm Settings")
@@ -459,10 +459,10 @@ final class DocumentFrame(val document: Document) { outer =>
     front()
   }
 
-  def exportTableAsPDF(f: File) {
+  def exportTableAsPDF(f: File, genome: Fitness.GenomeVal) {
     import sys.process._
     val f1 = f.replaceExt("pdf")
-    pdflitz.Generate(f1, view = ttTop, usePreferredSize = false, margin = 0, overwrite = true)
+    ExportTable(f1, genome, settings)
     Seq(pdfViewer, f1.path).!
   }
 
