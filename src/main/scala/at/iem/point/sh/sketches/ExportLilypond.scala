@@ -14,14 +14,14 @@ object ExportLilypond {
   def dialog(settings: Settings, genome: GenomeVal, parent: Option[Window] = None) {
     import swing._
 
-    val lbTitle = new Label("Title:"          , null, Alignment.Trailing)
-    val lbSub   = new Label("Sub title:"      , null, Alignment.Trailing)
+    //    val lbTitle = new Label("Title:"          , null, Alignment.Trailing)
+    //    val lbSub   = new Label("Sub title:"      , null, Alignment.Trailing)
     val lbTime  = new Label("Time signatures:", null, Alignment.Trailing)
     val lbTuplet= new Label("Tuplet brackets:", null, Alignment.Trailing)
     val lbMIDI  = new Label("MIDI files:"     , null, Alignment.Trailing)
 
-    val ggTitle = new TextField("Title", 12)
-    val ggSub   = new TextField("Sub title", 12)
+    //    val ggTitle = new TextField("Title", 12)
+    //    val ggSub   = new TextField("Sub title", 12)
     val ggTime  = new ComboBox(Seq("Raw Rationals", "Rounded Rationals", "Decimals"))
     val ggTuplet= new CheckBox
     val ggMIDI  = new CheckBox
@@ -32,22 +32,22 @@ object ExportLilypond {
 
     import Springs._
     val pane    = new SpringPanel {
-      contents ++= Seq(lbTitle, lbSub, lbTime, lbTuplet, lbMIDI, ggTitle, ggSub, ggTime, ggTuplet, ggMIDI)
-      linkHeight(lbTitle, lbSub, lbTime, lbTuplet, lbMIDI,
-                 ggTitle, ggSub, ggTime, ggTuplet, ggMIDI)
-      linkWidth (lbTitle, lbSub, lbTime, lbTuplet, lbMIDI)
-      linkWidth (ggTitle, ggSub, ggTime)
-      cons(lbTitle).x = 4
-      cons(lbTitle).y = 4
-      cons(ggTitle).y = 4
-      vseq(lbTitle, lbSub, lbTime, lbTuplet, lbMIDI)
-      vseq(ggTitle, ggSub, ggTime, ggTuplet, ggMIDI)
-      cons(ggTitle ).x  = cons(lbTitle ).right  + 4
-      cons(ggSub   ).x  = cons(lbSub   ).right  + 4
+      contents ++= Seq(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI, /* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
+      linkHeight(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI,
+                 /* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
+      linkWidth (/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI)
+      // linkWidth (ggTitle, ggSub, ggTime)
+      cons(lbTime /* lbTitle */ ).x = 4
+      cons(lbTime /* lbTitle */ ).y = 4
+      cons(ggTime /* ggTitle */).y = 4
+      vseq(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI)
+      vseq(/* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
+      //      cons(ggTitle ).x  = cons(lbTitle ).right  + 4
+      //      cons(ggSub   ).x  = cons(lbSub   ).right  + 4
       cons(ggTime  ).x  = cons(lbTime  ).right  + 4
       cons(ggTuplet).x  = cons(lbTuplet).right  + 4
       cons(ggMIDI  ).x  = cons(lbMIDI  ).right  + 4
-      cons(this).right  = cons(ggTitle ).right  + 4
+      cons(this).right  = cons(/* ggTitle */ ggTime ).right  + 4
       cons(this).bottom = cons(ggMIDI  ).bottom + 4
     }
 
@@ -58,7 +58,7 @@ object ExportLilypond {
       val dlg = FileDialog.save(init = Some(defaultFile()), title = "Export As Lilypond Score")
       val res = dlg.show(parent)
       res.foreach { f =>
-        ExportLilypond(settings = settings, genome = genome, out = f, title = ggTitle.text, subTitle = ggSub.text,
+        ExportLilypond(settings = settings, genome = genome, out = f,
           timeSig = LilyTimeSignature(ggTime.selection.index), tupletBrackets = ggTuplet.selected,
           midi = ggMIDI.selected)
       }
@@ -81,18 +81,19 @@ object ExportLilypond {
     *
     * @param genome   the sequence of chromosomes
     * @param out      the file (extension will be stripped!)
-    * @param title    title for the score
-    * @param subTitle sub title for the score
     * @param midi     whether to output to MIDI file as well or not
     */
-  def apply(settings: Settings, genome: GenomeVal, out: File, title: String = "Title", subTitle: String = "Sub Title",
+  def apply(settings: Settings, genome: GenomeVal, out: File,
             timeSig: LilyTimeSignature = LilyTimeSignature.Raw, tupletBrackets: Boolean = true,
             midi: Boolean = true) {
+
+    import settings.info.{title, subtitle}
+
     // ---- lilypond test output ----
     val header = raw"""\header {
       |  title = \markup { \fontsize #-1 \sans { $title }}
       |  tagline = ""
-      |  subtitle = \markup { \sans { $subTitle }}
+      |  subtitle = \markup { \sans { $subtitle }}
       |}
       |\version "2.16.2"
       |

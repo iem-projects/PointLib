@@ -3,7 +3,7 @@ package at.iem.point.sh.sketches.gui
 import scala.swing.{Action, SplitPane, FlowPanel, Orientation, Swing, BoxPanel, BorderPanel, ScrollPane, Button}
 import Swing._
 import de.sciss.desktop.impl.WindowImpl
-import de.sciss.desktop.{FileDialog, Menu, Window}
+import de.sciss.desktop.{FileDialog, Window}
 import javax.swing.{Icon, SpinnerNumberModel}
 import de.sciss.treetable.{AbstractTreeModel, TreeColumnModel, TreeTable, TreeTableCellRenderer, j}
 import java.awt.{EventQueue, Graphics, Graphics2D}
@@ -12,13 +12,13 @@ import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import de.sciss.swingplus.Spinner
 import de.sciss.treetable.j.DefaultTreeTableSorter
-import at.iem.point.sh.sketches.genetic.{Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
+import at.iem.point.sh.sketches.genetic.{Generation, HeaderInfo, Settings, EvalWindowed, Roulette, Breeding, Selection, Evaluation}
 import scala.swing.event.{ButtonClicked, ValueChanged}
 import de.sciss.file._
-import scala.annotation.tailrec
 import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.Processor
 import scala.concurrent.ExecutionContext
+import de.sciss.guiflitz.AutoView
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,
@@ -28,6 +28,12 @@ final class DocumentFrame(val document: Document) { outer =>
   import DocumentFrame._
 
   var random      = Fitness.rng(0L)
+  var evaluation: Evaluation  = EvalWindowed()
+  var selection : Selection   = Roulette    ()
+  var breeding  : Breeding    = Breeding    ()
+  // var generation: Generation  = Generation  ()
+  def generation: Generation  = pGen .cell()
+  def info      : HeaderInfo  = pInfo.cell()
 
   val mDur        = new SpinnerNumberModel(16, 1, 128, 1)
   val ggDur       = new Spinner(mDur)
@@ -45,10 +51,14 @@ final class DocumentFrame(val document: Document) { outer =>
     mSeed.setValue(util.Random.nextLong()) // System.currentTimeMillis())
   }
 
-  val pGen =
-    form"""   Duration:|$ggDur |\u2669
-          |       Seed:|$ggSeed|$ggRandSeed
-          | Population:|$ggPop |"""
+  val avCfg       = AutoView.Config()
+  avCfg.scroll    = false
+  avCfg.small     = true
+  val pGen        = AutoView(Generation(), avCfg)
+  //    form"""   Duration:|$ggDur |\u2669
+  //          |       Seed:|$ggSeed|$ggRandSeed
+  //          | Population:|$ggPop |"""
+  val pInfo     = AutoView(HeaderInfo(), avCfg)
 
   import Fitness.Chromosome
   //                                       index            fitness selected
@@ -205,17 +215,13 @@ final class DocumentFrame(val document: Document) { outer =>
   val ttBot       = mkTreeTable(tmBot, tcmBot)
   val ggScrollBot = new ScrollPane(ttBot)
 
-  val pGenSettings = new BoxPanel(Orientation.Vertical) {
-    contents += pGen
+  val pTopSettings = new BoxPanel(Orientation.Vertical) {
+    contents += new FlowPanel(pGen.component, pInfo.component)
     contents += VStrut(4)
     // contents += ggGen
   }
 
-  var evaluation: Evaluation = /* Evaluation. */ EvalWindowed()
-  var selection : Selection  = /* Selection . */ Roulette()
-  var breeding  : Breeding   = Breeding           ()
-
-  def settings: Settings = Settings(evaluation, selection, breeding)
+  def settings: Settings = Settings(info, generation, evaluation, selection, breeding)
   def settings_=(s: Settings) {
     evaluation  = s.evaluation
     selection   = s.selection
@@ -380,7 +386,7 @@ final class DocumentFrame(val document: Document) { outer =>
   }
 
   val splitTop = new BorderPanel {
-    add(pGenSettings, BorderPanel.Position.North )
+    add(pTopSettings, BorderPanel.Position.North )
     add(ggScrollTop , BorderPanel.Position.Center)
     add(pButtons    , BorderPanel.Position.South )
   }

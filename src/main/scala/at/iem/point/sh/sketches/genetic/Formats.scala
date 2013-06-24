@@ -37,5 +37,8 @@ object Formats {
   // wooo, I'm amazed that this works despite recursivity !?
   implicit lazy val evaluation      : Format[Evaluation]          = SealedTraitFormat[Evaluation]
 
+  implicit val headerInfo           : Format[HeaderInfo]          = SealedTraitFormat[HeaderInfo]
+  implicit val generation           : Format[Generation]          = SealedTraitFormat[Generation]
+
   implicit val settings             : Format[Settings]            = SealedTraitFormat[Settings]
 }
