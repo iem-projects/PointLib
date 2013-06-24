@@ -43,6 +43,10 @@ initialCommands in console :=
 
 seq(appbundle.settings: _*)
 
+appbundle.mainClass := Some("at.iem.point.sh.sketches.gui.GeneticApp")
+
+appbundle.name := "GeneticAlgorithm"
+
 appbundle.target <<= baseDirectory
 
 appbundle.icon := Some(file("icon.png"))
