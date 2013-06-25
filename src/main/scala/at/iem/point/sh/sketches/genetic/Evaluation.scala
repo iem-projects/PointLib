@@ -141,130 +141,158 @@ case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double) {
   def size: Int = sq.size
 }
 
-// object LocalFunction {
-  case object LadmaEntropy extends LocalFunction {
-    def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
-  }
+case object LadmaEntropy extends LocalFunction {
+  def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
+}
 
-  /** Geometric mean of the durations within a slice */
-  case object GeomMean extends LocalFunction {
-    def apply(win: Slice): Double = {
-      if (win.size == 1) return win.sq.head.dur.toDouble
-      val seq1    = win.sq.map(_.dur) // win.sq.bindTrailingRests // note: we can do this through serial function now
-      // the geometric average is n-th root of the product of the durations
-      val prod    = seq1.product
-      val e       = math.pow(prod.toDouble, 1.0/seq1.size)
-      e
-    }
+/** Geometric mean of the durations within a slice */
+case object GeomMean extends LocalFunction {
+  def apply(win: Slice): Double = {
+    if (win.size == 1) return win.sq.head.dur.toDouble
+    val seq1    = win.sq.map(_.dur) // win.sq.bindTrailingRests // note: we can do this through serial function now
+    // the geometric average is n-th root of the product of the durations
+    val prod    = seq1.product
+    val e       = math.pow(prod.toDouble, 1.0/seq1.size)
+    e
   }
+}
 
 case object NumPauses extends LocalFunction {
   def apply(win: Slice): Double = win.sq.count(_.isRest)
 }
 
-  case object StdDev extends LocalFunction {
-    def apply(win: Slice): Double = {
-      if (win.size == 1) return 0.0
-      val seq1    = win.sq.map(_.dur)
-      // the geometric average is n-th root of the product of the durations
-      val mean    = (seq1.sum / seq1.size).toDouble
-      val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
-      val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
-      stdDev
+case class AutoCorrelation(restsDistinct: Boolean = true, aggr: AggregateFunction = AggrMean)
+  extends LocalFunction {
+
+  def apply(win: Slice): Double = {
+    val sq  = win.sq
+    val vec = if (restsDistinct) sq.map(_.toNumber.toDouble) else sq.map(_.dur.toDouble)
+    val sz  = sq.size
+    val (mean, std) = MathUtil.stat(vec, 0, sz)
+    val v = if (std == 0.0) Vec.fill(sz)(1.0) else {
+      val b = Vec.newBuilder[Double]
+      b.sizeHint(sz)
+      var i = 1; while (i < sz) {
+        b += MathUtil.correlate(vec, mean, std, sz, vec, mean, std, i)
+        i += 1
+      }
+      b.result()
     }
+    val res = aggr(v)
+    // println(f"Mean $mean%1.3f, std $std%1.3f, res $res%1.3f")
+    res
   }
+}
 
-  /** Relative standard deviation, aka coefficient of variation. */
-  case object VariationCoeff extends LocalFunction {
-    def apply(win: Slice): Double = {
-      if (win.size == 1) return 0.0
-      val seq1    = win.sq.map(_.dur)
-      // the geometric average is n-th root of the product of the durations
-      val mean    = (seq1.sum / seq1.size).toDouble
-      val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
-      val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
-      math.min(10000, stdDev / mean)
-    }
+case object StdDev extends LocalFunction {
+  def apply(win: Slice): Double = {
+    if (win.size == 1) return 0.0
+    val seq1    = win.sq.map(_.dur)
+    // the geometric average is n-th root of the product of the durations
+    val mean    = (seq1.sum / seq1.size).toDouble
+    val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
+    val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
+    stdDev
   }
+}
 
-  case class Const(d: Double = 0.0) extends LocalFunction {
-    def apply(win: Slice): Double = d
+/** Relative standard deviation, aka coefficient of variation. */
+case object VariationCoeff extends LocalFunction {
+  def apply(win: Slice): Double = {
+    if (win.size == 1) return 0.0
+    val seq1    = win.sq.map(_.dur)
+    // the geometric average is n-th root of the product of the durations
+    val mean    = (seq1.sum / seq1.size).toDouble
+    val sumSqr  = seq1.map { x => val dif = x.toDouble - mean; dif * dif } .sum
+    val stdDev  = math.sqrt(sumSqr / (seq1.size - 1))
+    math.min(10000, stdDev / mean)
   }
+}
 
-  case class Line(lo: Double = 0.0, hi: Double = 1.0) extends LocalFunction {
-    def apply(win: Slice): Double = win.w.linlin(0, 1, lo, hi)
-  }
+case class Const(d: Double = 0.0) extends LocalFunction {
+  def apply(win: Slice): Double = d
+}
 
-  case class Exp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
-    def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi)
-  }
+case class Line(lo: Double = 0.0, hi: Double = 1.0) extends LocalFunction {
+  def apply(win: Slice): Double = win.w.linlin(0, 1, lo, hi)
+}
 
-  case class ExpExp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
-    def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi).linexp(lo, hi, lo, hi)
-  }
-// }
+case class Exp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
+  def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi)
+}
+
+case class ExpExp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
+  def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi).linexp(lo, hi, lo, hi)
+}
+
 sealed trait LocalFunction extends (Slice => Double)
 
-// object MatchFunction {
-  /** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
-    * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
-    */
-  case object MatchRelReciprocal extends MatchFunction {
-    def apply(eval: Double, target: Double): Double = {
-      if (eval == target) 1.0 else math.min(1.0, target / (1000 * math.abs(eval - target)))
-    }
+/** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
+  * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
+  */
+case object MatchRelReciprocal extends MatchFunction {
+  def apply(eval: Double, target: Double): Double = {
+    if (eval == target) 1.0 else math.min(1.0, target / (1000 * math.abs(eval - target)))
   }
+}
 
-  case object MatchRelNegative extends MatchFunction {
-    def apply(eval: Double, target: Double): Double = {
-      1.0 - (if (eval == target) 0.0 else math.min(1.0, math.abs(eval - target) / (1000 * target)))
-    }
+case object MatchRelNegative extends MatchFunction {
+  def apply(eval: Double, target: Double): Double = {
+    1.0 - (if (eval == target) 0.0 else math.min(1.0, math.abs(eval - target) / (1000 * target)))
   }
+}
 
-  case object MatchAbsReciprocal extends MatchFunction {
-    def apply(eval: Double, target: Double): Double = {
-      math.min(1.0, 1.0 / (1000 * math.abs(eval - target)))
-    }
-  }
+case object MatchAtan extends MatchFunction {
+  private final val PiH = math.Pi/2
+  def apply(eval: Double, target: Double): Double = 1.0 - math.atan(math.abs(eval - target)) / PiH
+}
 
-  case object MatchMin extends MatchFunction {
-    def apply(a: Double, b: Double): Double = math.min(a, b)
+case object MatchAbsReciprocal extends MatchFunction {
+  def apply(eval: Double, target: Double): Double = {
+    math.min(1.0, 1.0 / (1000 * math.abs(eval - target)))
   }
+}
 
-  case object MatchTimes extends MatchFunction {
-    def apply(a: Double, b: Double): Double = a * b
-  }
+case object MatchMin extends MatchFunction {
+  def apply(a: Double, b: Double): Double = math.min(a, b)
+}
 
-  case object MatchLessThan extends MatchFunction {
-    def apply(a: Double, b: Double): Double = if (a < b) 1 else 0
-  }
+case object MatchTimes extends MatchFunction {
+  def apply(a: Double, b: Double): Double = a * b
+}
 
-  /** Linearly fades between purely `a` (when `w = 0`) purely `b` (when `w = 1`) */
-  case class MatchFadeLin(w: Double = 0.5) extends MatchFunction {
-    def apply(a: Double, b: Double): Double = a * (1 - w) + b * w
-  }
+case object MatchLessThan extends MatchFunction {
+  def apply(a: Double, b: Double): Double = if (a < b) 1 else 0
+}
 
-  case class MatchScale(a: ScaleFunction = ScaleLinLin(), b: ScaleFunction = ScaleLinLin(),
-                        combine: MatchFunction = MatchTimes) extends MatchFunction { me =>
-    def apply(a: Double, b: Double): Double = combine(me.a(a), me.b(b))
-  }
-// }
-sealed trait MatchFunction  extends ((Double, Double) => Double)
+/** Linearly fades between purely `a` (when `w = 0`) purely `b` (when `w = 1`) */
+case class MatchFadeLin(w: Double = 0.5) extends MatchFunction {
+  def apply(a: Double, b: Double): Double = a * (1 - w) + b * w
+}
 
-// object AggregateFunction {
-  case object AggrMean extends AggregateFunction {
-    def apply(fits: Vec[Double]): Double = fits.sum / fits.size
-  }
+case class MatchScale(a: ScaleFunction = ScaleLinLin(), b: ScaleFunction = ScaleLinLin(),
+                      combine: MatchFunction = MatchTimes) extends MatchFunction { me =>
+  def apply(a: Double, b: Double): Double = combine(me.a(a), me.b(b))
+}
 
-  case object AggrRMS extends AggregateFunction {
-    def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
-  }
+sealed trait MatchFunction extends ((Double, Double) => Double)
+
+case object AggrMean extends AggregateFunction {
+  def apply(fits: Vec[Double]): Double = fits.sum / fits.size
+}
+
+case object AggrRMS extends AggregateFunction {
+  def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
+}
 
 case object AggrMin extends AggregateFunction {
   def apply(fits: Vec[Double]): Double = fits.min
 }
 
-// }
+case object AggrMax extends AggregateFunction {
+  def apply(fits: Vec[Double]): Double = fits.max
+}
+
 sealed trait AggregateFunction extends (Vec[Double] => Double)
 
 case class ScaleLinLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0, dstHi: Double = 1) extends ScaleFunction {

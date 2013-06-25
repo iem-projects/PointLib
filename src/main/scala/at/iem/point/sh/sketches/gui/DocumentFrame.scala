@@ -33,7 +33,9 @@ final class DocumentFrame(val document: Document) { outer =>
   var breeding  : Breeding    = Breeding    ()
   // var generation: Generation  = Generation  ()
   def generation: Generation  = pGen .cell()
+  def generation_=(value: Generation) { pGen.cell() = value }
   def info      : HeaderInfo  = pInfo.cell()
+  def info_=(value: HeaderInfo) { pInfo.cell() = value }
   def iterations: Int         = info.iterations
   def iterations_=(value: Int) {
     pInfo.cell() = info.copy(iterations = value)
@@ -230,6 +232,8 @@ final class DocumentFrame(val document: Document) { outer =>
     evaluation  = s.evaluation
     selection   = s.selection
     breeding    = s.breeding
+    info        = s.info
+    generation  = s.generation
   }
 
   def duration = generation.wholeDur
