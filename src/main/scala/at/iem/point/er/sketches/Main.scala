@@ -3,8 +3,7 @@ package at.iem.point.er.sketches
 import java.io.File
 import annotation.tailrec
 import de.sciss.sonogram
-import javax.swing.WindowConstants
-import swing.{MainFrame, Slider, BorderPanel, BoxPanel, Orientation, Component, Button, Frame, Swing, SimpleSwingApplication}
+import swing.{Slider, BorderPanel, BoxPanel, Orientation, Component, Swing}
 import Swing._
 import de.sciss.dsp.ConstQ
 import GUI.Implicits._
@@ -23,8 +22,6 @@ object Main extends SwingApplicationImpl("PointLib") {
 
   private lazy val sono   = new SonogramView
   private var playerViewOption = Option.empty[PlayerView]
-
-  def quit() { sys.exit() }
 
   lazy val f: File = {
     @tailrec def loop(): File = GUI.openAudioFileDialog() match {
@@ -200,24 +197,7 @@ object Main extends SwingApplicationImpl("PointLib") {
     }
   }
 
-  private lazy val onsetsSettingsFrame = {
-    val oCfg = OnsetsAnalysis.Config()
-    oCfg.input = f
-
-    val oView = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
-    new WindowImpl {
-      def handler = Main.windowHandler
-      def style = Window.Palette
-      title = "Onsets Analysis Settings"
-      // peer.getRootPane.putClientProperty("Window.style", "small")
-      closeOperation = Window.CloseHide
-      contents = oView.component
-      pack()
-      resizable = false
-      this.placeRightOf(top)
-      front()
-    }
-  }
+  private lazy val onsetsSettingsFrame = OnsetsAnalysisWindow(f)
 
   override def init() {
     boot()

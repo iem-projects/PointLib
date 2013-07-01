@@ -3,7 +3,7 @@ package at.iem.point.er.sketches
 import scala.swing.{Component, Swing}
 import de.sciss.audiowidgets.{AxisFormat, Transport, Axis}
 import java.io.File
-import java.awt.{RenderingHints, Color, Graphics2D}
+import java.awt.{Point, RenderingHints, Color, Graphics2D}
 import de.sciss.synth
 import synth._
 import io.{SampleFormat, AudioFileSpec}
@@ -13,7 +13,7 @@ import Ops._
 import de.sciss.audiowidgets.Transport._
 import collection.breakOut
 import collection.immutable.{IndexedSeq => IIdxSeq}
-import scala.swing.event.MouseClicked
+import scala.swing.event.{MouseDragged, MousePressed, MouseClicked}
 import de.sciss.osc.{Dump, Bundle, Message}
 
 class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
@@ -96,7 +96,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
       val gapFrames = start - 1 - lastStop
       if (gapFrames > 0) { // insert 'gap'
         seqB += (gapFrames / sr).toFloat
-        seqB += stepShape.id
+        seqB += Curve.step.id
         seqB += 0f
         seqB += 0f
         seqSz += 1
@@ -106,7 +106,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
         case CurveFitting.PointFit(freq) =>
           val pitchFrames = stop - lastStop
           seqB += (pitchFrames / sr).toFloat
-          seqB += stepShape.id
+          seqB += Curve.step.id
           seqB += freq.toFloat
           seqB += smp.clarity
           seqSz += 1
@@ -116,14 +116,14 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
           val pitchFrames = stop - start
           val stopFreq    = lin(smp.stop - smp.start)
           seqB += (1 / sr).toFloat
-          seqB += stepShape.id
+          seqB += Curve.step.id
           seqB += startFreq.toFloat
           seqB += smp.clarity
           seqSz += 1
           lastStop += 1
 
           seqB += (pitchFrames / sr).toFloat
-          seqB += linShape.id
+          seqB += Curve.lin.id
           seqB += stopFreq.toFloat
           seqB += smp.clarity
           seqSz += 1
@@ -163,14 +163,20 @@ posIdx = 0  // XXX TODO
     val colr = new Color(0x00, 0x00, 0xFF, 0x80)
 
     listenTo(mouse.clicks)
+    listenTo(mouse.moves)
+
+    def move(pt: Point) {
+      val p = playing.isDefined
+      if (p) stop()
+      position = math.max(0L, math.min(inputSpec.numFrames,
+        pt.x.toDouble.linlin(0, size.width, 0, inputSpec.numFrames))).toLong
+      if (p) play()
+      repaint()
+    }
+
     reactions += {
-      case MouseClicked(c, pt, _, _, _) =>
-        val p = playing.isDefined
-        if (p) stop()
-        position = math.max(0L, math.min(inputSpec.numFrames,
-          pt.x.toDouble.linlin(0, c.size.width, 0, inputSpec.numFrames))).toLong
-        if (p) play()
-        c.repaint()
+      case e: MousePressed => move(e.point)
+      case e: MouseDragged => move(e.point)
     }
 
     override protected def paintComponent(g: Graphics2D) {
@@ -324,13 +330,13 @@ posIdx = 0  // XXX TODO
     def pitchDur()= Dbufrd(pitchBuf, Dseries(2, 4, inf), loop = loop)  // def!
     val pitchShp  = Dbufrd(pitchBuf, Dseries(3, 4, inf), loop = loop)
     val freq      = DemandEnvGen.ar(levels = pitchFreq, durs = pitchDur(), shapes = pitchShp, doneAction = doneAction)
-    val clar      = DemandEnvGen.ar(levels = pitchClar, durs = pitchDur(), shapes = stepShape.id)
+    val clar      = DemandEnvGen.ar(levels = pitchClar, durs = pitchDur(), shapes = Curve.step.id)
 //    freq.poll(2, label = "f")
 //    clar.poll(2, label = "c")
 
     val onsetsBuf = "onsetsBuf".ir
     val onsetsDur = Dbufrd(onsetsBuf, Dseries(0, 1, inf), loop = loop)
-    val onsetsEnv = DemandEnvGen.ar(levels = Dseq(Seq(1, 0), inf), durs = onsetsDur, shapes = stepShape.id)
+    val onsetsEnv = DemandEnvGen.ar(levels = Dseq(Seq(1, 0), inf), durs = onsetsDur, shapes = Curve.step.id)
 // onsetsEnv.poll(10)
     val onsets    = onsetsEnv absdif Delay1.ar(onsetsEnv)
 
@@ -392,7 +398,7 @@ posIdx = 0  // XXX TODO
     val f2 = 311 * 0.5f // 3555; // 8000.0.rand;
     Vector.fill(2) {
       val spec = KlangSpec.fill(p) {
-        (Constant(f1) + (math.random * f2), 1.0, 1.0)
+        (Constant(f1) + math.random * f2, 1.0, 1.0)
       }
       Klank.ar(spec, Decay.ar(trig, 0.004) * WhiteNoise.ar(0.03))
     }

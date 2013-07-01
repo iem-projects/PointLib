@@ -173,7 +173,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
       _inputGain = value
     }
 
-    def build: Config = Impl(input = input,
+    def build: Config = Config(input = input,
       thresh = _thresh, function = function, fftSize = _fftSize, fftOverlap = _fftOverlap,
       decay = _decay, noiseFloor = _noiseFloor, minGap = _minGap, median = _median, inputGain = _inputGain
     )
@@ -185,17 +185,10 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
       _fftSize        = config.fftSize
       _fftOverlap     = config.fftOverlap
       _decay          = config.decay
-      _noiseFloor          = config.noiseFloor
+      _noiseFloor     = config.noiseFloor
       _minGap         = config.minGap
       _median         = config.median
       _inputGain      = config.inputGain
-    }
-
-    private final case class Impl(input: File, thresh: Float, function: Function, fftSize: Int, fftOverlap: Int,
-                                  decay: Float, noiseFloor: Float, minGap: Int, median: Int, inputGain: Float)
-      extends Config {
-
-      override def productPrefix = "Config"
     }
   }
   object Config {
@@ -204,7 +197,9 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
 
     implicit def build(b: ConfigBuilder): Config = b.build
   }
-  sealed trait Config extends ConfigLike
+  final case class Config(input: File, thresh: Float, function: Function, fftSize: Int, fftOverlap: Int,
+                          decay: Float, noiseFloor: Float, minGap: Int, median: Int, inputGain: Float)
+    extends ConfigLike
 
   type Product  = IIdxSeq[Long]
   type Repr     = Any

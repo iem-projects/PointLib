@@ -196,7 +196,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
       _trajMaxGap = value
     }
 
-    def build: Config = Impl(input = input,
+    def build: Config = Config(input = input,
       minFreq = _minFreq, maxFreq = _maxFreq, stepSize = _stepSize, binsPerOct = _binsPerOct,
       median = _median, ampThresh = _ampThresh, peakThresh = _peakThresh, inputGain = _inputGain,
       maxFreqSpread = _maxFreqSpread, maxFreqSlope = _maxFreqSlope, trajFitOrder = _trajFitOrder,
@@ -219,15 +219,6 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
       _trajMinDur     = config.trajMinDur
       _trajMaxGap     = config.trajMaxGap
     }
-
-    private final case class Impl(input: File, minFreq: Float, maxFreq: Float, stepSize: Int, binsPerOct: Int,
-                                  ampThresh: Float, peakThresh: Float, median: Int, inputGain: Float,
-                                  maxFreqSpread: Float, maxFreqSlope: Float, trajFitOrder: Int,
-                                  trajMinDur: Float, trajMaxGap: Float)
-      extends Config {
-
-      override def productPrefix = "Config"
-    }
   }
   object Config {
     def default = apply().build
@@ -235,7 +226,11 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
 
     implicit def build(b: ConfigBuilder): Config = b.build
   }
-  sealed trait Config extends ConfigLike
+  final case class Config(input: File, minFreq: Float, maxFreq: Float, stepSize: Int, binsPerOct: Int,
+                          ampThresh: Float, peakThresh: Float, median: Int, inputGain: Float,
+                          maxFreqSpread: Float, maxFreqSlope: Float, trajFitOrder: Int,
+                          trajMinDur: Float, trajMaxGap: Float)
+    extends ConfigLike
 
   type Product  = IIdxSeq[Sample]
   type Repr     = Any

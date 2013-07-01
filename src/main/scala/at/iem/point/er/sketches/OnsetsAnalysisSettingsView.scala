@@ -18,7 +18,7 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     (stepSize / inputSpec.sampleRate * 1000).toFloat
   }
   private def timeRes_=(value: Float) {
-    val stepSize  = ((value * inputSpec.sampleRate / 1000 + 0.5).toInt).nextPowerOfTwo
+    val stepSize  = (value * inputSpec.sampleRate / 1000 + 0.5).toInt.nextPowerOfTwo
     b.fftOverlap  = math.max(1, b.fftSize / stepSize)
     if (b.fftOverlap > b.fftSize) {
       setFFTSize.value = b.fftOverlap

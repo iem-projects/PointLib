@@ -17,7 +17,7 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
     (b.stepSize / inputSpec.sampleRate * 1000).toFloat
   }
   private def timeRes_=(value: Float) {
-    b.stepSize = ((value * inputSpec.sampleRate / 1000 + 0.5).toInt).nextPowerOfTwo
+    b.stepSize = (value * inputSpec.sampleRate / 1000 + 0.5).toInt.nextPowerOfTwo
     val t = timeRes
     if (math.abs(t - timeRes) > 1) setTimeRes.value = t
   }
