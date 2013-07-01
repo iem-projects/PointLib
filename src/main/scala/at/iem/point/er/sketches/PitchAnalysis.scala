@@ -26,7 +26,7 @@
 package at.iem.point.er.sketches
 
 import java.io.File
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import de.sciss.synth
 import concurrent.{Await, duration, blocking}
 import duration.Duration
@@ -232,7 +232,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
                           trajMinDur: Float, trajMaxGap: Float)
     extends ConfigLike
 
-  type Product  = IIdxSeq[Sample]
+  type Product  = Vec[Sample]
   type Repr     = Any
 
   // -----
@@ -290,8 +290,8 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
       }
     }
 
-    private def extractPitches(af: AudioFile, config: Config): IIdxSeq[Sample] = {
-      val seq         = IIdxSeq.newBuilder[Sample]
+    private def extractPitches(af: AudioFile, config: Config): Vec[Sample] = {
+      val seq         = Vec.newBuilder[Sample]
       val bufSize     = 1024
       val buf         = af.buffer(bufSize)
 

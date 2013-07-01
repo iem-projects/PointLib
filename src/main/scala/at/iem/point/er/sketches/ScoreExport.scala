@@ -1,7 +1,7 @@
 package at.iem.point.er.sketches
 
 import java.io.{OutputStreamWriter, FileOutputStream, File}
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import scala.annotation.tailrec
 
@@ -42,7 +42,7 @@ object ScoreExport {
   private val divisions2 = divisions.init
   private val divisions3 = divisions2.init
 
-  def apply(file: File, onsets: IIdxSeq[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "",
+  def apply(file: File, onsets: Vec[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "",
             doubleDotted: Boolean = false) {
     require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
 
@@ -76,7 +76,7 @@ object ScoreExport {
       }
     }
 
-    def dot(sq: IIdxSeq[Rational]): IIdxSeq[Rational] =
+    def dot(sq: Vec[Rational]): Vec[Rational] =
       sq match {
         case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
           init :+ (a + b + c)
@@ -85,7 +85,7 @@ object ScoreExport {
         case _ => sq
       }
 
-    def calcNotes(_tempoFrac: Double, _divisions: List[Rational]): (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = {
+    def calcNotes(_tempoFrac: Double, _divisions: List[Rational]): (Rational, Int, Vec[Vec[Rational]]) = {
       @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
         val factor  = 4 * note
         val tempo   = _tempoFrac * factor.doubleValue()
@@ -115,7 +115,7 @@ object ScoreExport {
 
       var gagaismo = true
 
-      val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
+      val _notes: Vec[Vec[Rational]] = values.map { v =>
         val frac  = Rational(v)
         val lim   = frac.limitDenominatorTo(96)
         // val rest  = lim - note
@@ -145,12 +145,12 @@ object ScoreExport {
       (_tempoBase, _tempoNom, _notes)
     }
 
-    def findBest(): (Rational, Int, IIdxSeq[String]) = {
+    def findBest(): (Rational, Int, Vec[String]) = {
       val tempoFrac0  = autoTempo()       // begin with this tempo
       val tempoFrac1  = tempoFrac0 * 3.0  // 1.5  // stop at this tempo
       val tempoFactor = math.pow(2,1.0/128) // increase tempo by this factor in each iteration
       var t = tempoFrac0
-      var bestRes: (Rational, Int, IIdxSeq[IIdxSeq[Rational]]) = null
+      var bestRes: (Rational, Int, Vec[Vec[Rational]]) = null
       var bestCost1 = Int.MaxValue
       var bestCost2 = Double.PositiveInfinity
       var bestT     = 0.0

@@ -4,7 +4,7 @@ import de.sciss.sonogram
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import java.awt.geom.{GeneralPath, Rectangle2D}
 import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
 
@@ -18,8 +18,8 @@ final class SonogramView extends sonogram.SonogramComponent {
 
   private var mousePt = Option.empty[Point]
 
-  private var _pitch  = IIdxSeq.empty[PitchAnalysis.Sample]
-  private var _onsets = IIdxSeq.empty[Long]
+  private var _pitch  = Vec.empty[PitchAnalysis.Sample]
+  private var _onsets = Vec.empty[Long]
 
   def pitchOverlay = _pitch
   def pitchOverlay_=(value: PitchAnalysis.Product) {

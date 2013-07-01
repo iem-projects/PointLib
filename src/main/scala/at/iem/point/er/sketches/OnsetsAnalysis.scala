@@ -26,7 +26,7 @@
 package at.iem.point.er.sketches
 
 import java.io.File
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import de.sciss.synth
 import concurrent.{Await, duration, blocking}
 import duration.Duration
@@ -50,7 +50,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     case object WPhase    extends Function { final val id = 5 }
     case object MKL       extends Function { final val id = 6 }
 
-    val seq: IIdxSeq[Function] = Vector(Power, MagSum, Complex, RComplex, Phase, WPhase, MKL)
+    val seq: Vec[Function] = Vector(Power, MagSum, Complex, RComplex, Phase, WPhase, MKL)
 
     def apply(id: Int): Function = (id: @switch) match {
       case Power.id     => Power
@@ -201,7 +201,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
                           decay: Float, noiseFloor: Float, minGap: Int, median: Int, inputGain: Float)
     extends ConfigLike
 
-  type Product  = IIdxSeq[Long]
+  type Product  = Vec[Long]
   type Repr     = Any
 
   // -----
@@ -258,8 +258,8 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
       }
     }
 
-    private def extractOnsets(af: AudioFile, config: Config): IIdxSeq[Long] = {
-      val seq         = IIdxSeq.newBuilder[Long]
+    private def extractOnsets(af: AudioFile, config: Config): Vec[Long] = {
+      val seq         = Vec.newBuilder[Long]
       val bufSize     = 1024
       val buf         = af.buffer(bufSize)
       val cbuf        = buf(0)

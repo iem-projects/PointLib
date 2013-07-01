@@ -11,8 +11,7 @@ import java.awt.geom.GeneralPath
 import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
-import collection.breakOut
-import collection.immutable.{IndexedSeq => IIdxSeq}
+import collection.immutable.{IndexedSeq => Vec}
 import scala.swing.event.{MouseDragged, MousePressed, MouseClicked}
 import de.sciss.osc.{Dump, Bundle, Message}
 
@@ -62,14 +61,14 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
 
   private final case class Playing(synth: Synth, pitchBuf: Buffer, onsetsBuf: Buffer)
 
-  private def mkOnsetsEnv(pos: Long): IIdxSeq[Float] = {
+  private def mkOnsetsEnv(pos: Long): Vec[Float] = {
     // XXX TODO: forgot about pos right now....
     val sr = inputSpec.sampleRate
     val frameDurs = (0L +: onsets :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start, stop) => stop - start }
     frameDurs.map(fr => (fr / sr).toFloat).toIndexedSeq
   }
 
-  private def mkPitchEnv(pos: Long): IIdxSeq[Float] = {
+  private def mkPitchEnv(pos: Long): Vec[Float] = {
     val p0         = pitches
     val numFr     = inputSpec.numFrames
     // make sure we begin at frame zero
