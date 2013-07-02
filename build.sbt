@@ -10,6 +10,12 @@ homepage := Some(url("https://github.com/iem-projects/PointLib"))
 
 licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
+// need for play-json-sealed
+resolvers in ThisBuild ++= Seq(
+  "Mandubian repository snapshots" at "https://github.com/mandubian/mandubian-mvn/raw/master/snapshots/",
+  "Sonatype OSS snapshots"         at "https://oss.sonatype.org/content/repositories/snapshots/"
+)
+
 libraryDependencies ++= Seq(
   "de.sciss" %% "scalacollider"            % "1.8.+",
   "de.sciss" %% "sonogramoverview"         % "1.6.+",                       // Sonogram View
@@ -17,7 +23,8 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
   "de.sciss" %% "desktop"                  % "0.3.+",                       // Menu components
   "de.sciss" %% "fileutil"                 % "1.0.+",                       // Easy file navigation
-  "de.sciss" %% "swingplus"                % "0.0.+",
+  "de.sciss" %% "swingplus"                % "0.0.+",                       // GUI helpers
+  "de.sciss" %% "play-json-sealed"         % "0.0.+",                       // JSON serialization
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
   "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers
   "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration

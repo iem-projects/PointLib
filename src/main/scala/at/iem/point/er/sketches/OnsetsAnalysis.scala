@@ -40,25 +40,33 @@ import de.sciss.processor.impl.ProcessorImpl
 object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
   var verbose = false
 
+  case object Power     extends Function { final val id = 0 }
+  case object MagSum    extends Function { final val id = 1 }
+  case object Complex   extends Function { final val id = 2 }
+  case object RComplex  extends Function { final val id = 3 }
+  case object Phase     extends Function { final val id = 4 }
+  case object WPhase    extends Function { final val id = 5 }
+  case object MKL       extends Function { final val id = 6 }
+
   object Function {
-    case object Power     extends Function { final val id = 0 }
-    case object MagSum    extends Function { final val id = 1 }
-    case object Complex   extends Function { final val id = 2 }
-    case object RComplex  extends Function { final val id = 3 }
-    case object Phase     extends Function { final val id = 4 }
-    case object WPhase    extends Function { final val id = 5 }
-    case object MKL       extends Function { final val id = 6 }
+    //    case object Power     extends Function { final val id = 0 }
+    //    case object MagSum    extends Function { final val id = 1 }
+    //    case object Complex   extends Function { final val id = 2 }
+    //    case object RComplex  extends Function { final val id = 3 }
+    //    case object Phase     extends Function { final val id = 4 }
+    //    case object WPhase    extends Function { final val id = 5 }
+    //    case object MKL       extends Function { final val id = 6 }
 
     val seq: Vec[Function] = Vector(Power, MagSum, Complex, RComplex, Phase, WPhase, MKL)
 
     def apply(id: Int): Function = (id: @switch) match {
-      case Power.id     => Power
-      case MagSum.id    => MagSum
-      case Complex.id   => Complex
-      case RComplex.id  => RComplex
-      case Phase.id     => Phase
-      case WPhase.id    => WPhase
-      case MKL.id       => MKL
+      case Power    .id => Power
+      case MagSum   .id => MagSum
+      case Complex  .id => Complex
+      case RComplex .id => RComplex
+      case Phase    .id => Phase
+      case WPhase   .id => WPhase
+      case MKL      .id => MKL
     }
   }
   sealed trait Function {
@@ -113,7 +121,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     var input                   = new File("input.aif")
 
     private var _thresh         = 0.5f
-    var function                = Function.Complex: Function
+    var function                = /* Function. */ Complex: Function
     private var _fftSize        = 512
     private var _fftOverlap     = 2
     private var _decay          = 1.0f
@@ -191,12 +199,12 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     }
   }
   object Config {
-    def default = apply().build
-    def apply() = new ConfigBuilder
+    def default = new ConfigBuilder().build
+    // def apply() = new ConfigBuilder
 
     implicit def build(b: ConfigBuilder): Config = b.build
   }
-  final case class Config(input: File, thresh: Float, function: Function, fftSize: Int, fftOverlap: Int,
+  /* final */ case class Config(input: File, thresh: Float, function: Function, fftSize: Int, fftOverlap: Int,
                           decay: Float, noiseFloor: Float, minGap: Int, median: Int, inputGain: Float)
     extends ConfigLike
 
@@ -207,7 +215,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
 
   // -----
 
-  protected def defaultConfig: Config = Config()
+  protected def defaultConfig: Config = new ConfigBuilder
 
   protected def prepare(config: Config): Prepared = new Proc(config)
 

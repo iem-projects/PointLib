@@ -70,6 +70,9 @@ object Main extends SwingApplicationImpl("PointLib") {
     import KeyEvent._
     Root().add(
       Group("file", "File").add(
+        Group("import", "Import").add(
+          Item("onsets")("Onsets Settings...") { onsetsSettingsFrame.load() }
+        )).add(
         Group("export", "Export").add(
           Item("audiofile")("Audio File..." -> (menu1 + VK_S)) {
             exportAsAudioFile()
@@ -78,6 +81,8 @@ object Main extends SwingApplicationImpl("PointLib") {
           Item("score")("Score..." -> (menu1 + shift + VK_S)) {
             exportAsScore()
           }
+        ).addLine().add(
+          Item("onsets")("Onsets Settings...") { onsetsSettingsFrame.save() }
         )
       )
     ).add(
@@ -87,6 +92,8 @@ object Main extends SwingApplicationImpl("PointLib") {
         Item("pitch")("Pitch Analysis" -> (menu1 + VK_P)) { pitchSettingsFrame.front() }
       ).add(
         Item("onsets")("Onsets Detection" -> (menu1 + VK_D)) { onsetsSettingsFrame.front() }
+      ).addLine().add(
+        Item("onsets-unify")("Onsets Unification") { ??? }
       )
     )
   }

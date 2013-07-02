@@ -9,4 +9,6 @@ object OnsetsAnalysisWindow {
 }
 trait OnsetsAnalysisWindow extends Window {
   def product: Vec[OnsetsAnalysis.ConfigAndProduct]
+  def load(): Unit
+  def save(): Unit
 }
