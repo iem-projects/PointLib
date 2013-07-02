@@ -36,7 +36,7 @@ class OnsetsAnalysisWindowImpl(in: File) extends OnsetsAnalysisWindow with Windo
   private def defaultConfigFile = {
     val desktop = userHome / "Desktop"
     val dir = if (desktop.isDirectory) desktop else userHome
-    dir / in.replaceExt("json").path
+    dir / s"${in.base}_Onsets.json"
   }
 
   private lazy val jsonFormat: Format[Product] = {
