@@ -73,7 +73,7 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
   def update(value: OnsetsAnalysis.ConfigAndProduct) {
     config  = value._1
     product = value._2
-    product.foreach(Main.onsets = _)
+    Main.onsets = MultiResOnsets(Vec(value))
   }
 
   private val ggRun = Button("Run...") {
@@ -82,7 +82,7 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
       case Processor.Result(_, Success(seq)) =>
 //        seq.foreach(x => println(s"frame $x"))
         product     = Some(seq)
-        Main.onsets = seq
+        Main.onsets = MultiResOnsets(Vec((config, product)))
     }
   }
 

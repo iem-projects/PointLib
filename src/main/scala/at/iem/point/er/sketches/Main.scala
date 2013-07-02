@@ -60,7 +60,7 @@ object Main extends SwingApplicationImpl("PointLib") {
     if (onsets.isEmpty) return
     val init  = Some(createOutputPath(f, tag = "Onsets", extension = "pdf"))
     GUI.saveFileDialog(tpe = "PDF Score", init = init).foreach { f =>
-      ScoreExport(f, onsets, sampleRate = fileSpec.sampleRate)
+      ??? // ScoreExport(f, onsets, sampleRate = fileSpec.sampleRate)
     }
   }
 
@@ -112,9 +112,9 @@ object Main extends SwingApplicationImpl("PointLib") {
     playerViewOption.foreach(_.pitches = seq)
   }
 
-  private var _onsets: OnsetsAnalysis.Product = Vector.empty
+  private var _onsets = MultiResOnsets.empty
   def onsets = _onsets
-  def onsets_=(seq: OnsetsAnalysis.Product) {
+  def onsets_=(seq: MultiResOnsets) {
     _onsets = seq
     sono.onsetsOverlay = seq
     playerViewOption.foreach(_.onsets = seq)

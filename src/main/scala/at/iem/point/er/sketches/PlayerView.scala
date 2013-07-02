@@ -47,9 +47,9 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
   }
 
-  private var _onsets: OnsetsAnalysis.Product = Main.onsets
+  private var _onsets = Main.onsets
   def onsets = _onsets
-  def onsets_=(seq: OnsetsAnalysis.Product) {
+  def onsets_=(seq: MultiResOnsets) {
     _onsets = seq
     val p = playing.isDefined
     if (p) {
@@ -63,7 +63,8 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   private def mkOnsetsEnv(pos: Long): Vec[Float] = {
     // XXX TODO: forgot about pos right now....
     val sr = inputSpec.sampleRate
-    val frameDurs = (0L +: onsets :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start, stop) => stop - start }
+    // XXX TODO: should have different volume for different onset strengths
+    val frameDurs = (0L +: onsets.onsets.map(_.pos) :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start, stop) => stop - start }
     frameDurs.map(fr => (fr / sr).toFloat).toIndexedSeq
   }
 

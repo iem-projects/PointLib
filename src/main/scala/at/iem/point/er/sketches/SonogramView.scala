@@ -18,7 +18,7 @@ final class SonogramView extends sonogram.SonogramComponent {
   private var mousePt = Option.empty[Point]
 
   private var _pitch  = Vec.empty[PitchAnalysis.Sample]
-  private var _onsets = Vec.empty[Long]
+  private var _onsets = MultiResOnsets.empty
 
   def pitchOverlay = _pitch
   def pitchOverlay_=(value: PitchAnalysis.Product) {
@@ -27,7 +27,7 @@ final class SonogramView extends sonogram.SonogramComponent {
   }
 
   def onsetsOverlay = _onsets
-  def onsetsOverlay_=(value: OnsetsAnalysis.Product) {
+  def onsetsOverlay_=(value: MultiResOnsets) {
     _onsets = value
     repaint()
   }
@@ -144,7 +144,8 @@ final class SonogramView extends sonogram.SonogramComponent {
 
       if (_onsets.nonEmpty) {
         g2.setStroke(strkOnsets)
-        _onsets.foreach { frame =>
+        _onsets.onsets.foreach { entry =>
+          val frame = entry.pos
           val x = frameToScreen(frame, ovr).toInt
           val h1 = getHeight - 1
           g2.setColor(colrPitch)

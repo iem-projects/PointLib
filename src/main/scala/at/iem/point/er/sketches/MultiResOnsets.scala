@@ -41,5 +41,10 @@ object MultiResOnsets {
     def levels: Int = to - from
     def bump(pos: Long): Entry = copy(to = to + 1)
   }
+
+  def empty: MultiResOnsets = MultiResOnsets(0, Vec.empty)
 }
-case class MultiResOnsets(levels: Int, onsets: Vec[MultiResOnsets.Entry])
+case class MultiResOnsets(levels: Int, onsets: Vec[MultiResOnsets.Entry]) {
+  def isEmpty   = onsets.isEmpty
+  def nonEmpty  = onsets.nonEmpty
+}
