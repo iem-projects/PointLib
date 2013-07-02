@@ -144,14 +144,17 @@ final class SonogramView extends sonogram.SonogramComponent {
 
       if (_onsets.nonEmpty) {
         g2.setStroke(strkOnsets)
+        val lvl = _onsets.levels
         _onsets.onsets.foreach { entry =>
           val frame = entry.pos
           val x = frameToScreen(frame, ovr).toInt
           val h1 = getHeight - 1
+          val y1 = entry.from * h1 / lvl
+          val y2 = entry.to   * h1 / lvl
           g2.setColor(colrPitch)
-          g2.drawLine(x, 0, x, h1)
+          g2.drawLine(x, y1, x, y2)
           g2.setColor(colrPitchOut)
-          g2.drawLine(x+1, 0, x+1, h1)
+          g2.drawLine(x+1, y1, x+1, y2)
         }
       }
     }

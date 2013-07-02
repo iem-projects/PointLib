@@ -98,6 +98,7 @@ object Main extends SwingApplicationImpl("PointLib") {
           if (p.nonEmpty) {
             val multi = MultiResOnsets(p)
             println(multi.onsets.mkString(", "))
+            onsets = multi
           }
         }
       )
