@@ -4,7 +4,6 @@ import de.sciss.sonogram
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
-import collection.immutable.{IndexedSeq => Vec}
 import java.awt.geom.{GeneralPath, Rectangle2D}
 import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
 

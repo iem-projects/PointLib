@@ -7,4 +7,6 @@ import impl.{OnsetsAnalysisWindowImpl => Impl}
 object OnsetsAnalysisWindow {
   def apply(in: File): OnsetsAnalysisWindow = new Impl(in)
 }
-trait OnsetsAnalysisWindow extends Window
+trait OnsetsAnalysisWindow extends Window {
+  def product: Vec[OnsetsAnalysis.ConfigAndProduct]
+}

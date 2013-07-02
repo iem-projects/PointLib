@@ -1,7 +1,6 @@
 package at.iem.point.er.sketches
 
 import java.io.{OutputStreamWriter, FileOutputStream, File}
-import collection.immutable.{IndexedSeq => Vec}
 import spire.math.Rational
 import scala.annotation.tailrec
 

@@ -2,7 +2,6 @@ package at.iem.point.er.sketches
 package impl
 
 import scala.swing.{Component, ScrollPane, Swing, Orientation, BoxPanel, Button, ListView, BorderPanel}
-import collection.immutable.{IndexedSeq => Vec}
 import Swing._
 import java.awt.Font
 import de.sciss.swingplus.DoClickAction

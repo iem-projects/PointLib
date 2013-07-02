@@ -1,10 +1,12 @@
 package at.iem.point.er
 
-import java.io.File
 import concurrent.ExecutionContext
 
 package object sketches {
   implicit val global = ExecutionContext.Implicits.global
+
+  val  Vec      = collection.immutable.IndexedSeq
+  type Vec[+A]  = collection.immutable.IndexedSeq[A]
 
   implicit final class RichIntPoint(val i: Int) extends AnyVal {
     def isPowerOfTwo: Boolean = (i & (i-1)) == 0

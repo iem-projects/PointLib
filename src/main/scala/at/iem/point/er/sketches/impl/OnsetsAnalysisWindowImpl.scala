@@ -33,4 +33,6 @@ class OnsetsAnalysisWindowImpl(in: File) extends OnsetsAnalysisWindow with Windo
   resizable = false
   // this.placeRightOf(top)
   front()
+
+  def product = listView.items
 }

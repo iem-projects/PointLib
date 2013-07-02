@@ -26,7 +26,6 @@
 package at.iem.point.er.sketches
 
 import java.io.File
-import collection.immutable.{IndexedSeq => Vec}
 import de.sciss.synth
 import concurrent.{Await, duration, blocking}
 import duration.Duration

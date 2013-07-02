@@ -1,7 +1,6 @@
 package at.iem.point.er.sketches
 
 import scala.swing.Component
-import collection.immutable.{IndexedSeq => Vec}
 import impl.{SettingsListViewImpl => Impl}
 
 object SettingsListView {

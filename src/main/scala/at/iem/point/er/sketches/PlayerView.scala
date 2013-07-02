@@ -11,9 +11,8 @@ import java.awt.geom.GeneralPath
 import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
-import collection.immutable.{IndexedSeq => Vec}
-import scala.swing.event.{MouseDragged, MousePressed, MouseClicked}
-import de.sciss.osc.{Dump, Bundle, Message}
+import scala.swing.event.{MouseDragged, MousePressed}
+import de.sciss.osc.{Bundle, Message}
 
 class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
   private val sys = AudioSystem.instance
