@@ -17,6 +17,7 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
   "de.sciss" %% "desktop"                  % "0.3.+",                       // Menu components
   "de.sciss" %% "fileutil"                 % "1.0.+",                       // Easy file navigation
+  "de.sciss" %% "swingplus"                % "0.0.+",
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
   "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers
   "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration

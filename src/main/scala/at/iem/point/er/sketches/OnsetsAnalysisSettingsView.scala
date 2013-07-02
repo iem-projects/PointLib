@@ -9,15 +9,16 @@ import javax.swing.BorderFactory
 import de.sciss.processor.Processor
 
 class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
-                                init: OnsetsAnalysis.Config = OnsetsAnalysis.Config.default) {
+                                 init: OnsetsAnalysis.Config = OnsetsAnalysis.Config.default)
+  extends Cell[OnsetsAnalysis.ConfigAndProduct] {
   import synth._
 
   private val b = OnsetsAnalysis.ConfigBuilder(init)
-  private def timeRes: Float = {
+  def timeRes: Float = {
     val stepSize = b.fftSize / b.fftOverlap
     (stepSize / inputSpec.sampleRate * 1000).toFloat
   }
-  private def timeRes_=(value: Float) {
+  def timeRes_=(value: Float) {
     val stepSize  = (value * inputSpec.sampleRate / 1000 + 0.5).toInt.nextPowerOfTwo
     b.fftOverlap  = math.max(1, b.fftSize / stepSize)
     if (b.fftOverlap > b.fftSize) {
@@ -25,8 +26,8 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     }
   }
 
-  private def fftSize: Int = b.fftSize
-  private def fftSize_=(value: Int) {
+  def fftSize: Int = b.fftSize
+  def fftSize_=(value: Int) {
     val v = math.max(32, math.min(65536, value.nextPowerOfTwo))
     b.fftSize = v
     if (v != value) {
@@ -37,11 +38,11 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     }
   }
 
-  private def inputGain: Float = b.inputGain.ampdb
-  private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
+  def inputGain: Float = b.inputGain.ampdb
+  def inputGain_=(value: Float) { b.inputGain = value.dbamp }
 
-  private def noiseFloor: Float = b.noiseFloor.ampdb
-  private def noiseFloor_=(value: Float) { b.noiseFloor = value.dbamp }
+  def noiseFloor: Float = b.noiseFloor.ampdb
+  def noiseFloor_=(value: Float) { b.noiseFloor = value.dbamp }
 
   private val setTimeRes = GUI.Setting.float("Time resolution:", "ms")(timeRes _)(timeRes = _)
   private val setFFTSize = GUI.Setting.int  ("FFT size:",        "ms")(fftSize _)(fftSize = _)
@@ -66,11 +67,21 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     settings.foreach(_.reset())
   }
 
+  private var product = Option.empty[OnsetsAnalysis.Product]
+
+  def apply(): OnsetsAnalysis.ConfigAndProduct = (config, product)
+  def update(value: OnsetsAnalysis.ConfigAndProduct) {
+    config  = value._1
+    product = value._2
+    product.foreach(Main.onsets = _)
+  }
+
   private val ggRun = Button("Run...") {
     OnsetsAnalysis.verbose = true
     OnsetsAnalysis.run(config) {
       case Processor.Result(_, Success(seq)) =>
 //        seq.foreach(x => println(s"frame $x"))
+        product     = Some(seq)
         Main.onsets = seq
     }
   }

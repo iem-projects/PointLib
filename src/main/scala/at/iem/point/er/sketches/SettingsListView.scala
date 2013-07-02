@@ -5,7 +5,7 @@ import collection.immutable.{IndexedSeq => Vec}
 import impl.{SettingsListViewImpl => Impl}
 
 object SettingsListView {
-  def apply[A](view: A => String): SettingsListView[A] = new Impl(view)
+  def apply[A](cell: Cell[A])(view: A => String): SettingsListView[A] = new Impl(cell, view)
 }
 trait SettingsListView[A] {
   def component: Component

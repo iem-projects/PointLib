@@ -204,6 +204,8 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
   type Product  = Vec[Long]
   type Repr     = Any
 
+  type ConfigAndProduct = (Config, Option[Product])
+
   // -----
 
   protected def defaultConfig: Config = Config()
