@@ -93,7 +93,13 @@ object Main extends SwingApplicationImpl("PointLib") {
       ).add(
         Item("onsets")("Onsets Detection" -> (menu1 + VK_D)) { onsetsSettingsFrame.front() }
       ).addLine().add(
-        Item("onsets-unify")("Onsets Unification") { ??? }
+        Item("onsets-unify")("Onsets Unification") {
+          val p = onsetsSettingsFrame.product
+          if (p.nonEmpty) {
+            val multi = MultiResOnsets(p)
+            println(multi.onsets.mkString(", "))
+          }
+        }
       )
     )
   }
@@ -204,7 +210,7 @@ object Main extends SwingApplicationImpl("PointLib") {
     }
   }
 
-  private lazy val onsetsSettingsFrame = OnsetsAnalysisWindow(f)
+  private lazy val onsetsSettingsFrame    = OnsetsAnalysisWindow(f)
 
   override def init() {
     boot()
