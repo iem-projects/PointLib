@@ -21,7 +21,7 @@ libraryDependencies ++= Seq(
   "de.sciss"                 %% "fileutil"           % "1.0.+",           // Easy file representation
   "de.sciss"                 %% "desktop"            % "0.3.+",
   "de.sciss"                 %% "treetable-scala"    % "1.3.+",
-  "de.sciss"                 %% "guiflitz"           % "0.0.+",           // Automatic configuration GUIs
+  "de.sciss"                 %% "guiflitz"           % "0.0.2+",          // Automatic configuration GUIs
   "de.sciss"                 %% "processor"          % "0.2.+",           // Asynchronous iteration
   // "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
   "de.sciss"                 %% "play-json-sealed"   % "0.0.+"
