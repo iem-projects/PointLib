@@ -24,6 +24,8 @@ object Main extends SwingApplicationImpl("PointLib") {
 
   private lazy val recent = RecentFiles(userPrefs[List[File]]("recent-files"))(open)
 
+  var pdfFun = (_: DocumentFrame) => ()
+
   lazy val menuFactory: Menu.Root = {
     import Menu._
     import KeyStrokes._

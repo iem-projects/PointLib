@@ -25,7 +25,9 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "play-json-sealed"         % "0.0.+",                       // JSON serialization
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
   "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers
-  "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test"            // JFreeChart integration
+  //
+  "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test",           // JFreeChart integration
+  "de.sciss" %% "pdflitz" % "1.0.+" % "test"
 )
 
 retrieveManaged := true

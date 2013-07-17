@@ -13,8 +13,6 @@ class DocumentFrame(doc: Document) extends WindowImpl {
 
   private lazy val onsetsSettingsFrame = OnsetsAnalysisWindow(doc)
 
-  private var playerViewOption = Option.empty[PlayerView]
-
   private lazy val pitchSettingsFrame = {
     import synth._
     val pchCfg        = PitchAnalysis.Config()
@@ -73,7 +71,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
   }
 
   def exportScreenshot() {
-
+    Main.pdfFun(this)
   }
 
   bindMenus(

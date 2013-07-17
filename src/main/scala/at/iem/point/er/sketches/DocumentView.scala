@@ -43,7 +43,7 @@ class DocumentView(doc: Document) {
     }
   }
 
-  private object view extends TimelineCanvasImpl {
+  object view extends TimelineCanvasImpl {
     def timelineModel = me.timelineModel
 
     val sono    = new SonogramView(doc, this)
