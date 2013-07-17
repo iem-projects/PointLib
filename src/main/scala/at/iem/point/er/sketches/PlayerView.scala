@@ -1,7 +1,7 @@
 package at.iem.point.er.sketches
 
 import scala.swing.{Component, Swing}
-import de.sciss.audiowidgets.{AxisFormat, Transport, Axis}
+import de.sciss.audiowidgets.{TimelineModel, AxisFormat, Transport, Axis}
 import java.io.File
 import java.awt.{Point, RenderingHints, Color, Graphics2D}
 import de.sciss.synth
@@ -13,14 +13,15 @@ import Ops._
 import de.sciss.audiowidgets.Transport._
 import scala.swing.event.{MouseDragged, MousePressed}
 import de.sciss.osc.{Bundle, Message}
+import de.sciss.model.Change
 
-class PlayerView(doc: Document) {
+class PlayerView(doc: Document, timelineModel: TimelineModel) {
   import doc.{file     => inputFile}
   import doc.{fileSpec => inputSpec}
 
   private val sys = AudioSystem.instance
 
-  private var position = 0L
+  private var _position = timelineModel.position
 
   private var playing   = Option.empty[Playing]
   private var _diskAmp  = 1.0f
@@ -39,26 +40,57 @@ class PlayerView(doc: Document) {
     playing.foreach(_.synth.set("resynthAmp" -> value))
   }
 
-  private var _pitches: PitchAnalysis.Product = doc.pitches
-  def pitches = _pitches
-  def pitches_=(seq: PitchAnalysis.Product) {
-    _pitches = seq
-    val p = playing.isDefined
-    if (p) {
-      stop()
-      play()
-    }
+  private def position = _position
+  private def position_=(frame: Long) {
+    _position = frame
+    timelineModel.modifiableOption.foreach(_.position = frame)
   }
 
-  private var _onsets = doc.onsets
-  def onsets = _onsets
-  def onsets_=(seq: MultiResOnsets) {
-    _onsets = seq
-    val p = playing.isDefined
-    if (p) {
-      stop()
-      play()
-    }
+  private var pitches: PitchAnalysis.Product = doc.pitches
+  //  def pitches = _pitches
+  //  def pitches_=(seq: PitchAnalysis.Product) {
+  //    _pitches = seq
+  //    val p = playing.isDefined
+  //    if (p) {
+  //      stop()
+  //      play()
+  //    }
+  //  }
+
+  private var onsets = doc.onsets
+  //  def onsets = _onsets
+  //  def onsets_=(seq: MultiResOnsets) {
+  //    _onsets = seq
+  //    val p = playing.isDefined
+  //    if (p) {
+  //      stop()
+  //      play()
+  //    }
+  //  }
+
+  doc.addListener {
+    case Document.OnsetsChanged(_, Change(_, now)) =>
+      onsets = now
+      val p = playing.isDefined
+      if (p) {
+        stop()
+        play()
+      }
+
+    case Document.PitchesChanged(_, Change(_, now)) =>
+      pitches = now
+      val p = playing.isDefined
+      if (p) {
+        stop()
+        play()
+      }
+  }
+  timelineModel.addListener {
+    case TimelineModel.Position(_, Change(_, now)) if now != _position =>
+      val p = playing.isDefined
+      if (p) stop()
+      _position = now
+      if (p) play()
   }
 
   private final case class Playing(synth: Synth, pitchBuf: Buffer, onsetsBuf: Buffer)
@@ -152,51 +184,10 @@ posIdx = 0  // XXX TODO
     if (posIdx == 0) seq0 else seq0.drop(posIdx * 4) ++ seq0.take(posIdx * 4)  // "rotate"
   }
 
-  lazy val axis: Axis = new Axis {
-    format  = AxisFormat.Time(hours = false, millis = true)
-    maximum = inputSpec.numFrames / inputSpec.sampleRate
-
-    val tri = new GeneralPath()
-    tri.moveTo(-6, 0)
-    tri.lineTo(7, 0)
-    tri.lineTo(0, 13)
-    tri.closePath()
-
-    val colr = new Color(0x00, 0x00, 0xFF, 0x80)
-
-    listenTo(mouse.clicks)
-    listenTo(mouse.moves)
-
-    def move(pt: Point) {
-      val p = playing.isDefined
-      if (p) stop()
-      position = math.max(0L, math.min(inputSpec.numFrames,
-        pt.x.toDouble.linlin(0, size.width, 0, inputSpec.numFrames))).toLong
-      if (p) play()
-      repaint()
-    }
-
-    reactions += {
-      case e: MousePressed => move(e.point)
-      case e: MouseDragged => move(e.point)
-    }
-
-    override protected def paintComponent(g: Graphics2D) {
-      super.paintComponent(g)
-      val x = position.toDouble.linlin(0, inputSpec.numFrames, 0, size.width)
-      g.setColor(colr)
-      g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
-      val atOrig = g.getTransform
-      g.translate(x, 0)
-      g.fill(tri)
-      g.setTransform(atOrig)
-    }
-  }
-
   def goToBegin() {
     stop()
     position = 0L
-    axis.repaint()
+    // axis.repaint()
   }
 
   def stop() {
@@ -267,10 +258,10 @@ posIdx = 0  // XXX TODO
     val resp    = message.Responder(s) {
       case Message("/tr", syn.id, 0, pos: Float) => Swing.onEDT {
         position = (pos + 0.5).toLong
-        axis.repaint()
+        // axis.repaint()
       }
     }
-    val start   = math.min(position, numFrames - 32768).toInt
+    val start   = math.min(_position, numFrames - 32768).toInt
     val pchEnv  = mkPitchEnv(start)
     val onsEnv  = mkOnsetsEnv(start)
 //println(pchEnv)

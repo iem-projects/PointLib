@@ -26,7 +26,7 @@ class DocumentView(doc: Document) {
   val ov            = mgr.acquire(job)
   //    println(ov.fileSpec.sono)
 
-  lazy val playerView = new PlayerView(doc)
+  lazy val playerView = new PlayerView(doc, timelineModel)
 
   private lazy val ggBoost = new Slider {
     orientation = Orientation.Vertical
