@@ -64,6 +64,10 @@ object Main extends SwingApplicationImpl("PointLib") {
     }
   }
 
+  def exportScreenshot() {
+
+  }
+
   lazy val menuFactory: Menu.Root = {
     import Menu._
     import KeyStrokes._
@@ -80,6 +84,10 @@ object Main extends SwingApplicationImpl("PointLib") {
         ).add(
           Item("score")("Score..." -> (menu1 + shift + VK_S)) {
             exportAsScore()
+          }
+        ).add(
+          Item("screenshot")("Screenshot As PDF...") {
+            exportScreenshot()
           }
         ).addLine().add(
           Item("onsets")("Onsets Settings...") { onsetsSettingsFrame.save() }

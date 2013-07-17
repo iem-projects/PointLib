@@ -249,6 +249,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
       def extract(in0: GE): GE = {
         val gain    = config.inputGain / numChannels.sqrt
         val in      = Mix(in0) * gain
+        // println(s"Function ${config.function.id}")
         val chain   = FFT(buf = "fft".kr, in = in, hop = 1.0 / config.fftOverlap, winType = fftWinType)
         val pitch   = Onsets.kr(chain = chain, thresh = config.thresh, fun = config.function.id,
           decay = config.decay, noiseFloor = config.noiseFloor, minGap = config.minGap,

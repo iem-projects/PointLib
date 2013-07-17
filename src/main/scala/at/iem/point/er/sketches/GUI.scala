@@ -4,8 +4,8 @@ import java.awt.FileDialog
 import java.io.{File, FilenameFilter}
 import de.sciss.synth.io.{AudioFileType, AudioFile}
 import de.sciss.synth.Optional
-import swing.{Swing, Panel, TextField, Alignment, Label, Component}
-import swing.event.EditDone
+import scala.swing.{ComboBox, Swing, Panel, TextField, Alignment, Label, Component}
+import scala.swing.event.{SelectionChanged, EditDone}
 import scalaswingcontrib.group.GroupPanel
 import Swing._
 import de.sciss.desktop.Window
@@ -46,13 +46,14 @@ object GUI {
   }
 
   object Setting {
-    def float(name: String, unit: Optional[String] = None)(getter: () => Float)(setter: Float => Unit): Setting[Float] = {
-      new Impl(name, unit, getter, setter)(_.toFloat)
-    }
+    def float(name: String, unit: Optional[String] = None)(getter: () => Float)(setter: Float => Unit): Setting[Float] =
+      new NumericImpl(name, unit, getter, setter)(_.toFloat)
 
-    def int(name: String, unit: Optional[String] = None)(getter: () => Int)(setter: Int => Unit): Setting[Int] = {
-      new Impl(name, unit, getter, setter)(_.toInt)
-    }
+    def int(name: String, unit: Optional[String] = None)(getter: () => Int)(setter: Int => Unit): Setting[Int] =
+      new NumericImpl(name, unit, getter, setter)(_.toInt)
+
+    def combo[A](name: String, items: Seq[A])(getter: () => A)(setter: A => Unit): Setting[A] =
+      new ComboImpl(name, items, getter, setter)
 
     def vertical(list: List[Setting[_]]): Panel = new GroupPanel {
       import language.reflectiveCalls
@@ -78,11 +79,34 @@ object GUI {
       }
     }
 
-    private final class Impl[A](name: String, unitName: Option[String],
-                                getter: () => A, setter: A => Unit)(convert: String => A)
-      extends Setting[A] {
-
+    private abstract class Impl(name: String) {
       val label = new Label(name, null, Alignment.Right)
+    }
+
+    private final class ComboImpl[A](name: String, items: Seq[A], getter: () => A, setter: A => Unit)
+      extends Impl(name) with Setting[A] {
+
+      val input = new ComboBox[A](items)
+      reset()
+      input.listenTo(input.selection)
+      input.reactions += {
+        case _: SelectionChanged => setter(value)
+      }
+
+      def unit = None
+
+      def reset() {
+        input.selection.item = getter()
+      }
+
+      def value: A = input.selection.item
+      def value_=(a: A) { input.selection.item = a; setter(a) }
+    }
+
+    private final class NumericImpl[A](name: String, unitName: Option[String],
+                                       getter: () => A, setter: A => Unit)(convert: String => A)
+      extends Impl(name) with Setting[A] {
+
       val input = new TextField(8)
       val unit  = unitName.map(new Label(_))
 

@@ -14,6 +14,7 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
   import synth._
 
   private val b = OnsetsAnalysis.ConfigBuilder(init)
+
   def timeRes: Float = {
     val stepSize = b.fftSize / b.fftOverlap
     (stepSize / inputSpec.sampleRate * 1000).toFloat
@@ -50,6 +51,7 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
   private val settings = {
     import GUI.Setting._
     List(
+      combo("Function:", OnsetsAnalysis.Function.seq)(b.function _)(b.function = _),
       float("Threshold:",     "dB")(b.thresh _)(b.thresh = _),
       setTimeRes,
       setFFTSize,
