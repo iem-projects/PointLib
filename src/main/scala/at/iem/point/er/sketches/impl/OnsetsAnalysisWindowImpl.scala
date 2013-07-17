@@ -11,17 +11,19 @@ import de.sciss.file._
 import play.api.libs.json.{JsError, JsSuccess, Format, Formats, SealedTraitFormat, Json}
 import java.io.{FileInputStream, FileOutputStream}
 
-class OnsetsAnalysisWindowImpl(in: File) extends OnsetsAnalysisWindow with WindowImpl {
+class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with WindowImpl {
+  import doc.{file => in, fileSpec}
+
   def handler = Main.windowHandler
   def style   = Window.Palette
 
-  private val fileSpec  = AudioFile.readSpec(in)
+  // private val fileSpec  = AudioFile.readSpec(in)
   private val oCfg      = new OnsetsAnalysis.ConfigBuilder
   oCfg.input    = in
 
   import OnsetsAnalysisWindow.Product
 
-  private val setView   = new OnsetsAnalysisSettingsView(inputSpec = fileSpec, init = oCfg)
+  private val setView   = new OnsetsAnalysisSettingsView(doc, init = oCfg)
   private val listView  = SettingsListView[OnsetsAnalysis.ConfigAndProduct](setView) { case (cfg, _) =>
     import synth._
     f"t=${cfg.thresh}%1.2f, r=${cfg.fftSize}/${cfg.fftOverlap}, m=${cfg.median}, g=${cfg.minGap}, i=${cfg.inputGain.ampdb}%1.1f, n=${cfg.noiseFloor.ampdb}%1.1f, d=${cfg.decay}%1.1f"

@@ -14,7 +14,10 @@ import de.sciss.audiowidgets.Transport._
 import scala.swing.event.{MouseDragged, MousePressed}
 import de.sciss.osc.{Bundle, Message}
 
-class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
+class PlayerView(doc: Document) {
+  import doc.{file     => inputFile}
+  import doc.{fileSpec => inputSpec}
+
   private val sys = AudioSystem.instance
 
   private var position = 0L
@@ -36,7 +39,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     playing.foreach(_.synth.set("resynthAmp" -> value))
   }
 
-  private var _pitches: PitchAnalysis.Product = Main.pitches
+  private var _pitches: PitchAnalysis.Product = doc.pitches
   def pitches = _pitches
   def pitches_=(seq: PitchAnalysis.Product) {
     _pitches = seq
@@ -47,7 +50,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     }
   }
 
-  private var _onsets = Main.onsets
+  private var _onsets = doc.onsets
   def onsets = _onsets
   def onsets_=(seq: MultiResOnsets) {
     _onsets = seq
@@ -64,7 +67,7 @@ class PlayerView(inputFile: File, inputSpec: AudioFileSpec) {
     // XXX TODO: forgot about pos right now....
     val sr = inputSpec.sampleRate
     // XXX TODO: should have different volume for different onset strengths
-    val frameDurs = (0L +: onsets.onsets.map(_.pos) :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start, stop) => stop - start }
+    val frameDurs = (0L +: onsets.onsets.map(_.pos) :+ inputSpec.numFrames).sliding(2,1).map { case Seq(start: Long, stop: Long) => stop - start }
     frameDurs.map(fr => (fr / sr).toFloat).toIndexedSeq
   }
 

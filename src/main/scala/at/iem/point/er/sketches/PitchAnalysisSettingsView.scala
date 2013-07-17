@@ -8,9 +8,10 @@ import Swing._
 import javax.swing.BorderFactory
 import de.sciss.processor.Processor
 
-class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
+class PitchAnalysisSettingsView(doc: Document,
                                 init: PitchAnalysis.Config = PitchAnalysis.Config.default) {
   import synth._
+  import doc.{fileSpec => inputSpec}
 
   private val b = PitchAnalysis.ConfigBuilder(init)
   private def timeRes: Float = {
@@ -63,7 +64,7 @@ class PitchAnalysisSettingsView(inputSpec: AudioFileSpec,
     PitchAnalysis.run(config) {
       case Processor.Result(_, Success(seq)) =>
 //        sono.pitchOverlay = seq
-      Main.pitches = seq
+      doc.pitches = seq
     }
   }
 

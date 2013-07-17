@@ -20,10 +20,8 @@ libraryDependencies ++= Seq(
   "de.sciss" %% "scalacollider"            % "1.8.+",
   "de.sciss" %% "sonogramoverview"         % "1.6.+",                       // Sonogram View
   "de.sciss" %% "strugatzki"               % "2.0.+",                       // Offline Feature Extraction
-  "de.sciss" %% "audiowidgets-swing"       % "1.2.+",                       // Axis component
-  "de.sciss" %% "desktop"                  % "0.3.+",                       // Menu components
+  "de.sciss" %% "audiowidgets-app"         % "1.3.+",                       // Timeline components
   "de.sciss" %% "fileutil"                 % "1.0.+",                       // Easy file navigation
-  "de.sciss" %% "swingplus"                % "0.0.+",                       // GUI helpers
   "de.sciss" %% "play-json-sealed"         % "0.0.+",                       // JSON serialization
   "com.github.benhutchison" % "scalaswingcontrib" % "1.5",                  // GroupPanel component for Scala-Swing
   "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers

@@ -5,7 +5,7 @@ import de.sciss.desktop.Window
 import impl.{OnsetsAnalysisWindowImpl => Impl}
 
 object OnsetsAnalysisWindow {
-  def apply(in: File): OnsetsAnalysisWindow = new Impl(in)
+  def apply(doc: Document): OnsetsAnalysisWindow = new Impl(doc)
 
   type Product = Vec[OnsetsAnalysis.ConfigAndProduct]
 }

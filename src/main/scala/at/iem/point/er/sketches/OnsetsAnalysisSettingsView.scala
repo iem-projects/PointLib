@@ -2,16 +2,16 @@ package at.iem.point.er.sketches
 
 import swing.{Component, Swing, Orientation, BoxPanel, Button, BorderPanel}
 import de.sciss.synth
-import synth.io.AudioFileSpec
 import util.Success
 import Swing._
 import javax.swing.BorderFactory
 import de.sciss.processor.Processor
 
-class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
+class OnsetsAnalysisSettingsView(doc: Document,
                                  init: OnsetsAnalysis.Config = OnsetsAnalysis.Config.default)
   extends Cell[OnsetsAnalysis.ConfigAndProduct] {
   import synth._
+  import doc.{fileSpec => inputSpec}
 
   private val b = OnsetsAnalysis.ConfigBuilder(init)
 
@@ -73,9 +73,9 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
 
   def apply(): OnsetsAnalysis.ConfigAndProduct = (config, product)
   def update(value: OnsetsAnalysis.ConfigAndProduct) {
-    config  = value._1
-    product = value._2
-    Main.onsets = MultiResOnsets(Vec(value))
+    config      = value._1
+    product     = value._2
+    doc.onsets  = MultiResOnsets(Vec(value))
   }
 
   private val ggRun = Button("Run...") {
@@ -83,13 +83,13 @@ class OnsetsAnalysisSettingsView(inputSpec: AudioFileSpec,
     OnsetsAnalysis.run(config) {
       case Processor.Result(_, Success(seq)) =>
 //        seq.foreach(x => println(s"frame $x"))
-        product     = Some(seq)
-        Main.onsets = MultiResOnsets(Vec((config, product)))
+        product    = Some(seq)
+        doc.onsets = MultiResOnsets(Vec((config, product)))
     }
   }
 
   private val butPanel = new BoxPanel(Orientation.Horizontal) {
-    border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
+    border    = BorderFactory.createEmptyBorder(8, 0, 0, 0)
     contents += HGlue
     contents += ggRun
   }
