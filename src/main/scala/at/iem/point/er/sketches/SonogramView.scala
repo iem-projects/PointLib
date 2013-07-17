@@ -5,9 +5,14 @@ import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
 import de.sciss.synth
 import java.awt.geom.{GeneralPath, Rectangle2D}
-import java.awt.{Graphics, Graphics2D, Point, BasicStroke, Color}
+import java.awt.{RenderingHints, Graphics, Graphics2D, Point, BasicStroke, Color}
+import de.sciss.audiowidgets.{TimelineModel, TimelineCanvas}
+import scala.swing.Swing
+import Swing._
+import de.sciss.audiowidgets.impl.TimelineCanvasImpl
+import de.sciss.model.Change
 
-final class SonogramView extends sonogram.SonogramComponent {
+final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram.SonogramComponent {
   private val colrCrosshair = new Color(0xFF, 0xFF, 0xFF, 0x40)
   //  private val colrPitch     = new Color(0x40, 0x40, 0xFF, 0x80)
   private val colrPitch     = new Color(0xFF, 0xFF, 0x00, 0xA0)
@@ -20,24 +25,24 @@ final class SonogramView extends sonogram.SonogramComponent {
   private var _pitch  = Vec.empty[PitchAnalysis.Sample]
   private var _onsets = MultiResOnsets.empty
 
-  def pitchOverlay = _pitch
-  def pitchOverlay_=(value: PitchAnalysis.Product) {
-    _pitch = value
-    repaint()
-  }
+  //  def pitchOverlay = _pitch
+  //  def pitchOverlay_=(value: PitchAnalysis.Product) {
+  //    _pitch = value
+  //    repaint()
+  //  }
+  //
+  //  def onsetsOverlay = _onsets
+  //  def onsetsOverlay_=(value: MultiResOnsets) {
+  //    _onsets = value
+  //    repaint()
+  //  }
 
-  def onsetsOverlay = _onsets
-  def onsetsOverlay_=(value: MultiResOnsets) {
-    _onsets = value
-    repaint()
-  }
-
-  private def screenToTime(screen: Float, ovr: sonogram.Overview): Float = {
-    import synth._
-    val spec  = ovr.inputSpec
-    val w     = getWidth
-    screen.linlin(0, w, 0, spec.numFrames/spec.sampleRate).toFloat
-  }
+  //  private def screenToTime(screen: Float, ovr: sonogram.Overview): Float = {
+  //    import synth._
+  //    val spec  = ovr.inputSpec
+  //    val w     = getWidth
+  //    screen.linlin(0, w, 0, spec.numFrames/spec.sampleRate).toFloat
+  //  }
 
   //  private def secsToScreen(secs: Float, ovr: SonogramOverview): Float = {
   //    import synth._
@@ -46,12 +51,12 @@ final class SonogramView extends sonogram.SonogramComponent {
   //    secs.linlin(0, spec.numFrames/spec.sampleRate, 0, w).toFloat
   //  }
 
-  private def frameToScreen(frame: Long, ovr: sonogram.Overview): Float = {
-    import synth._
-    val spec  = ovr.inputSpec
-    val w     = getWidth
-    frame.toDouble.linlin(0, spec.numFrames, 0, w).toFloat
-  }
+  //  private def frameToScreen(frame: Long, ovr: sonogram.Overview): Float = {
+  //    import synth._
+  //    val spec  = ovr.inputSpec
+  //    val w     = getWidth
+  //    frame.toDouble.linlin(0, spec.numFrames, 0, w).toFloat
+  //  }
 
   private def screenToFreq(screen: Float, ovr: sonogram.Overview): Float = {
     import synth._
@@ -70,7 +75,8 @@ final class SonogramView extends sonogram.SonogramComponent {
     private def process(e: MouseEvent) {
       mousePt = Some(e.getPoint)
       sono.foreach { ovr =>
-        val time  = screenToTime(e.getX, ovr)
+        val sr    = canvas.timelineModel.sampleRate
+        val time  = canvas.screenToFrame(e.getX) / sr
         val freq  = screenToFreq(e.getY, ovr)
         setToolTipText(f"time = $time%1.3f s, freq = $freq%1.1f Hz")
       }
@@ -97,23 +103,46 @@ final class SonogramView extends sonogram.SonogramComponent {
 
   addMouseListener(mouse)
   addMouseMotionListener(mouse)
+  canvas.timelineModel.addListener {
+    case TimelineModel.Visible(_, _) => repaint()
+  }
+  doc.addListener {
+    case Document.OnsetsChanged(_, Change(_, now)) =>
+      _onsets = now
+      repaint()
+
+    case Document.PitchesChanged(_, Change(_, now)) =>
+      _pitch = now
+      repaint()
+  }
 
   private val shpRect = new Rectangle2D.Float()
   private val shpPath = new GeneralPath()
 
   override def paintComponent(g: Graphics) {
-    super.paintComponent(g)
+    // super.paintComponent(g)
     val g2 = g.asInstanceOf[Graphics2D]
+    g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,  RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 
     sono.foreach { ovr =>
+      val w    = getWidth
+      val h    = getHeight
+
+      if (!ovr.isCompleted) {
+        g2.setPaint(TimelineCanvasImpl.pntChecker)
+        g2.fillRect(0, 0, w, h)
+      }
+      val sp = canvas.timelineModel.visible
+      ovr.paint(sp.start, sp.stop, g2, 0, 0, w, h, this)
+
       if (_pitch.nonEmpty) {
         //      g.setColor(colrPitch)
         //      g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
         //      g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_NORMALIZE)
         g2.setStroke(strkPitchOut)
         _pitch.foreach { smp =>
-          val x1  = frameToScreen(smp.start, ovr)
-          val x2  = frameToScreen(smp.stop,  ovr)
+          val x1  = canvas.frameToScreen(smp.start)
+          val x2  = canvas.frameToScreen(smp.stop )
           val shp = smp.freq match {
             case CurveFitting.PointFit(freq)  =>
               val y   = freqToScreen(freq.toFloat, ovr)
@@ -147,7 +176,7 @@ final class SonogramView extends sonogram.SonogramComponent {
         val lvl = _onsets.levels
         _onsets.onsets.foreach { entry =>
           val frame = entry.pos
-          val x = frameToScreen(frame, ovr).toInt
+          val x  = canvas.frameToScreen(frame).toInt
           val h1 = getHeight - 1
           val y1 = entry.from * h1 / lvl
           val y2 = entry.to   * h1 / lvl
@@ -169,4 +198,6 @@ final class SonogramView extends sonogram.SonogramComponent {
       g.drawLine(pt.x, 0, pt.x, hm)
     }
   }
+
+  setPreferredSize((600, 400))
 }

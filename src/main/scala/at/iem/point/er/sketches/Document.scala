@@ -5,6 +5,7 @@ import scala.annotation.tailrec
 import de.sciss.file._
 import de.sciss.model.Change
 import de.sciss.model.impl.ModelImpl
+import de.sciss.span.Span
 
 object Document {
   sealed trait Update { def document: Document }
@@ -42,4 +43,7 @@ class Document(val file: File, val fileSpec: AudioFileSpec) extends ModelImpl[Do
     // playerViewOption.foreach(_.onsets = seq)
     dispatch(Document.OnsetsChanged(this, Change(old, seq)))
   }
+
+  def span        = Span(0, fileSpec.numFrames)
+  def sampleRate  = fileSpec.sampleRate
 }
