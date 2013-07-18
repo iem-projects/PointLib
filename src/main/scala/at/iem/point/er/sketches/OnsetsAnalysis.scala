@@ -34,7 +34,7 @@ import de.sciss.strugatzki.impl.NonRealtimeProcessor
 import language.implicitConversions
 import de.sciss.strugatzki.impl.NonRealtimeProcessor.BufferSpec
 import annotation.switch
-import de.sciss.processor.ProcessorFactory
+import de.sciss.processor.{Processor, ProcessorFactory}
 import de.sciss.processor.impl.ProcessorImpl
 
 object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
@@ -209,7 +209,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     extends ConfigLike
 
   type Product  = Vec[Long]
-  type Repr     = Any
+  type Repr     = OnsetsAnalysis
 
   type ConfigAndProduct = (Config, Option[Product])
 
@@ -220,7 +220,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
   protected def prepare(config: Config): Prepared = new Proc(config)
 
   private final class Proc(val config: Config)
-    extends ProcessorImpl[Product, Any] {
+    extends ProcessorImpl[Product, OnsetsAnalysis] with OnsetsAnalysis {
 
     val companion = OnsetsAnalysis
 
@@ -242,7 +242,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
         numFeatures   = 1,  // onsets
         stepSize      = stepSize,
         buffers       = fftBuf :: Nil,
-        progress      = progress(_),
+        progress      = progress,
         checkAborted  = () => checkAborted()
       )
 
@@ -295,3 +295,4 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     }
   }
 }
+trait OnsetsAnalysis extends Processor[OnsetsAnalysis.Product, OnsetsAnalysis]

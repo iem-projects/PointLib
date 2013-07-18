@@ -41,10 +41,10 @@ class SettingsListViewImpl[A](cell: Cell[A], view: A => String) extends Settings
 
   private val butDelete = Button("\u2212") {
     val sel = selectedItems.toIndexedSeq
-    items   = items.filterNot(sel.contains _)
+    items   = items.filterNot(sel.contains)
   }
 
-  private def move(inc: Int) {
+  private def move(inc: Int): Unit = {
     val old = items
     selectedIndex.foreach { i =>
       val j = i + inc
@@ -82,6 +82,6 @@ class SettingsListViewImpl[A](cell: Cell[A], view: A => String) extends Settings
     add(butPane, BorderPanel.Position.South )
   }
 
-  def items        : Vec[A]  = listView.listData.toIndexedSeq
-  def items_=(value: Vec[A]) { listView.listData = value }
+  def items        : Vec[A]         = listView.listData.toIndexedSeq
+  def items_=(value: Vec[A]): Unit  = listView.listData = value
 }

@@ -19,7 +19,7 @@ class OnsetsAnalysisSettingsView(doc: Document,
     val stepSize = b.fftSize / b.fftOverlap
     (stepSize / inputSpec.sampleRate * 1000).toFloat
   }
-  def timeRes_=(value: Float) {
+  def timeRes_=(value: Float): Unit = {
     val stepSize  = (value * inputSpec.sampleRate / 1000 + 0.5).toInt.nextPowerOfTwo
     b.fftOverlap  = math.max(1, b.fftSize / stepSize)
     if (b.fftOverlap > b.fftSize) {
@@ -28,7 +28,7 @@ class OnsetsAnalysisSettingsView(doc: Document,
   }
 
   def fftSize: Int = b.fftSize
-  def fftSize_=(value: Int) {
+  def fftSize_=(value: Int): Unit = {
     val v = math.max(32, math.min(65536, value.nextPowerOfTwo))
     b.fftSize = v
     if (v != value) {
@@ -39,11 +39,11 @@ class OnsetsAnalysisSettingsView(doc: Document,
     }
   }
 
-  def inputGain: Float = b.inputGain.ampdb
-  def inputGain_=(value: Float) { b.inputGain = value.dbamp }
+  def inputGain        : Float        = b.inputGain.ampdb
+  def inputGain_=(value: Float): Unit = b.inputGain = value.dbamp
 
-  def noiseFloor: Float = b.noiseFloor.ampdb
-  def noiseFloor_=(value: Float) { b.noiseFloor = value.dbamp }
+  def noiseFloor        : Float        = b.noiseFloor.ampdb
+  def noiseFloor_=(value: Float): Unit = b.noiseFloor = value.dbamp
 
   private val setTimeRes = GUI.Setting.float("Time resolution:", "ms")(timeRes _)(timeRes = _)
   private val setFFTSize = GUI.Setting.int  ("FFT size:",        "ms")(fftSize _)(fftSize = _)
@@ -64,7 +64,7 @@ class OnsetsAnalysisSettingsView(doc: Document,
   }
 
   def config: OnsetsAnalysis.Config = b.build
-  def config_=(value: OnsetsAnalysis.Config) {
+  def config_=(value: OnsetsAnalysis.Config): Unit = {
     b.read(value)
     settings.foreach(_.reset())
   }
@@ -72,20 +72,16 @@ class OnsetsAnalysisSettingsView(doc: Document,
   private var product = Option.empty[OnsetsAnalysis.Product]
 
   def apply(): OnsetsAnalysis.ConfigAndProduct = (config, product)
-  def update(value: OnsetsAnalysis.ConfigAndProduct) {
+  def update(value: OnsetsAnalysis.ConfigAndProduct): Unit = {
     config      = value._1
     product     = value._2
     doc.onsets  = MultiResOnsets(Vec(value))
   }
 
-  private val ggRun = Button("Run...") {
-    OnsetsAnalysis.verbose = true
-    OnsetsAnalysis.run(config) {
-      case Processor.Result(_, Success(seq)) =>
-//        seq.foreach(x => println(s"frame $x"))
-        product    = Some(seq)
-        doc.onsets = MultiResOnsets(Vec((config, product)))
-    }
+  private val ggRun = ProcessorButton("Run...")(OnsetsAnalysis(config)) {
+    case Success(seq) =>
+      product    = Some(seq)
+      doc.onsets = MultiResOnsets(Vec((config, product)))
   }
 
   private val butPanel = new BoxPanel(Orientation.Horizontal) {

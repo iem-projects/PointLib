@@ -1,6 +1,5 @@
 package at.iem.point.er.sketches
 
-import java.io.File
 import de.sciss.desktop.Window
 import impl.{OnsetsAnalysisWindowImpl => Impl}
 

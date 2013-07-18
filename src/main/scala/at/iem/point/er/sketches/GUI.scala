@@ -74,7 +74,7 @@ object GUI {
         )
         theVerticalLayout is Sequential(list.map { set =>
           val u = set.unit.toList
-          Parallel(Baseline)((set.label :: set.input :: u): _*)
+          Parallel(Baseline)(set.label :: set.input :: u: _*)
         }: _*)
       }
     }
