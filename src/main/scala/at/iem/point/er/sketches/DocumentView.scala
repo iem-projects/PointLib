@@ -30,10 +30,12 @@ class DocumentView(doc: Document) {
 
   private lazy val ggBoost = new Slider {
     orientation = Orientation.Vertical
-    min   = 0
-    max   = 200
-    value = 100
-    //      paintTicks = true
+    focusable   = false
+
+    min         = 0
+    max         = 200
+    value       = 100
+
     peer.putClientProperty("JComponent.sizeVariant", "small")
     listenTo(this)
     reactions += {

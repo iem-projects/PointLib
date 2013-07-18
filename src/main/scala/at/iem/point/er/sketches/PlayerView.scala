@@ -1,19 +1,19 @@
 package at.iem.point.er.sketches
 
 import scala.swing.{Component, Swing}
-import de.sciss.audiowidgets.{TimelineModel, AxisFormat, Transport, Axis}
+import de.sciss.audiowidgets.{TimelineModel, Transport}
 import java.io.File
-import java.awt.{Point, RenderingHints, Color, Graphics2D}
 import de.sciss.synth
 import synth._
-import io.{SampleFormat, AudioFileSpec}
-import java.awt.geom.GeneralPath
+import io.SampleFormat
 import Swing._
 import Ops._
 import de.sciss.audiowidgets.Transport._
-import scala.swing.event.{MouseDragged, MousePressed}
 import de.sciss.osc.{Bundle, Message}
 import de.sciss.model.Change
+import de.sciss.desktop.Implicits._
+import javax.swing.KeyStroke
+import de.sciss.desktop.FocusType
 
 class PlayerView(doc: Document, timelineModel: TimelineModel) {
   import doc.{file     => inputFile}
@@ -50,7 +50,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   //  def pitches = _pitches
   //  def pitches_=(seq: PitchAnalysis.Product) {
   //    _pitches = seq
-  //    val p = playing.isDefined
+  //    val p = isPlaying
   //    if (p) {
   //      stop()
   //      play()
@@ -61,7 +61,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   //  def onsets = _onsets
   //  def onsets_=(seq: MultiResOnsets) {
   //    _onsets = seq
-  //    val p = playing.isDefined
+  //    val p = isPlaying
   //    if (p) {
   //      stop()
   //      play()
@@ -71,7 +71,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   doc.addListener {
     case Document.OnsetsChanged(_, Change(_, now)) =>
       onsets = now
-      val p = playing.isDefined
+      val p = isPlaying
       if (p) {
         stop()
         play()
@@ -79,7 +79,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
 
     case Document.PitchesChanged(_, Change(_, now)) =>
       pitches = now
-      val p = playing.isDefined
+      val p = isPlaying
       if (p) {
         stop()
         play()
@@ -87,11 +87,13 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   }
   timelineModel.addListener {
     case TimelineModel.Position(_, Change(_, now)) if now != _position =>
-      val p = playing.isDefined
+      val p = isPlaying
       if (p) stop()
       _position = now
       if (p) play()
   }
+
+  def isPlaying = playing.isDefined
 
   private final case class Playing(synth: Synth, pitchBuf: Buffer, onsetsBuf: Buffer)
 
@@ -345,7 +347,7 @@ posIdx = 0  // XXX TODO
   }
 
   private def updateStopPlay() {
-    val b = playing.isDefined
+    val b = isPlaying
     transportStrip.button(Transport.Stop).foreach(_.selected = !b)
     transportStrip.button(Transport.Play).foreach(_.selected =  b)
   }
@@ -358,11 +360,23 @@ posIdx = 0  // XXX TODO
 //
 //  }
 
-  private lazy val transportStrip = makeButtonStrip(Seq(
-    GoToBegin(goToBegin()),
-    Stop(stop()),
-    Play(play())
-  ))
+  private lazy val transportStrip = {
+    val res = makeButtonStrip(Seq(
+      GoToBegin(goToBegin()),
+      Stop(stop()),
+      Play(play())
+    ))
+    val (Some(ggStop), Some(ggStart)) = (res.button(Stop), res.button(Play))
+    res.addAction("play-stop", new swing.Action(null) {
+      accelerator = Some(KeyStroke.getKeyStroke(' '))
+
+      def apply() {
+        val b = if (isPlaying) ggStop else ggStart
+        b.doClick()
+      }
+    }, FocusType.Window)
+    res
+  }
 
   lazy val transport: Component = /* new BoxPanel(Orientation.Horizontal) {
     contents += */

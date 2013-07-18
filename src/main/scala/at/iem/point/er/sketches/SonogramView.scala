@@ -19,6 +19,7 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
   private val colrPitchOut  = new Color(0x00, 0x00, 0xFF, 0xA0)
   private val strkPitchOut  = new BasicStroke(2f)
   private val strkOnsets    = new BasicStroke(1f)
+  private val strkCrosshair = new BasicStroke(1f)
 
   private var mousePt = Option.empty[Point]
 
@@ -124,10 +125,10 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
     val g2 = g.asInstanceOf[Graphics2D]
     g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,  RenderingHints.VALUE_INTERPOLATION_BILINEAR)
 
-    sono.foreach { ovr =>
-      val w    = getWidth
-      val h    = getHeight
+    val w    = getWidth
+    val h    = getHeight
 
+    sono.foreach { ovr =>
       if (!ovr.isCompleted) {
         g2.setPaint(TimelineCanvasImpl.pntChecker)
         g2.fillRect(0, 0, w, h)
@@ -188,14 +189,15 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
       }
     }
 
+    // canvas.paint....
+
     mousePt.foreach { pt =>
-      g.setColor(colrCrosshair)
-      val w   = getWidth
+      g2.setColor(colrCrosshair)
+      g2.setStroke(strkCrosshair)
       val wm  = w - 1
-      val h   = getHeight
       val hm  = h - 1
-      g.drawLine(0, pt.y, wm, pt.y)
-      g.drawLine(pt.x, 0, pt.x, hm)
+      g2.drawLine(0, pt.y, wm, pt.y)
+      g2.drawLine(pt.x, 0, pt.x, hm)
     }
   }
 
