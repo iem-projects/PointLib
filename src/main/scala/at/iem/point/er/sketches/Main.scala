@@ -2,25 +2,16 @@ package at.iem.point.er
 package sketches
 
 import java.io.File
-import annotation.tailrec
-import de.sciss.sonogram
-import swing.{Slider, BorderPanel, BoxPanel, Orientation, Component, Swing}
-import Swing._
-import de.sciss.dsp.ConstQ
-import GUI.Implicits._
 import de.sciss.synth
 import synth.io.AudioFile
-import swing.event.ValueChanged
-import de.sciss.desktop.impl.{WindowImpl, SwingApplicationImpl}
-import de.sciss.desktop.{RecentFiles, Window, KeyStrokes, Menu}
+import de.sciss.desktop.impl.SwingApplicationImpl
+import de.sciss.desktop.{RecentFiles, KeyStrokes, Menu}
 import java.awt.event.KeyEvent
 
 object Main extends SwingApplicationImpl("PointLib") {
   type Document = sketches.Document
 
-  def boot() {
-    AudioSystem.start()
-  }
+  def boot(): Unit = AudioSystem.start()
 
   private lazy val recent = RecentFiles(userPrefs[List[File]]("recent-files"))(open)
 
@@ -62,23 +53,11 @@ object Main extends SwingApplicationImpl("PointLib") {
     )
   }
 
-  override def init() {
-    boot()
-  }
+  override def init(): Unit = boot()
 
-  def openDialog() {
-    val f: File = {
-      @tailrec def loop(): File = GUI.openAudioFileDialog() match {
-        case Some(_f) => _f
-        case _        => loop()
-      }
-      loop()
-    }
+  def openDialog(): Unit = GUI.openAudioFileDialog().foreach(open)
 
-    open(f)
-  }
-
-  def open(f: File) {
+  def open(f: File): Unit = {
     val fileSpec  = AudioFile.readSpec(f)
     val doc       = new Document(f, fileSpec)
     /* val frame = */ new DocumentFrame(doc)

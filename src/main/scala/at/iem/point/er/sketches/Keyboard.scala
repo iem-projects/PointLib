@@ -1,9 +1,11 @@
 package at.iem.point.er.sketches
 
-import java.awt.{Color, RenderingHints, Graphics2D}
+import java.awt.{Font, Color, RenderingHints, Graphics2D}
 import de.sciss.model.impl.ModelImpl
 import java.awt.geom.RoundRectangle2D
 import de.sciss.model.Model
+import javax.swing.UIManager
+import java.util.Locale
 
 object Keyboard {
   sealed trait Update { def keyboard: Keyboard }
@@ -24,6 +26,7 @@ class Keyboard extends ModelImpl[Keyboard.Update] {
   private var _whiteKeysColor = Color.white
   private var _blackKeysColor = Color.black
   private var _cKeysColor     = Color.lightGray
+  private var _foreground     = Color.black
 
   private def isBlack(pch: Int) = {
     val c = pch % 12
@@ -78,6 +81,15 @@ class Keyboard extends ModelImpl[Keyboard.Update] {
     }
   }
 
+  /** The foreground color */
+  def foreground = _foreground
+  def foreground_=(value: Color): Unit = {
+    if (_foreground != value) {
+      _foreground = value
+      dispatch(ColorsChanged(this))
+    }
+  }
+
   /** The color of the white keys */
   def whiteKeysColor = _whiteKeysColor
   def whiteKeysColor_=(value: Color): Unit = {
@@ -127,6 +139,14 @@ class Keyboard extends ModelImpl[Keyboard.Update] {
 
     //println(s"_keyHeight = ${_keyHeight}; kh = $kh")
 
+    val font = {
+      val f0  = UIManager.getFont("Slider.font", Locale.US)
+      val f   = if (f0 == null) new Font("SansSerif", Font.PLAIN, 9) else f0
+      val factor = kh.toFloat / 6
+      f.deriveFont(8.5f * factor)
+    }
+    g.setFont(font)
+
     try {
       g.clipRect(x, y, w, h)
       g.setRenderingHint(RenderingHints.KEY_ANTIALIASING  , RenderingHints.VALUE_ANTIALIAS_ON)
@@ -147,6 +167,13 @@ class Keyboard extends ModelImpl[Keyboard.Update] {
           // g.fillRoundRect(x, y0 - shift, w - 1, sz - 1, 4, 4)
           rr.setRoundRect(x, y0 - shift, w - 1, sz - 1, 4, 4)
           g.fill(rr)
+          if (c == 0) {
+            g.setColor(_foreground)
+            val fm  = g.getFontMetrics
+            val str = (iw / 12 - 1).toString
+            val sw  = fm.stringWidth(str)
+            g.drawString(str, x + w - 4 - sw, (y0 - shift).toFloat + fm.getAscent - fm.getDescent + 0.5f)
+          }
         }
         y0 -= kh
         iw += 1

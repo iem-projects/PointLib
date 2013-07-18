@@ -59,13 +59,19 @@ class PitchAnalysisSettingsView(doc: Document,
 
   def config: PitchAnalysis.Config = b.build
 
-  private val ggRun = Button("Run...") {
-    PitchAnalysis.verbose = true
-    PitchAnalysis.run(config) {
-      case Processor.Result(_, Success(seq)) =>
-//        sono.pitchOverlay = seq
+  //  private val ggRun = Button("Run...") {
+  //    PitchAnalysis.verbose = true
+  //    PitchAnalysis.run(config) {
+  //      case Processor.Result(_, Success(seq)) =>
+  ////        sono.pitchOverlay = seq
+  //      doc.pitches = seq
+  //    }
+  //  }
+
+  private val ggRun = ProcessorButton("Run...")(PitchAnalysis(config)) {
+    case Success(seq) =>
+      // product    = Some(seq)
       doc.pitches = seq
-    }
   }
 
   private val butPanel = new BoxPanel(Orientation.Horizontal) {

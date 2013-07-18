@@ -204,8 +204,8 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
 
     implicit def build(b: ConfigBuilder): Config = b.build
   }
-  /* final */ case class Config(input: File, thresh: Float, function: Function, fftSize: Int, fftOverlap: Int,
-                          decay: Float, noiseFloor: Float, minGap: Int, median: Int, inputGain: Float)
+  case class Config(input: File , thresh    : Float, function: Function, fftSize: Int, fftOverlap: Int,
+                    decay: Float, noiseFloor: Float, minGap  : Int     , median : Int, inputGain : Float)
     extends ConfigLike
 
   type Product  = Vec[Long]

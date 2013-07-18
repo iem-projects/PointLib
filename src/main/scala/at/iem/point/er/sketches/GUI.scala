@@ -99,6 +99,9 @@ object GUI {
         input.selection.item = getter()
       }
 
+      label.peer.putClientProperty("JComponent.sizeVariant", "small")
+      input.peer.putClientProperty("JComponent.sizeVariant", "small")
+
       def value: A = input.selection.item
       def value_=(a: A) { input.selection.item = a; setter(a) }
     }

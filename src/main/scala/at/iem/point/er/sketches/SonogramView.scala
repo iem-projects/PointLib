@@ -129,10 +129,9 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
     val h    = getHeight
 
     sono.foreach { ovr =>
-      if (!ovr.isCompleted) {
-        g2.setPaint(TimelineCanvasImpl.pntChecker)
-        g2.fillRect(0, 0, w, h)
-      }
+      g2.setPaint(if (ovr.isCompleted) Color.black else TimelineCanvasImpl.pntChecker)
+      g2.fillRect(0, 0, w, h)
+
       val sp = canvas.timelineModel.visible
       ovr.paint(sp.start, sp.stop, g2, 0, 0, w, h, this)
 
@@ -181,10 +180,12 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
           val h1 = getHeight - 1
           val y1 = entry.from * h1 / lvl
           val y2 = entry.to   * h1 / lvl
+          g2.setColor(colrPitchOut)
+          g2.fillRect(x-1, y1, 3, y2 - y1)
           g2.setColor(colrPitch)
           g2.drawLine(x, y1, x, y2)
-          g2.setColor(colrPitchOut)
-          g2.drawLine(x+1, y1, x+1, y2)
+          //          g2.setColor(colrPitchOut)
+          //          g2.drawLine(x+1, y1, x+1, y2)
         }
       }
     }

@@ -32,7 +32,7 @@ import duration.Duration
 import synth.io.AudioFile
 import de.sciss.strugatzki.impl.NonRealtimeProcessor
 import language.implicitConversions
-import de.sciss.processor.ProcessorFactory
+import de.sciss.processor.{Processor, ProcessorFactory}
 import de.sciss.processor.impl.ProcessorImpl
 
 object PitchAnalysis extends ProcessorFactory.WithDefaults {
@@ -232,7 +232,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
     extends ConfigLike
 
   type Product  = Vec[Sample]
-  type Repr     = Any
+  type Repr     = PitchAnalysis
 
   // -----
 
@@ -243,7 +243,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
   final case class Sample(start: Long, stop: Long, freq: CurveFitting.Fit, clarity: Float)
 
   private final class Proc(val config: Config)
-    extends ProcessorImpl[Product, Any] {
+    extends ProcessorImpl[Product, PitchAnalysis] with PitchAnalysis {
 
     val companion = PitchAnalysis
 
@@ -411,3 +411,4 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
     }
   }
 }
+trait PitchAnalysis extends Processor[PitchAnalysis.Product, PitchAnalysis]

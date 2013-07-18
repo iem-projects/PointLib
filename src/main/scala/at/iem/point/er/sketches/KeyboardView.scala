@@ -31,7 +31,7 @@ class KeyboardView(model0: Keyboard = new Keyboard) extends Component {
     val kh0 = _keyboard.keyHeight
     val tup = _keyboard.pitchRange
     val sz  = tup._2 - tup._1
-    val kh  = (if (kh0 == -1) 8 else kh0) * sz
+    val kh  = (if (kh0 == -1) 7 else kh0) * sz
     preferredSize = (kw, kh)
   }
 
