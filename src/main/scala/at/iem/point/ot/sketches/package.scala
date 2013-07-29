@@ -15,9 +15,19 @@ package object sketches {
   val chordsSeqFile   = materialDir / "13-07-28-AKKORDSERIEN-orestis.mid"
   lazy val chordSeq   = midi.Sequence.readFile(chordsSeqFile)
   lazy val chords     = {
-    val res = chordSeq.notes.splitGroups()
-    assert(res.size == 7)
-    res
+    val groups = chordSeq.notes.splitGroups()
+    assert(groups.size == 7)
+    val _chords = groups.map(n => ChordUtil.findHarmonicFields(n))  // .findChords(n))
+    _chords.zipWithIndex.foreach { case (c, i) =>
+      val sz = i + 1 match {
+        case 1  => 3
+        case 4  => 4
+        case 6  => 6
+        case 2 | 3 | 5 | 7 => 5
+      }
+      assert(c.forall(_.size == sz), s"In group ${i + 1}, chord size is not $sz")
+    }
+    _chords
   }
 
   implicit class OTRichNotes(val seq: Vec[OffsetNote]) extends AnyVal {
