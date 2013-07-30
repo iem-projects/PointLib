@@ -18,7 +18,6 @@ import de.sciss.processor.impl.ProcessorImpl
 import de.sciss.processor.Processor
 import scala.concurrent.ExecutionContext
 import de.sciss.guiflitz.AutoView
-import de.sciss.pdflitz
 
 object DocumentFrame {
   final class Node(val index: Int, val chromosome: Fitness.Chromosome, var fitness: Double = Double.NaN,

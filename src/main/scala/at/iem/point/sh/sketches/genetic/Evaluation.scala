@@ -2,8 +2,7 @@ package at.iem.point.sh.sketches
 package genetic
 
 import scala.collection.immutable.{IndexedSeq => Vec}
-import at.iem.point.illism.rhythm.{NoteOrRest, Note, Ladma}
-import collection.breakOut
+import at.iem.point.illism.rhythm.{Note, Ladma}
 import spire.math.Rational
 import Fitness._
 import language.existentials
@@ -100,7 +99,7 @@ sealed trait Evaluation extends (Chromosome => Double)
   case object BindTrailingRests extends ChromosomeFunction {
     override def apply(c: Chromosome): Chromosome = {
       val durs  = c.flattenCells.bindTrailingRests
-      val cell  = durs.map(Note(_)).toCell
+      val cell  = durs.map(Note).toCell
       Vec(cell)
     }
   }
