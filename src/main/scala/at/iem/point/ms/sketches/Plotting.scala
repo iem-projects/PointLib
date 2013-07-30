@@ -1,6 +1,5 @@
 package at.iem.point.ms.sketches
 
-import scalax.chart._
 import scalax.chart.Charting._
 import java.awt.{BasicStroke, Color}
 import de.sciss.pdflitz
@@ -55,7 +54,7 @@ object Plotting {
     // val sz = datasets.size
 
     val dataset = new XYSeriesCollection
-    series.foreach(dataset.addSeries _)
+    series.foreach(dataset.addSeries)
 
     val chart = ChartFactory.createXYLineChart(
       if (title == "") null else title,

@@ -4,6 +4,7 @@ import swing.{Component, Swing}
 import Swing._
 import GUI._
 import at.iem.point.illism._
+import de.sciss.midi
 
 object Kreuztabelle extends App {
   def DEBUG = false
@@ -14,8 +15,15 @@ object Kreuztabelle extends App {
 
   def analyze(study: Study, allIntervals: Boolean = false,
               intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
-    val f   = load(study)
-    val n   = f.notes
+    val f       = load(study)
+    val title0  = s"${study.file.name}: ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
+    val title   = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
+    apply(f, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize, title = title)
+  }
+
+  def apply(seq: midi.Sequence, allIntervals: Boolean = false,
+              intervalClasses: Boolean = false, chordSize: Int = -1, title: String = "Title"): Component = {
+    val n   = seq.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
     val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)
 
@@ -36,8 +44,6 @@ object Kreuztabelle extends App {
 
 //    println(mp)
 
-    val title0 = s"${study.file.name}: ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
-    val title  = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
     val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel
   }
