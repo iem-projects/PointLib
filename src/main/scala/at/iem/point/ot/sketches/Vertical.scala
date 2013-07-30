@@ -24,13 +24,16 @@ object Vertical extends App {
 
   // dann wuerden akkorde weggeworfen werden muessen, wenn all-intervalle dadurch entstehen, die nicht im korpus sind
 
-  lazy val allIntervals: Vec[Interval] = chords.flatten.flatMap(c => c.allIntervals)(breakOut)
+  lazy val allIntervals       : Vec[Interval] = chords.flatten.flatMap(c =>  c.allIntervals    )(breakOut)
+  lazy val layeredIntervals   : Vec[Interval] = chords.flatten.flatMap(c =>  c.layeredIntervals)(breakOut)
+  lazy val coAllIntervals     : Map[Interval, Vec[Interval]] = mkCoIntervals(_.allIntervals    )
+  lazy val coLayeredIntervals : Map[Interval, Vec[Interval]] = mkCoIntervals(_.layeredIntervals)
 
-  lazy val coIntervals = {
+  private def mkCoIntervals(fun: Chord => Vec[Interval]): Map[Interval, Vec[Interval]] = {
     var mp  = Map.empty[Interval, Vec[Interval]]
     val cs  = chords.flatten
     cs.foreach { c =>
-      val iv = c.allIntervals
+      val iv = fun(c)
       for {
         (i,ii) <- iv.zipWithIndex
         (j,jj) <- iv.zipWithIndex
@@ -59,21 +62,24 @@ object Vertical extends App {
       //}
     }
 
+    val ivalSeq = if (useAllIntervals)   allIntervals else   layeredIntervals
+    val ivalMap = if (useAllIntervals) coAllIntervals else coLayeredIntervals
+
     if (voices == 1) {
       mkChord(Vec.empty)
     } else {
       @tailrec def loopChord(n: Int, pred: Interval, res: Vec[Interval]): Vec[Interval] =
         if (n == 0) res else {
-          val succ = coIntervals(pred).choose
+          val succ = ivalMap(pred).choose
           loopChord(n - 1, succ, res :+ succ)
         }
 
       @tailrec def loop(): Chord = {
-        val ival1   = allIntervals.choose
+        val ival1   = ivalSeq.choose
         val ivals   = loopChord(voices - 2, ival1, Vec(ival1))
         val c       = mkChord(ivals)
         val test    = c.allIntervals
-        if (test.forall(coIntervals.contains)) c else loop()
+        if (test.forall(coAllIntervals.contains)) c else loop()
       }
 
       loop()
@@ -83,10 +89,15 @@ object Vertical extends App {
   // ---- application ----
   run()
 
+  /** @param voices           the number of voices of the chords
+    * @param num              the number of chords to produce
+    * @param base             the base pitch for each chord
+    * @param useAllIntervals  if `true`, use all intervals as pool, otherwise use layered intervals as pool
+    */
   def run(voices: Int = 5, num: Int = 48, base: Pitch = 60.asPitch, useAllIntervals: Boolean = false) {
     implicit val random = mkRandom()
     implicit val ticks  = midi.TickRate.tempo(120, 1024)
-    val f       = outDir / s"vertical_gen$voices${if (useAllIntervals) "all" else ""}}.midi"
+    val f       = outDir / s"vertical_gen$voices${if (useAllIntervals) "all" else ""}.midi"
     val chords0 = Vec.fill(num)(generate(voices = voices, base = base, useAllIntervals = useAllIntervals))
     val chords  = chords0.spread()
     val evt     = chords.flatMap(_.toMIDI(0))
