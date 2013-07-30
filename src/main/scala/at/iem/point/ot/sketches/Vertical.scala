@@ -95,7 +95,7 @@ object Vertical extends App {
     * @param base             the base pitch for each chord
     * @param useAllIntervals  if `true`, use all intervals as pool, otherwise use layered intervals as pool
     */
-  def run(voices: Int = 5, num: Int = 48, base: Pitch = 60.asPitch, useAllIntervals: Boolean = false) {
+  def run(voices: Int = 5, num: Int = 48, base: Pitch = 60.asPitch, useAllIntervals: Boolean = false): Unit = {
     implicit val random = mkRandom()
     implicit val ticks  = midi.TickRate.tempo(120, 1024)
     val fb      = outDir / s"vertical_gen$voices${if (useAllIntervals) "all" else ""}"

@@ -31,6 +31,10 @@ package object sketches {
     _chords
   }
 
+  lazy val melodies   = chords.map { cs =>
+    cs.map(_.notes).transpose
+  }
+
   def chordVoices(idx: Int) = idx + 1 match {
     case 1  => 3
     case 4  => 4
