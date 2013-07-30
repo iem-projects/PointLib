@@ -25,4 +25,5 @@ initialCommands in console :=
     |import at.iem.point.ot.sketches._
     |import scalax.chart._
     |import scalax.chart.Charting._
+    |implicit val random = mkRandom()
   """.stripMargin

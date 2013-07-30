@@ -13,6 +13,8 @@ package object sketches {
   val pointHome       = userHome / "Desktop" / "IEM" / "POINT"
   val baseDir         = pointHome / "composers" / "orestis_toufektsis"
   val materialDir     = baseDir / "material"
+  val outDir          = baseDir / "out"
+
   val chordsSeqFile   = materialDir / "13-07-28-AKKORDSERIEN-orestis.mid"
   lazy val chordSeq   = midi.Sequence.readFile(chordsSeqFile)
   lazy val chords     = {
@@ -57,6 +59,38 @@ package object sketches {
       loop(Vec.empty, seq)
     }
   }
+
+  implicit class OTRichChords(val seq: Vec[Chord]) extends AnyVal {
+    def spread(spacing: Double = 0.0): Vec[Chord] =
+      seq match {
+        case head +: tail =>
+          tail.scanLeft(head) { (pred, succ) =>
+            succ.copy(notes = succ.notes.map(_.copy(offset = pred.maxStop + spacing)))
+          }
+        case _ => seq
+      }
+  }
+
+  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
+    def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
+    def scramble(implicit random: util.Random): Vec[A] = {
+      ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>
+        val idx = random.nextInt(in.size)
+        in.patch(idx, Vector.empty, 1) -> (out :+ in(idx))
+      } ._2
+    }
+
+    def integrate(implicit num: Numeric[A]): Vec[A] = {
+      (Vector.empty[A] /: seq) { (res, elem) =>
+        val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
+        res :+ agg
+      }
+    }
+  }
+
+  // implicit val random = new util.Random(0L)
+
+  def mkRandom(seed: Long = System.currentTimeMillis()) = new util.Random(seed)
 
   //  implicit class OTRichSeq[A, C[~] <: Iterable[~]](val seq: C[A]) extends AnyVal {
   //    def mapType[B](implicit view: A => B): C[B] = seq.map(view)
