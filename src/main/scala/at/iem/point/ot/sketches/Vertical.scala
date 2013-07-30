@@ -6,6 +6,7 @@ import collection.breakOut
 import scala.annotation.tailrec
 import de.sciss.midi
 import de.sciss.file._
+import java.io.{OutputStreamWriter, FileOutputStream}
 
 object Vertical extends App {
   // - erlaubte intervalle
@@ -87,7 +88,7 @@ object Vertical extends App {
   }
 
   // ---- application ----
-  run()
+  run(useAllIntervals = true)
 
   /** @param voices           the number of voices of the chords
     * @param num              the number of chords to produce
@@ -97,11 +98,53 @@ object Vertical extends App {
   def run(voices: Int = 5, num: Int = 48, base: Pitch = 60.asPitch, useAllIntervals: Boolean = false) {
     implicit val random = mkRandom()
     implicit val ticks  = midi.TickRate.tempo(120, 1024)
-    val f       = outDir / s"vertical_gen$voices${if (useAllIntervals) "all" else ""}.midi"
+    val fb      = outDir / s"vertical_gen$voices${if (useAllIntervals) "all" else ""}"
     val chords0 = Vec.fill(num)(generate(voices = voices, base = base, useAllIntervals = useAllIntervals))
     val chords  = chords0.spread()
+
+    val fmid    = fb.replaceExt("midi")
     val evt     = chords.flatMap(_.toMIDI(0))
     val t       = midi.Track(evt)
-    midi.Sequence(Vec(t)).writeFile(f)
+    midi.Sequence(Vec(t)).writeFile(fmid)
+
+    val fly     = fb.replaceExt("ly")
+
+    // ---- lilypond test output ----
+    val headly = raw"""
+      |\version "2.16.2"
+      |
+      |#(set-default-paper-size "a4")
+      |#(set-global-staff-size 16)
+    """.stripMargin
+
+    val innerly = chords.map { c =>
+      c.notes.map { n =>
+        val p   = n.pitch
+        val ps  = Pitch.toString(p.midi, Language.German)
+        ps.replace('h', 'b')  // Yo, suckers
+      } .mkString("  <", " ", ">1")
+    } .mkString("\n")
+
+    val score = raw"""
+      |$headly
+      |
+      |\new Staff {
+      |$innerly
+      |}
+    """.stripMargin
+
+    val os  = new OutputStreamWriter(new FileOutputStream(fly), "UTF-8")
+    os.write(score)
+    os.close()
+
+    import sys.process._
+
+    val fdir  = fly.parent
+    val cmdly = Seq(lilypond, "-o", fdir.path, fly.absolutePath)
+    println(cmdly.mkString(" "))
+    val resly = cmdly.!
+    if (resly != 0 && resly != 1) sys.error(s"Lilypond exited with code $resly")
+
+    Seq(pdfViewer, fly.replaceExt("pdf").path).!
   }
 }

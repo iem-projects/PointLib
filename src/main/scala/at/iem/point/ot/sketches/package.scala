@@ -10,6 +10,9 @@ package object sketches {
   val Vec             = collection.immutable.IndexedSeq
   type Vec[+A]        = collection.immutable.IndexedSeq[A]
 
+  val lilypond        = (userHome / "bin" / "lilypond").path
+  val pdfViewer       = "open"
+
   val pointHome       = userHome / "Desktop" / "IEM" / "POINT"
   val baseDir         = pointHome / "composers" / "orestis_toufektsis"
   val materialDir     = baseDir / "material"
