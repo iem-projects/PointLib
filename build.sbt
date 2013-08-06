@@ -13,7 +13,7 @@ licenses := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism" % "0.2.+",
   "de.sciss" %% "pdflitz"     % "1.0.+",
-  "de.sciss" %% "fileutil"    % "1.0.+"
+  "de.sciss" %% "muta"        % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")

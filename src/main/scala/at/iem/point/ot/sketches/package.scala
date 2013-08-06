@@ -87,6 +87,8 @@ package object sketches {
       } ._2
     }
 
+    def mean(implicit num: Fractional[A], intView: Int => A): A = num.div(seq.sum, seq.size)
+
     def integrate(implicit num: Numeric[A]): Vec[A] = {
       (Vector.empty[A] /: seq) { (res, elem) =>
         val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
