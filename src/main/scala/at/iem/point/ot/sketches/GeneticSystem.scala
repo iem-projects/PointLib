@@ -56,11 +56,11 @@ object GeneticSystem extends muta.System {
 
   object Crossover extends muta.impl.CrossoverVecImpl[Chord, Global] with BreedingFunction
 
-  case class Mutation(chords: SelectionSize = SelectionPercent(10),
+  case class Mutation(chords: SelectionSize = SelectionPercent(20),
                       voices: SelectionSize = SelectionNumber(2), interval: Int = 2)
     extends muta.impl.MutationVecImpl [Chord, Global] with BreedingFunction {
 
-    // override protected val numGenesSize = chords
+    override protected val numGenesSize = chords
 
     def mutate(gene: Chord)(implicit r: util.Random): Chord = {
       println("Muta!")
@@ -104,8 +104,12 @@ object GeneticSystem extends muta.System {
   def selectionView (config: Config) = AutoView(defaultSelection , config)
   def breedingView  (config: Config) = AutoView(defaultBreeding  , config)
 
+  private val chordSeqView = new ChordSeqView
+
   override def chromosomeView(c: Chromosome, default: Label, selected: Boolean, focused: Boolean) = {
-    default.text = c.map(_.pitches.mkString("[", " ", "]")).mkString(" ")
-    default
+    // default.text = c.map(_.pitches.mkString("[", " ", "]")).mkString(" ")
+    // default
+    chordSeqView.chords = c
+    chordSeqView
   }
 }
