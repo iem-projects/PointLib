@@ -20,7 +20,8 @@ object GeneticSystem extends muta.System {
   case class Generation(size: Int = 100, global: Global = Global(), seed: Int = 0)
     extends muta.Generation[Chromosome, Global] {
 
-    def apply(r: Random): Chromosome = Vec.fill(global.length)(Vertical.generate(voices = global.voices)(r))
+    def apply(r: Random): Chromosome =
+      Vec.fill(global.length)(Vertical.generate(voices = global.voices, base = 48.asPitch)(r))
   }
 
   sealed trait Evaluation extends muta.Evaluation[Chromosome]
@@ -63,7 +64,7 @@ object GeneticSystem extends muta.System {
     override protected val numGenesSize = chords
 
     def mutate(gene: Chord)(implicit r: util.Random): Chord = {
-      println("Muta!")
+      // println("Muta!")
 
       val num       = r.nextInt(math.max(0, voices(gene.size) - 1) + 1)
       val pitches   = gene.pitches.scramble

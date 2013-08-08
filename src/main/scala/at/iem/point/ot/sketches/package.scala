@@ -47,7 +47,7 @@ package object sketches {
       @tailrec def loop1(head: Vec[OffsetNote], tail: Vec[OffsetNote],
                          stop: Double): (Vec[OffsetNote], Vec[OffsetNote]) =
         tail match {
-          case hd +: tl if (hd.offset < stop + minimumPause) =>
+          case hd +: tl if hd.offset < stop + minimumPause =>
             val nextStop = math.max(stop, hd.stop)
             loop1(head :+ hd, tl, nextStop)
           case _ =>
