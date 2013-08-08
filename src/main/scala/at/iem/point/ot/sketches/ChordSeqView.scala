@@ -2,7 +2,7 @@ package at.iem.point.ot.sketches
 
 import at.iem.point.illism._
 import scala.swing.{Swing, Component}
-import java.awt.Graphics2D
+import java.awt.{RenderingHints, Graphics2D}
 import abc.ui.swing.JScoreComponent
 import abc.parser.TuneParser
 import Swing._
@@ -22,7 +22,7 @@ class ChordSeqView extends Component {
     voc.addElement(key)
     // val n1 = new _Note(_Note.C)
     // n1.setStrictDuration(_Note.QUARTER)
-    val n1 = new Spacer(1f)
+    val n1 = new Spacer(100f)
     voc.addElement(n1)
     res.setTune(tun)
     res
@@ -41,10 +41,18 @@ class ChordSeqView extends Component {
 
   override protected def paintComponent(g: Graphics2D): Unit = {
     if (dirty) rebuild()
-    scoreView.drawIn(g)
-    g.translate(0,  43)
-    bassView.drawIn(g)
-    g.translate(0, -43)
+
+    // g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL   , RenderingHints.VALUE_STROKE_PURE         )
+    g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+    val atOrig = g.getTransform
+    try {
+      g.translate(0,  56)
+      scoreView.drawIn(g)
+      // g.translate(0,  39)
+      // bassView.drawIn(g)
+    } finally {
+      g.setTransform(atOrig)
+    }
   }
 
   private def rebuild(): Unit = {

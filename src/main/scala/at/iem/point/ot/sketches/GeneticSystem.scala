@@ -15,9 +15,9 @@ object GeneticSystem extends muta.System {
   /** @param voices   the number of voices (vertical chord size)
     * @param length   the number of chords to produce
     */
-  case class Global(voices: Int = 5, length: Int = 10)
+  case class Global(voices: Int = 5, length: Int = 12)
 
-  case class Generation(size: Int = 100, global: Global = Global(), seed: Int = 0)
+  case class Generation(size: Int = 400, global: Global = Global(), seed: Int = 0)
     extends muta.Generation[Chromosome, Global] {
 
     def apply(r: Random): Chromosome =
@@ -26,12 +26,35 @@ object GeneticSystem extends muta.System {
 
   sealed trait Evaluation extends muta.Evaluation[Chromosome]
 
-  object SampleEvaluation extends Evaluation {
-    val maxUp = 2
-    val maxDn = 2
+  case class SampleEvaluation(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96) extends Evaluation {
+    def evalLine(line: Vec[Pitch]): Double = {
+      val midi      = line.map(_.midi)
+      // val numReg    = midi.count(m => m >= lowest && m <= highest)
+      val numReg    = midi.map { m =>
+        if (m < lowest)
+          m.toDouble / lowest
+        else if (m > highest)
+          highest.toDouble / m
+        else
+          1.0
+      } .sum
 
-    def evalLine(line: Vec[Pitch]): Double =
-      line.map(_.midi).pairDiff.count(m => m <= maxUp && -m <= maxDn).toDouble / (line.size - 1)
+      val steps     = midi.pairDiff
+      // val numIval   = steps.count { m =>
+      //   m <= maxUp && -m <= maxDown
+      // }
+      val numIval   = steps.map { m =>
+        if (m < -maxDown)
+          maxDown.toDouble / -m
+        else if (m > maxUp)
+          maxUp.toDouble / m
+        else
+          1.0
+      } .sum
+      val numGood   = numReg + numIval
+      val maxGood   = midi.size + steps.size
+      numGood / maxGood
+    }
 
     def apply(c: Chromosome): Double = {
       val lines = Horizontal.fromChords(c)
@@ -49,8 +72,8 @@ object GeneticSystem extends muta.System {
 
   sealed trait BreedingFunction extends muta.BreedingFunction[Chromosome, Global]
 
-  case class Breeding(elitism        : SelectionSize    = SelectionNumber(10),
-                     crossoverWeight: SelectionPercent  = SelectionPercent(67),
+  case class Breeding(elitism        : SelectionSize    = SelectionNumber(20),
+                     crossoverWeight: SelectionPercent  = SelectionPercent(50),
                      crossover      : BreedingFunction  = Crossover,
                      mutation       : BreedingFunction  = Mutation())
     extends muta.impl.BreedingImpl[Chromosome, Global]
@@ -58,7 +81,7 @@ object GeneticSystem extends muta.System {
   object Crossover extends muta.impl.CrossoverVecImpl[Chord, Global] with BreedingFunction
 
   case class Mutation(chords: SelectionSize = SelectionPercent(20),
-                      voices: SelectionSize = SelectionNumber(2), interval: Int = 2)
+                      voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
     extends muta.impl.MutationVecImpl [Chord, Global] with BreedingFunction {
 
     override protected val numGenesSize = chords
@@ -94,16 +117,16 @@ object GeneticSystem extends muta.System {
   }
 
   def defaultGeneration: Generation = Generation()
-  def defaultEvaluation: Evaluation = SampleEvaluation
+  def defaultEvaluation: Evaluation = SampleEvaluation()
   def defaultSelection : Selection  = SelectionRoulette()
   def defaultBreeding  : Breeding   = Breeding()
 
   val chromosomeClassTag = reflect.classTag[Chromosome]
 
-  def generationView(config: Config) = AutoView(defaultGeneration, config)
-  def evaluationView(config: Config) = AutoView(defaultEvaluation, config)
-  def selectionView (config: Config) = AutoView(defaultSelection , config)
-  def breedingView  (config: Config) = AutoView(defaultBreeding  , config)
+  def generationView(init: Generation, config: Config) = AutoView(init, config)
+  def evaluationView(init: Evaluation, config: Config) = AutoView(init, config)
+  def selectionView (init: Selection , config: Config) = AutoView(init, config)
+  def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
 
   private val chordSeqView = new ChordSeqView
 
