@@ -43,7 +43,7 @@ class ChordSeqView extends Component {
     if (dirty) rebuild()
 
     // g.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL   , RenderingHints.VALUE_STROKE_PURE         )
-    g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
+    // g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
     val atOrig = g.getTransform
     try {
       g.translate(0,  56)
@@ -107,6 +107,21 @@ class ChordSeqView extends Component {
     //    val r1 = new _Note(_Note.REST)
     //    r1.setStrictDuration(_Note.QUARTER)
     //    voiceB.addElement(r1)
+
+    //    val test =
+    //      """|X:1
+    //         |T:Fugue in Cm
+    //         |C:J.S.Bach
+    //         |V:1 %program 1 19
+    //         |V:2 %program 1 19
+    //         |V:3 bass %program 1 19
+    //         |M:4/4
+    //         |Q:100
+    //         |K:Cm
+    //         |[V:1]  z8   |  z8     | zg/^f/g ce g/f/g=a   |
+    //         |[V:2] z c/=B/c GA c/B/cd | G c/=B/c dF/G/A2G/F/ | E/c/=B/=A/G/F/ E/D/ Cedc |
+    //         |[V:3]  z8     |  z8  |  z8  |
+    //         |""".stripMargin
 
     val tune = parser.parse("K:C\n|" + abc)
     scoreView.setTune(tune)
