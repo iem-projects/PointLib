@@ -8,7 +8,7 @@ import collection.breakOut
 object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(run())
 
-  def test1() {
+  def test1(): Unit = {
     val sn          = loadSnippet(improvSnippets(1))
     val notes       = sn.notes
     val (m, h)      = NoteUtil.splitMelodicHarmonic(notes)
@@ -16,10 +16,10 @@ object ElisabethPartitioning extends App with ShowPartitioning {
     val nh          = h.flatMap(_._2)
 
     implicit val r  = sn.rate
-    show(Vector(nm), Vector(nh))
+    show(Vec(nm), Vec(nh))
   }
 
-  def test2() {
+  def test2(): Unit = {
     // 0 = kreisend, 1 = cluster, 2 = stumme tasten, 3 = teilweise pedal, 4 = mit obersten hoehen, 5 = schleifender daumen
     val sn              = loadDisklavier(5)
     val notes           = sn.notes
@@ -31,10 +31,10 @@ object ElisabethPartitioning extends App with ShowPartitioning {
     )
 
     implicit val r = sn.rate
-    show(Vector(white, black), Vector.empty)
+    show(Vec(white, black), Vec.empty)
   }
 
-  def run() {
+  def run(): Unit = {
     val sn    = loadDisklavier(0) // 5  4  1  0
     val notes = sn.notes
 
@@ -61,7 +61,7 @@ object ElisabethPartitioning extends App with ShowPartitioning {
 
       // n.offset < maxTime && n.stop > minTime && p >= minPitch && p <= maxPitch
 
-      val densityBonus = densityMap(n)
+      // val densityBonus = densityMap(n)
 
       if ((n.offset < ref.offset &&   n.stop >= ref.offset) ||
           (n.offset > ref.offset && ref.stop >= n  .offset)) {
@@ -97,7 +97,7 @@ object ElisabethPartitioning extends App with ShowPartitioning {
       }
     }
 
-    def mkHeap(rem: IIdxSeq[OffsetNote], in: IIdxSeq[OffsetNote], out: IIdxSeq[OffsetNote]): (IIdxSeq[OffsetNote], IIdxSeq[OffsetNote]) =
+    def mkHeap(rem: Vec[OffsetNote], in: Vec[OffsetNote], out: Vec[OffsetNote]): (Vec[OffsetNote], Vec[OffsetNote]) =
       rem match {
         case head +: tail =>
           val (in1, out1) = out.partition(inHeap(head))
@@ -106,17 +106,17 @@ object ElisabethPartitioning extends App with ShowPartitioning {
         case _ => (in, out)
       }
 
-    @tailrec def mkHeaps(rem: IIdxSeq[OffsetNote], res: IIdxSeq[IIdxSeq[OffsetNote]]): IIdxSeq[IIdxSeq[OffsetNote]] = {
+    @tailrec def mkHeaps(rem: Vec[OffsetNote], res: Vec[Vec[OffsetNote]]): Vec[Vec[OffsetNote]] = {
       rem match {
         case head +: tail =>
-          val (in1, out1) = mkHeap(rem = Vector(head), in = Vector.empty, out = tail)
+          val (in1, out1) = mkHeap(rem = Vec(head), in = Vec.empty, out = tail)
           mkHeaps(out1, res :+ in1)
         case _ => res
       }
     }
 
-    val heaps = mkHeaps(notes, Vector.empty)
+    val heaps = mkHeaps(notes, Vec.empty)
     implicit val r  = sn.rate
-    show(heaps, Vector.empty, numGroups = 5)
+    show(heaps, Vec.empty, numGroups = 5)
   }
 }

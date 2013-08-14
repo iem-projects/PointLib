@@ -6,14 +6,14 @@ import de.sciss.midi.TickRate
 object VerticalDance {
   def apply(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
                              entryCoarse: Double, entryScale: Double, modelInner: Boolean, modelGrains: Boolean,
-                             chordSnippets: IIdxSeq[IIdxSeq[Chord]])(implicit rnd: util.Random): VerticalDance =
+                             chordSnippets: Vec[Vec[Chord]])(implicit rnd: util.Random): VerticalDance =
     new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse, modelEntry = modelEntry,
              entryCoarse = entryCoarse, entryScale = entryScale, modelInner = modelInner, modelGrains = modelGrains,
              h = chordSnippets)
 
   private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
                            entryCoarse: Double, entryScale: Double, modelInner: Boolean, modelGrains: Boolean,
-                           h: IIdxSeq[IIdxSeq[Chord]])(implicit rnd: util.Random) extends VerticalDance {
+                           h: Vec[Vec[Chord]])(implicit rnd: util.Random) extends VerticalDance {
 
     private val chordsIn  = h.flatten // flatMap(_._2)
     private val pchSq     = chordsIn.map { c => val pch = c.pitches; pch.head.`class`.step -> pch.last.`class`.step }
@@ -27,7 +27,7 @@ object VerticalDance {
 
       // a simple occurrence map. frame size -> num voices -> chords
     private lazy val innerOcc = {
-      var res = Map.empty[Int, Map[Int, IIdxSeq[Chord]]] withDefaultValue (Map.empty withDefaultValue Vector.empty)
+      var res = Map.empty[Int, Map[Int, Vec[Chord]]] withDefaultValue (Map.empty withDefaultValue Vector.empty)
       chordsIn.foreach { c =>
         val semi  = c.frameInterval.semitones
         val map0  = res(semi)
@@ -39,7 +39,7 @@ object VerticalDance {
 
     // a simple occurrence map. num voices -> chords (velocities)
     private lazy val veloOcc = {
-      var res = Map.empty[Int, IIdxSeq[Chord]] withDefaultValue Vector.empty
+      var res = Map.empty[Int, Vec[Chord]] withDefaultValue Vector.empty
       chordsIn.foreach { c =>
         res = res + (c.size -> (res(c.size) :+ c))
       }
@@ -48,7 +48,7 @@ object VerticalDance {
 
     // a simple occurrence map. num voices -> chords (inner times)
     private lazy val grainOcc = {
-      var res = Map.empty[Int, IIdxSeq[Chord]] withDefaultValue Vector.empty
+      var res = Map.empty[Int, Vec[Chord]] withDefaultValue Vector.empty
       chordsIn.foreach { c =>
         res = res + (c.size -> (res(c.size) :+ c))
       }

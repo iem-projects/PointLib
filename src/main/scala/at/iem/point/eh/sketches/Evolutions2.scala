@@ -2,6 +2,7 @@ package at.iem.point.eh.sketches
 
 import at.iem.point.illism._
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
+import de.sciss.file._
 
 object Evolutions2 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes

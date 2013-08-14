@@ -6,13 +6,13 @@ import de.sciss.midi.TickRate
 object HorizontalDance {
   def apply(startIdx: Int = 0, modelVelo: Boolean = true, veloCoarse: Int = 4, modelEntry: Boolean = true,
                              entryCoarse: Double = 0.2, entryScale: Double = 1.0,
-                             noteSnippets: IIdxSeq[IIdxSeq[OffsetNote]])(implicit rnd: util.Random): HorizontalDance =
+                             noteSnippets: Vec[Vec[OffsetNote]])(implicit rnd: util.Random): HorizontalDance =
     new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse, modelEntry = modelEntry,
              entryCoarse = entryCoarse, entryScale = entryScale, m = noteSnippets)
 
   private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
                            entryCoarse: Double, entryScale: Double,
-                           m: IIdxSeq[IIdxSeq[OffsetNote]])(implicit rnd: util.Random)
+                           m: Vec[Vec[OffsetNote]])(implicit rnd: util.Random)
     extends HorizontalDance {
 
     private val notesIn   = m.flatten // m.flatMap(_._2)

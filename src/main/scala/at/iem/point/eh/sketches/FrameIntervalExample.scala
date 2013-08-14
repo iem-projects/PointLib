@@ -7,6 +7,7 @@ import org.jfree.chart.{ChartPanel, ChartFactory, StandardChartTheme}
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
 import scalax.chart.XYChart
 import at.iem.point.illism._
+import de.sciss.pdflitz
 
 object FrameIntervalExample extends App {
   sys.props("com.apple.mrj.application.apple.menu.about.name")  = "PointLib"
@@ -44,9 +45,9 @@ object FrameIntervalExample extends App {
       frameIntervalHisto(snippetIdx = idx, constrainSize = mode.filter, lowTolerance = mode.isImprov)
     )
     val infos       = if (sumSnippets && infos0.size > 1) infos0.reduce(sumInfos) :: Nil else infos0
-    val maxX        = infos.map(_.histo.keys.max).max.semitones + 1 // plus one, because otherwise last bar is shown truncated
+    val maxX        = infos.map(_.histo.keys.map(_.semitones).max).max + 1 // plus one, because otherwise last bar is shown truncated
     val maxY        = infos.map(_.histo.values.max).max
-    val charts      = infos.map(mkChart(_))
+    val charts      = infos.map(mkChart)
     charts.foreach { c =>
       setMaxX(c, maxX)
       setMaxY(c, maxY)
@@ -71,7 +72,7 @@ object FrameIntervalExample extends App {
     val frame = new Frame {
       title = s"$intervalTitle Histograms for $chordTitle"
       contents = panel
-      PDFSupport.addMenu(peer, panel.peer :: Nil)
+      new pdflitz.SaveAction(panel :: Nil).setupMenu(this)
       pack().centerOnScreen()
     }
     frame.open()
@@ -121,12 +122,12 @@ object FrameIntervalExample extends App {
       allIntervals = allIntervals)
   }
 
-  def setMaxY(chart: XYChart, i: Int) {
+  def setMaxY(chart: XYChart, i: Int): Unit = {
     val rangeX = chart.plot.getRangeAxis.asInstanceOf[NumberAxis]
     rangeX.setRange(0.0, i.toDouble)
   }
 
-  def setMaxX(chart: XYChart, i: Int) {
+  def setMaxX(chart: XYChart, i: Int): Unit = {
     val rangeY = chart.plot.getDomainAxis.asInstanceOf[NumberAxis]
     rangeY.setRange(0.0, i.toDouble)
   }

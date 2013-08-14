@@ -1,26 +1,13 @@
 package at.iem.point.eh
 
-import java.io.{IOException, File}
 import java.awt.EventQueue
 import de.sciss.midi
 import at.iem.point.illism.Chord
+import de.sciss.file._
 
 package object sketches {
-  val  IIdxSeq    = collection.immutable.IndexedSeq
-  type IIdxSeq[A] = collection.immutable.IndexedSeq[A]
-
-  def file(path: String): File = new File(path)
-
-  implicit final class RichFile(val f: File) extends AnyVal {
-    def / (child: String): File = new File(f, child)
-    def files: List[File] = {
-      val arr = f.listFiles()
-      if (arr == null) throw new IOException(s"Not a directory: $f")
-      arr.toList
-    }
-    def filesOption: Option[List[File]] = Option(f.listFiles()).map(_.toList)
-    def name: String = f.getName
-  }
+  val  Vec    = collection.immutable.IndexedSeq
+  type Vec[A] = collection.immutable.IndexedSeq[A]
 
   implicit final class RichFloat(val f: Float) extends AnyVal {
     def linlin(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
@@ -46,14 +33,13 @@ package object sketches {
   lazy val snippetFiles: Map[Int, File] = {
     val b   = Map.newBuilder[Int, File]
     val Pat = "snippet (\\d+).mid".r
-    def loop(d: File) {
-      d.filesOption.getOrElse(Nil).foreach { f =>
+    def loop(d: File): Unit =
+      d.children.foreach { f =>
         if (f.isFile) f.name match {
           case Pat(num) => b += num.toInt -> f
           case _ =>
         } else loop(f)
       }
-    }
     loop(inPath)
     b.result()
   }
@@ -79,9 +65,8 @@ package object sketches {
   // snippet indices of free improvisation sets
   lazy val improvSnippets = 9 :: 48 :: Nil
 
-  def defer(thunk: => Unit) {
+  def defer(thunk: => Unit): Unit =
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
-  }
 
   implicit final class RichChord(val chord: Chord) extends AnyVal {
      def avgVelocity: Float = {
@@ -90,16 +75,16 @@ package object sketches {
      }
   }
 
-  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
+  implicit final class RichEHIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
     def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
-    def scramble(implicit random: util.Random): IIdxSeq[A] = {
+    def scramble(implicit random: util.Random): Vec[A] = {
       ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>
         val idx = random.nextInt(in.size)
         in.patch(idx, Vector.empty, 1) -> (out :+ in(idx))
       } ._2
     }
 
-    def integrate(implicit num: Numeric[A]): IIdxSeq[A] = {
+    def integrate(implicit num: Numeric[A]): Vec[A] = {
       (Vector.empty[A] /: seq) { (res, elem) =>
         val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
         res :+ agg

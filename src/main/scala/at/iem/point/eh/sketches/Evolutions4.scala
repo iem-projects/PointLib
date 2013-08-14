@@ -2,6 +2,7 @@ package at.iem.point.eh.sketches
 
 import at.iem.point.illism._
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
+import de.sciss.file._
 
 object Evolutions4 extends App {
   val NUM         = 200

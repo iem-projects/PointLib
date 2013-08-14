@@ -2,6 +2,7 @@ package at.iem.point.eh.sketches
 
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 import at.iem.point.illism._
+import de.sciss.file._
 
 object ContextEvolutions extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
@@ -41,10 +42,10 @@ object ContextEvolutions extends App {
 //  assert(notesIn == sorted)
 
   val notesOut  = if (ENTRY) {
-    val entrySq = notesIn.sliding(2, 1).to[Vector].map { case Seq(a, b) =>
+    val entrySq = notesIn.sliding(2, 1).to[Vector].map { case Vec(a, b) =>
       val fine    = ((b.offset - a.offset) * 1000 + 0.5).toInt // millis
       val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
-      if (coarse > 0) (fine - fine % coarse) else fine
+      if (coarse > 0) fine - fine % coarse else fine
 //      millis * 1000
     }
 

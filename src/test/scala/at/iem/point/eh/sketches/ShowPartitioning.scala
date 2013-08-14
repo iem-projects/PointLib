@@ -14,10 +14,12 @@ import java.awt.{Graphics, Point, Color, RenderingHints, Graphics2D}
 import java.awt.geom.GeneralPath
 import at.iem.point.illism.gui.PianoRoll.NoteDecoration
 import collection.breakOut
+import de.sciss.pdflitz
+import de.sciss.swingplus.ScrollBar
 
 trait ShowPartitioning {
-  def show(notes: IIdxSeq[IIdxSeq[OffsetNote]], chords: IIdxSeq[IIdxSeq[Chord]], numGroups: Int = -1)
-          (implicit rate: midi.TickRate) {
+  def show(notes: Vec[Vec[OffsetNote]], chords: Vec[Vec[Chord]], numGroups: Int = -1)
+          (implicit rate: midi.TickRate): Unit = {
     val notesF      = notes.flatten
     val chordsF     = chords.flatten
     val allNotes    = (notesF ++ chordsF.flatMap(_.notes)).sortBy(_.offset)
@@ -38,7 +40,7 @@ trait ShowPartitioning {
     }
 
     val view        = new PianoRollImpl.JComponent {
-      override def paintComponent(g: Graphics) {
+      override def paintComponent(g: Graphics): Unit = {
         super.paintComponent(g)
         val (start, stop) = timeRange
         val x = keyWidth + ((position - start) / (stop - start) * (getWidth - keyWidth) + 0.5).toInt
@@ -83,7 +85,7 @@ trait ShowPartitioning {
       listenTo(mouse.clicks)
       listenTo(mouse.moves)
 
-      def move(pt: Point, mod: Int) {
+      def move(pt: Point, mod: Int): Unit = {
         val p = math.max(0.0, math.min(dur, (pt.x.toDouble / size.width) * (maximum - minimum) + minimum))
         setPos(p)
       }
@@ -93,7 +95,7 @@ trait ShowPartitioning {
         case MouseDragged(_, pt, mod)       => move(pt, mod)
       }
 
-      override def paintComponent(g: Graphics2D) {
+      override def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
         val x = (position - minimum) / (maximum - minimum) * size.width
         g.setColor(colr)
@@ -105,7 +107,7 @@ trait ShowPartitioning {
       }
     }
 
-    def setPos(p: Double) {
+    def setPos(p: Double): Unit = {
       position = p
       axis.repaint()
       view.repaint()
@@ -113,7 +115,7 @@ trait ShowPartitioning {
     }
 
     // val slider      = new JSlider((view.timeRange._1 * 100).toInt, (view.timeRange._2 * 100).toInt)
-    lazy val scroll = new ScrollBarAlive {
+    lazy val scroll = new ScrollBar {
       me =>
 
       orientation   = Orientation.Horizontal
@@ -134,7 +136,7 @@ trait ShowPartitioning {
       contents += axis
     }
 
-    def setSpan(start: Double, stop: Double) {
+    def setSpan(start: Double, stop: Double): Unit = {
       // println(s"setSpan($start, $stop)")
       view.timeRange        = (start, stop)
       axis.minimum          = start
@@ -152,7 +154,7 @@ trait ShowPartitioning {
 
     def action(stroke: KeyStroke)(body: => Unit) = new Action("Untitled") {
       accelerator = Some(stroke)
-      def apply() { body }
+      def apply(): Unit = body
     }
 
     scroll.addAction("zoom-out", action(menu2 + VK_LEFT) {
@@ -192,13 +194,13 @@ trait ShowPartitioning {
       setPos(p)
     })
 
-    def play() {
+    def play(): Unit = {
       stop()
       val sq  = /* if (position == 0) sn else */ {
         val n0  = allNotes.dropWhile(_.offset < position)
         val n1  = n0.map(n => n.copy(offset = n.offset - position))
         val t   = midi.Track(n1.flatMap(_.toMIDI))    // XXX TODO: use different channels for each note/chord group
-        midi.Sequence(Vector(t))
+        midi.Sequence(Vec(t))
       }
       sequencer.play(sq)
       playStartPos  = position
@@ -206,14 +208,12 @@ trait ShowPartitioning {
       timer.restart()
     }
 
-    def stop() {
+    def stop(): Unit = {
       timer.stop()
       if (sequencer.isPlaying) sequencer.stop()
     }
 
-    def rtz() {
-      setPos(0.0)
-    }
+    def rtz(): Unit = setPos(0.0)
 
     import Transport._
     val transp = Transport.makeButtonStrip(GoToBegin(rtz()) :: Play(play()) :: Stop(stop()) :: Nil)
@@ -236,7 +236,7 @@ trait ShowPartitioning {
     rtz()
     lcdP.maximumSize = lcdP.preferredSize // = (200, 20)
 
-    new Frame {
+    new Frame { frame =>
       contents = new BorderPanel {
         add(Component.wrap(view), BorderPanel.Position.Center)
         add(box3, BorderPanel.Position.North)
@@ -246,7 +246,7 @@ trait ShowPartitioning {
       centerOnScreen()
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
 
-      PDFSupport.addMenu(peer, view :: Nil, usePrefSize = false)
+      new pdflitz.SaveAction(view :: Nil).setupMenu(peer)
 
       open()
     }
