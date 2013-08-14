@@ -3,17 +3,18 @@ package at.iem.point.eh.sketches
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 import at.iem.point.illism._
 import de.sciss.file._
+import scala.util.Try
 
-object ContextEvolutions extends App {
+object Evolutions5 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
   val NUM         = 2000
-  val SEED        = 2L      // seed of the random number generator
-  val START       = 0       // start index in the pitch sequence to begin wih
+  val SEED        = 5L      // seed of the random number generator
+  val START       = 1       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
   val ENTRY       = true    // model entry offsets
-  val ENTRY_COARSE= 0.25    // 0.2     // entry offset rasterisation (relative, in percent 0...1)
-  val ENTRY_SCALE = 3.0 // 1.5     // slow down factor if using entry modelling
+  val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
+  val ENTRY_SCALE = 2.0 // 1.5     // slow down factor if using entry modelling
 
   // val sq        = loadSnippet(improvSnippets.last)
   // val notesIn   = sq.notes.sortBy(_.offset)
@@ -33,17 +34,50 @@ object ContextEvolutions extends App {
     res
   }
 
-  val pitchSq   = notesIn.map(_.pitch.midi)
+  val pitchSq2  = notesIn.map(n => (n.pitch.keyColor, n.pitch.keyPosition))
+  val ivalSq    = pitchSq2.pairMap {
+    case ((c1, p1), (c2, p2)) => (c1, c2, p2 - p1)
+  }
+
+  // val pitchSq   = notesIn.map(_.pitch.midi)
 
   implicit val rnd  = new util.Random(SEED)
-  val recPch    = ContextDance.move(pitchSq, num = NUM)(pitchSq(START) :: Nil)
+  // val recPch    = ContextDance.move(pitchSq, num = NUM)(pitchSq(START) :: Nil)
+  val recPch    = ContextDance.move(ivalSq, num = NUM)(ivalSq(START) :: Nil)
 
 //  println(recPch.map(_.asPitch).mkString(", "))
 
-  val notesOut0 = recPch.zipWithIndex.map { case (midi, idx) =>
-    val off = idx * 0.25
-    OffsetNote(off, midi.asPitch, 0.125, 80)
+  val startPitch: Pitch = recPch.head match {
+    case (c1, c2, dp) => (60 until 72).map(_.asPitch).filter { pch =>
+      Try(pch.keyColor == c1 && pch.moveBy(dp).keyColor == c2).getOrElse(false)
+    } .head
   }
+
+  def random1() = if (rnd.nextBoolean()) 1 else -1
+
+  val notesOut0 = ((startPitch, Vec.empty[OffsetNote]) /: recPch) { case ((pch, res), (c1, c2, dp)) =>
+    val idx   = res.size
+    val off   = idx * 0.25
+    val res1  = res :+ OffsetNote(off, pch, 0.125, 80)
+    val pch1  = Try(pch.moveBy(dp)).getOrElse(pch.moveBy(dp + random1()))
+
+    val pch2 = if (pch1.keyColor != c2) {
+      val m = if (pch1.keyColor == KeyColor.Black)
+        random1()
+      else
+        pch1.`class`.step match {
+          case 0 |  5  => 1
+          case 4 | 11  => -1
+          case _       => random1()
+        }
+      new Pitch(pch1.midi + m)
+    } else {
+      pch1
+    }
+
+    // assert(pch.keyColor == c1 && pch1.keyColor == c2)
+    (pch1, res1)
+  } ._2
 
   val notesOut1 = if (VELO) {
     val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % VELO_COARSE) }
@@ -54,21 +88,21 @@ object ContextEvolutions extends App {
 
   implicit val rate = TickRate.tempo(120, 1024)
 
-  //  val sorted = notesIn.sortBy(_.offset)
-  //  assert(notesIn == sorted)
+//  val sorted = notesIn.sortBy(_.offset)
+//  assert(notesIn == sorted)
 
   val notesOut  = if (ENTRY) {
     val entrySq = notesIn.sliding(2, 1).to[Vector].map { case Vec(a, b) =>
       val fine    = ((b.offset - a.offset) * 1000 + 0.5).toInt // millis
       val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
       if (coarse > 0) fine - fine % coarse else fine
-      //      millis * 1000
+//      millis * 1000
     }
 
-    //    println(entrySq.mkString(", "))
-    //    ContextDance.DEBUG = true
+//    println(entrySq.mkString(", "))
+//    ContextDance.DEBUG = true
     val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM)(entrySq(START) :: Nil)
-    //    println(recEntry.mkString(", "))
+//    println(recEntry.mkString(", "))
     var off = 0.0
     (notesOut1 zip recEntry).map { case (n, e) =>
       val res = n.copy(offset = off)
@@ -82,8 +116,7 @@ object ContextEvolutions extends App {
   val track   = Track(events)
   val sqOut   = Sequence(Vector(track))
 
-  // sqOut.writeFile(outPath / s"Improv_PitchSeq_${START}_${SEED}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid")
-  sqOut.writeFile(outPath / s"Disklavier_PitchSeq_${START}_${SEED}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid")
+  sqOut.writeFile(outPath / s"DisklavierBW_PitchSeq_${START}_${SEED}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid")
 
   val player  = Sequencer.open()
   player.play(sqOut)
