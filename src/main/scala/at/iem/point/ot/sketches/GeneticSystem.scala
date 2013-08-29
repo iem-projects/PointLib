@@ -12,21 +12,51 @@ import scala.annotation.tailrec
 object GeneticSystem extends muta.System {
   type Chromosome = Vec[Chord]
 
-  /** @param voices   the number of voices (vertical chord size)
-    * @param length   the number of chords to produce
+  case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
+
+  val DefaultVoices = Vec(
+    Voice(lowest = 72, highest = 96),
+    Voice(lowest = 48, highest = 72),
+    Voice(lowest = 24, highest = 48)
+  )
+
+  /** Constraint on the vertical (harmonic) structure. */
+  sealed trait VerticalConstraint
+  /** Constraint which forbids to occurrence of a particular interval */
+  case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint
+
+  /** Constraint which forbids to co-presence of two given intervals.
+    *
+    * @param a          the first interval
+    * @param b          the second interval
+    * @param neighbor   if `true`, intervals `a` and `b` may not occur as neighboring intervals, if `false`
+    *                   then `a` and `b` may not occur anywhere in the chord.
     */
-  case class Global(voices: Int = 5, length: Int = 12)
+  case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
+                                   b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
+    extends VerticalConstraint
+
+  /** The global configuration for the generation of chromosomes.
+    *
+    * @param voices    the number of voices (vertical chord size)
+    * @param vertical  vertical constraints
+    * @param length    the number of chords to produce
+    */
+  case class Global(voices  : Vec[Voice] = DefaultVoices,
+                    vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
+                    length  : Int = 12)
 
   case class Generation(size: Int = 400, global: Global = Global(), seed: Int = 0)
     extends muta.Generation[Chromosome, Global] {
 
     def apply(r: Random): Chromosome =
-      Vec.fill(global.length)(Vertical.generate(voices = global.voices, base = 48.asPitch)(r))
+      Vec.fill(global.length)(Vertical.generate(voices = global.voices.size, base = 48.asPitch
+        /* , useAllIntervals = true */)(r))
   }
 
   sealed trait Evaluation extends muta.Evaluation[Chromosome]
 
-  case class SampleEvaluation(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96) extends Evaluation {
+  case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2, maxDown: Int = 2) extends Evaluation {
     def evalLine(line: Vec[Pitch]): Double = {
       val midi      = line.map(_.midi)
       // val numReg    = midi.count(m => m >= lowest && m <= highest)
@@ -72,7 +102,7 @@ object GeneticSystem extends muta.System {
 
   sealed trait BreedingFunction extends muta.BreedingFunction[Chromosome, Global]
 
-  case class Breeding(elitism        : SelectionSize    = SelectionNumber(20),
+  case class Breeding(elitism       : SelectionSize     = SelectionNumber(20),
                      crossoverWeight: SelectionPercent  = SelectionPercent(50),
                      crossover      : BreedingFunction  = Crossover,
                      mutation       : BreedingFunction  = Mutation())
