@@ -2,15 +2,21 @@ package at.iem.point.ot.sketches
 
 import at.iem.point.illism._
 import scala.swing.{Swing, Component}
-import java.awt.{RenderingHints, Graphics2D}
+import java.awt.Graphics2D
 import abc.ui.swing.JScoreComponent
-import abc.parser.TuneParser
+import abc.parser.{AbcTune, TuneParser}
 import Swing._
 import abc.notation.{Note => _Note, Spacer, Clef, Tune, KeySignature}
+import scala.collection.mutable
 
 class ChordSeqView extends Component {
   private var _chords     = Vec.empty[Chord]
   private var dirty       = true
+
+  // rendering is faster if we'd cache JScoreComponent instances,
+  // however that produces glitches somehow (spacing is different).
+  // my guess is that sucky library is not fully reentrant.
+  // therefore, only caches tunes now, still gives some speed improvement.
   private val scoreView   = new JScoreComponent
   private val bassView    = {
     val res = new JScoreComponent
@@ -47,7 +53,10 @@ class ChordSeqView extends Component {
     val atOrig = g.getTransform
     try {
       g.translate(0,  56)
+      // val t1 = System.currentTimeMillis()
       scoreView.drawIn(g)
+      // val t2 = System.currentTimeMillis()
+      // println(s"draw ${t2-t1}")
       g.translate(0,  36)
       bassView.drawIn(g)
     } finally {
@@ -55,7 +64,19 @@ class ChordSeqView extends Component {
     }
   }
 
+  private val cache = mutable.WeakHashMap.empty[Vec[Chord], AbcTune]
+
   private def rebuild(): Unit = {
+    val tune = cache.get(_chords).getOrElse {
+      val res = rebuildReally()
+      cache.put(_chords, res)
+      res
+    }
+    scoreView.setTune(tune)
+    dirty = false
+  }
+
+  private def rebuildReally(): AbcTune = {
     /*
 
     On the ABC format:
@@ -123,8 +144,13 @@ class ChordSeqView extends Component {
     //         |[V:3]  z8     |  z8  |  z8  |
     //         |""".stripMargin
 
+    // val t1 = System.currentTimeMillis()
     val tune = parser.parse("K:C\n|" + abc)
-    scoreView.setTune(tune)
-    dirty = false
+    // val t2 = System.currentTimeMillis()
+    // val _scoreView = new JScoreComponent
+    // scoreView.setTune(tune)
+    // val t3 = System.currentTimeMillis()
+    // println(s"parse ${t2-t1}; set ${t3-t2}")
+    tune
   }
 }
