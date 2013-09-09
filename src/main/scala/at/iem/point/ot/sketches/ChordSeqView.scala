@@ -48,8 +48,8 @@ class ChordSeqView extends Component {
     try {
       g.translate(0,  56)
       scoreView.drawIn(g)
-      // g.translate(0,  39)
-      // bassView.drawIn(g)
+      g.translate(0,  36)
+      bassView.drawIn(g)
     } finally {
       g.setTransform(atOrig)
     }

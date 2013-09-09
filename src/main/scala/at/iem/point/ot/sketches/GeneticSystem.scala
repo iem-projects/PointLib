@@ -166,4 +166,7 @@ object GeneticSystem extends muta.System {
     chordSeqView.chords = c
     chordSeqView
   }
+
+  // human evaluation
+  override def manualEvaluation = true
 }
