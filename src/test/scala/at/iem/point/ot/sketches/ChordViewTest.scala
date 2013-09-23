@@ -38,6 +38,9 @@ object ChordViewTest extends SimpleSwingApplication {
     v.addElement(mn)
     scoreView.setTune(tune)
 
+    val r = scoreView.getRenditionElementFor(mn)
+    println(r.getBoundingBox)
+
     val comp = Component.wrap(scoreView)
     // comp.opaque = false
 

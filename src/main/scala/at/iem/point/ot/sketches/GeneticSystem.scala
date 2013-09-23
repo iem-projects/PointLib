@@ -6,11 +6,11 @@ import de.sciss.guiflitz.AutoView
 import at.iem.point.illism._
 import scala.util.Random
 import de.sciss.muta.{SelectionNumber, SelectionPercent, SelectionSize}
-import scala.swing.Label
+import scala.swing.{Swing, Component, Label}
 import scala.annotation.tailrec
 
 object GeneticSystem extends muta.System {
-  type Chromosome = Vec[Chord]
+  type Chromosome = Vec[(Chord, ChordEval)]
 
   case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 
@@ -50,8 +50,10 @@ object GeneticSystem extends muta.System {
     extends muta.Generation[Chromosome, Global] {
 
     def apply(r: Random): Chromosome =
-      Vec.fill(global.length)(Vertical.generate(voices = global.voices.size, base = 48.asPitch
-        /* , useAllIntervals = true */)(r))
+      Vec.fill(global.length) {
+        val c = Vertical.generate(voices = global.voices.size, base = 48.asPitch /* , useAllIntervals = true */)(r)
+        (c, ChordNeutral)
+      }
   }
 
   sealed trait Evaluation extends muta.Evaluation[Chromosome]
@@ -87,7 +89,7 @@ object GeneticSystem extends muta.System {
     }
 
     def apply(c: Chromosome): Double = {
-      val lines = Horizontal.fromChords(c)
+      val lines = Horizontal.fromChords(c.map(_._1))
       lines.map(evalLine).mean
     }
   }
@@ -108,16 +110,17 @@ object GeneticSystem extends muta.System {
                      mutation       : BreedingFunction  = Mutation())
     extends muta.impl.BreedingImpl[Chromosome, Global]
 
-  object Crossover extends muta.impl.CrossoverVecImpl[Chord, Global] with BreedingFunction
+  object Crossover extends muta.impl.CrossoverVecImpl[(Chord, ChordEval), Global] with BreedingFunction
 
   case class Mutation(chords: SelectionSize = SelectionPercent(20),
                       voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
-    extends muta.impl.MutationVecImpl [Chord, Global] with BreedingFunction {
+    extends muta.impl.MutationVecImpl [(Chord, ChordEval), Global] with BreedingFunction {
 
     override protected val numGenesSize = chords
 
-    def mutate(gene: Chord)(implicit r: util.Random): Chord = {
+    def mutate(gene0: (Chord, ChordEval))(implicit r: util.Random): (Chord, ChordEval) = {
       // println("Muta!")
+      val gene = gene0._1
 
       val num       = r.nextInt(math.max(0, voices(gene.size) - 1) + 1)
       val pitches   = gene.pitches.scramble
@@ -142,7 +145,9 @@ object GeneticSystem extends muta.System {
       val notes   = (gene.notes zip newP).map {
         case (n, p) => n.copy(pitch = p)
       }
-      gene.copy(notes = notes.sortBy(_.pitch))
+
+      val gene1 = gene.copy(notes = notes.sortBy(_.pitch))
+      (gene1, if (gene1 == gene) gene0._2 else ChordNeutral)
     }
   }
 
@@ -161,15 +166,25 @@ object GeneticSystem extends muta.System {
 
   def evaluationViewOption = None
 
-  private val chordSeqView = new ChordSeqView
+  private val chordSeqView  = new ChordSeqView
+  private val chordSeqView2 = new ChordSeqView
+  // chordSeqView2.border = Swing.EmptyBorder(1)
 
   override def chromosomeView(c: Chromosome, default: Label, selected: Boolean, focused: Boolean) = {
     // default.text = c.map(_.pitches.mkString("[", " ", "]")).mkString(" ")
     // default
-    chordSeqView.chords = c
+    if (c != null) chordSeqView.chords = c
     chordSeqView
   }
 
   // human evaluation
   override def humanEvaluationSteps = 6
+
+  private def setChromoEditor(c: Chromosome): Unit =
+    if (c != null) {
+      chordSeqView2.chords = c
+    }
+
+  override def chromosomeEditorOption: Option[(Component, () => Chromosome, (Chromosome) => Unit)] =
+    Some((chordSeqView2, () => chordSeqView2.chords, setChromoEditor))
 }
