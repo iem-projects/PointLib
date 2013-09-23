@@ -154,9 +154,12 @@ object GeneticSystem extends muta.System {
   val chromosomeClassTag = reflect.classTag[Chromosome]
 
   def generationView(init: Generation, config: Config) = AutoView(init, config)
-  def evaluationView(init: Evaluation, config: Config) = AutoView(init, config)
+  // def evaluationView(init: Evaluation, config: Config) = AutoView(init, config)
   def selectionView (init: Selection , config: Config) = AutoView(init, config)
   def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
+
+
+  def evaluationViewOption = None
 
   private val chordSeqView = new ChordSeqView
 
@@ -168,5 +171,5 @@ object GeneticSystem extends muta.System {
   }
 
   // human evaluation
-  override def manualEvaluation = true
+  override def humanEvaluationSteps = 6
 }
