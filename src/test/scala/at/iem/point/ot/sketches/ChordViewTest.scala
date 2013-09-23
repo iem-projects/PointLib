@@ -3,11 +3,18 @@ package at.iem.point.ot.sketches
 import scala.swing.{Swing, Component, MainFrame, SimpleSwingApplication}
 import abc.ui.swing.JScoreComponent
 import Swing._
-import abc.notation.{BarLine, Note, KeySignature, Tune}
+import abc.notation.{MultiNote, BarLine, Note, KeySignature, Tune}
 import java.awt.Color
 import scala.swing.event.MouseMoved
+import scala.collection.JavaConverters
+import language.implicitConversions
 
 object ChordViewTest extends SimpleSwingApplication {
+  implicit def asJavaVector[A](it: Iterable[A]): java.util.Vector[A] = {
+    import JavaConverters._
+    new java.util.Vector[A](it.asJavaCollection)
+  }
+
   lazy val top = new MainFrame {
     val scoreView = new JScoreComponent
 
@@ -23,7 +30,12 @@ object ChordViewTest extends SimpleSwingApplication {
     val elem = new Note(Note.C)
     v.addElement(elem)
     v.addElement(new BarLine())
-    v.addElement(new Note(Note.E))
+    val note1 = new Note(Note.E)
+    val note2 = new Note(Note.G)
+    note1.setStrictDuration(Note.WHOLE)
+    note2.setStrictDuration(Note.WHOLE)
+    val mn = new MultiNote(note1 :: note2 :: Nil)
+    v.addElement(mn)
     scoreView.setTune(tune)
 
     val comp = Component.wrap(scoreView)
