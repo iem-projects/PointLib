@@ -10,6 +10,11 @@ homepage := Some(url("https://github.com/iem-projects/PointLib/"))
 
 licenses := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 
+resolvers ++= Seq(
+  "Mandubian repository snapshots" at "https://github.com/mandubian/mandubian-mvn/raw/master/snapshots/",
+  "Sonatype OSS snapshots"         at "https://oss.sonatype.org/content/repositories/snapshots/"
+)
+
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism" % "0.2.+",
   "de.sciss" %% "pdflitz"     % "1.0.+",
@@ -28,3 +33,16 @@ initialCommands in console :=
     |import scalax.chart.Charting._
     |implicit val random = mkRandom()
   """.stripMargin
+
+// ---- app bundle ----
+
+seq(appbundle.settings: _*)
+
+appbundle.mainClass := Some("at.iem.point.ot.sketches.GeneticApp")
+
+appbundle.name := "GeneticAlgorithm"
+
+appbundle.target <<= baseDirectory
+
+appbundle.icon := Some(file("icon.png"))
+

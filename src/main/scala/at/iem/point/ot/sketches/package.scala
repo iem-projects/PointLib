@@ -5,6 +5,9 @@ import de.sciss.midi
 import at.iem.point.illism._
 import scala.annotation.tailrec
 import language.higherKinds
+import play.api.libs.json.{JsNumber, JsSuccess, JsError, JsString, JsArray, JsResult, JsValue, Format}
+import scala.util.{Failure, Success, Try}
+import collection.breakOut
 
 package object sketches {
   val Vec             = collection.immutable.IndexedSeq
@@ -112,4 +115,36 @@ package object sketches {
   //
   //  implicit def filterMap[A, Repr](r: Repr)(implicit fr: IsTraversableLike[Repr]): FilterMapImpl[fr.A, Repr] =
   //    new FilterMapImpl(fr conversion r)
+
+  /** JSON serialization for chords. N.B.: this only stores and retrieves pitches, no offsets and durations!! */
+  implicit object ChordFormat extends Format[Chord] {
+    def reads(json: JsValue): JsResult[Chord] = json match {
+      case JsArray(sq) =>
+        val res = Try {
+          val notes: Vec[OffsetNote] = sq.map {
+            case JsNumber(v) =>
+              val pitch = v.toInt.asPitch
+              val n     = OffsetNote(offset = 0, pitch = pitch, duration = 1, velocity = 80)
+              n
+            case other => sys.error(s"Not a number $other")
+          } (breakOut)
+          Chord(notes)
+        }
+        res match {
+          case Success(c) => JsSuccess(c)
+          case Failure(e) => JsError(e.getMessage)
+        }
+
+      case _ => JsError(s"Not an array $json")
+    }
+
+    def writes(c: Chord): JsValue = JsArray(
+      c.pitches.map(p =>
+        // JsString(
+        //  Pitch.toString(p.midi, Language.English)
+        // )
+        JsNumber(p.midi)
+      )
+    )
+  }
 }

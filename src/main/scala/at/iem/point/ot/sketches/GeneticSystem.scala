@@ -4,157 +4,164 @@ import de.sciss.muta
 import de.sciss.guiflitz.AutoView.Config
 import de.sciss.guiflitz.AutoView
 import at.iem.point.illism._
-import scala.util.Random
+import scala.util.{Success, Failure, Try, Random}
 import de.sciss.muta.{SelectionNumber, SelectionPercent, SelectionSize}
-import scala.swing.{Swing, Component, Label}
+import scala.swing.{Component, Label}
 import scala.annotation.tailrec
+import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsArray, JsValue, Format, SealedTraitFormat}
+import collection.breakOut
+
+case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
+
+/** The global configuration for the generation of chromosomes.
+  *
+  * @param voices    the number of voices (vertical chord size)
+  * @param vertical  vertical constraints
+  * @param length    the number of chords to produce
+  */
+case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
+                      vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
+                      length  : Int = 12)
+
+case class GenerationImpl(size: Int = 400, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
+  extends muta.Generation[GeneticSystem.Chromosome, GlobalImpl] {
+
+  def apply(r: Random): GeneticSystem.Chromosome =
+    Vec.fill(global.length) {
+      val c = Vertical.generate(voices = global.voices.size, base = 48.asPitch /* , useAllIntervals = true */)(r)
+      (c, ChordNeutral)
+    }
+}
+
+sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
+
+sealed trait SelectionImpl extends muta.Selection[GeneticSystem.Chromosome]
+
+case class SelectionRoulette(size: SelectionSize = SelectionPercent(33))
+  extends muta.impl.SelectionRouletteImpl[GeneticSystem.Chromosome] with SelectionImpl
+
+case class SelectionTruncation(size: SelectionSize = SelectionPercent(20))
+  extends muta.impl.SelectionTruncationImpl[GeneticSystem.Chromosome] with SelectionImpl
+
+sealed trait BreedingFunctionImpl extends muta.BreedingFunction[GeneticSystem.Chromosome, GlobalImpl]
+
+case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(20),
+                        crossoverWeight: SelectionPercent  = SelectionPercent(50),
+                        crossover      : BreedingFunctionImpl  = Crossover,
+                        mutation       : BreedingFunctionImpl  = Mutation())
+  extends muta.impl.BreedingImpl[GeneticSystem.Chromosome, GlobalImpl]
+
+object Crossover extends muta.impl.CrossoverVecImpl[(Chord, ChordEval), GlobalImpl] with BreedingFunctionImpl
+
+case class Mutation(chords: SelectionSize = SelectionPercent(20),
+                    voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
+  extends muta.impl.MutationVecImpl [(Chord, ChordEval), GlobalImpl] with BreedingFunctionImpl {
+
+  override protected val numGenesSize = chords
+
+  def mutate(gene0: (Chord, ChordEval))(implicit r: util.Random): (Chord, ChordEval) = {
+    // println("Muta!")
+    val gene = gene0._1
+
+    val num       = r.nextInt(math.max(0, voices(gene.size) - 1) + 1)
+    val pitches   = gene.pitches.scramble
+    val (a, b)    = pitches.splitAt(num)
+    val bMid      = b.map(_.midi)
+
+    @tailrec def mkMut(): Vec[Pitch] = {
+      val mut       = a.map { p =>
+        val old     = p.midi
+        val poss    = (old - interval to old + interval) diff (bMid :+ old)
+
+        val nu = if (poss.isEmpty) old else {
+          val i     = r.nextInt(poss.size)
+          poss(i)
+        }
+        nu.asPitch
+      }
+      if (mut == mut.distinct) mut else mkMut() // cheesy way to repeat if there are duplicates
+    }
+
+    val newP    = mkMut() ++ b
+    val notes   = (gene.notes zip newP).map {
+      case (n, p) => n.copy(pitch = p)
+    }
+
+    val gene1 = gene.copy(notes = notes.sortBy(_.pitch))
+    (gene1, if (gene1 == gene) gene0._2 else ChordNeutral)
+  }
+}
+
+/** Constraint on the vertical (harmonic) structure. */
+sealed trait VerticalConstraint
+/** Constraint which forbids to occurrence of a particular interval */
+case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint
+
+/** Constraint which forbids to co-presence of two given intervals.
+  *
+  * @param a          the first interval
+  * @param b          the second interval
+  * @param neighbor   if `true`, intervals `a` and `b` may not occur as neighboring intervals, if `false`
+  *                   then `a` and `b` may not occur anywhere in the chord.
+  */
+case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
+                                 b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
+  extends VerticalConstraint
+
+case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2, maxDown: Int = 2) extends EvaluationImpl {
+  def evalLine(line: Vec[Pitch]): Double = {
+    val midi      = line.map(_.midi)
+    // val numReg    = midi.count(m => m >= lowest && m <= highest)
+    val numReg    = midi.map { m =>
+      if (m < lowest)
+        m.toDouble / lowest
+      else if (m > highest)
+        highest.toDouble / m
+      else
+        1.0
+    } .sum
+
+    val steps     = midi.pairDiff
+    // val numIval   = steps.count { m =>
+    //   m <= maxUp && -m <= maxDown
+    // }
+    val numIval   = steps.map { m =>
+      if (m < -maxDown)
+        maxDown.toDouble / -m
+      else if (m > maxUp)
+        maxUp.toDouble / m
+      else
+        1.0
+    } .sum
+    val numGood   = numReg + numIval
+    val maxGood   = midi.size + steps.size
+    numGood / maxGood
+  }
+
+  def apply(c: GeneticSystem.Chromosome): Double = {
+    val lines = Horizontal.fromChords(c.map(_._1))
+    lines.map(evalLine).mean
+  }
+}
 
 object GeneticSystem extends muta.System {
-  type Chromosome = Vec[(Chord, ChordEval)]
-
-  case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
-
   val DefaultVoices = Vec(
     Voice(lowest = 72, highest = 96),
     Voice(lowest = 48, highest = 72),
     Voice(lowest = 24, highest = 48)
   )
 
-  /** Constraint on the vertical (harmonic) structure. */
-  sealed trait VerticalConstraint
-  /** Constraint which forbids to occurrence of a particular interval */
-  case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint
+  type Global     = GlobalImpl
+  type Chromosome = Vec[(Chord, ChordEval)]
+  type Generation = GenerationImpl
+  type Evaluation = EvaluationImpl
+  type Selection  = SelectionImpl
+  type Breeding   = BreedingImpl
 
-  /** Constraint which forbids to co-presence of two given intervals.
-    *
-    * @param a          the first interval
-    * @param b          the second interval
-    * @param neighbor   if `true`, intervals `a` and `b` may not occur as neighboring intervals, if `false`
-    *                   then `a` and `b` may not occur anywhere in the chord.
-    */
-  case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
-                                   b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
-    extends VerticalConstraint
-
-  /** The global configuration for the generation of chromosomes.
-    *
-    * @param voices    the number of voices (vertical chord size)
-    * @param vertical  vertical constraints
-    * @param length    the number of chords to produce
-    */
-  case class Global(voices  : Vec[Voice] = DefaultVoices,
-                    vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
-                    length  : Int = 12)
-
-  case class Generation(size: Int = 400, global: Global = Global(), seed: Int = 0)
-    extends muta.Generation[Chromosome, Global] {
-
-    def apply(r: Random): Chromosome =
-      Vec.fill(global.length) {
-        val c = Vertical.generate(voices = global.voices.size, base = 48.asPitch /* , useAllIntervals = true */)(r)
-        (c, ChordNeutral)
-      }
-  }
-
-  sealed trait Evaluation extends muta.Evaluation[Chromosome]
-
-  case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2, maxDown: Int = 2) extends Evaluation {
-    def evalLine(line: Vec[Pitch]): Double = {
-      val midi      = line.map(_.midi)
-      // val numReg    = midi.count(m => m >= lowest && m <= highest)
-      val numReg    = midi.map { m =>
-        if (m < lowest)
-          m.toDouble / lowest
-        else if (m > highest)
-          highest.toDouble / m
-        else
-          1.0
-      } .sum
-
-      val steps     = midi.pairDiff
-      // val numIval   = steps.count { m =>
-      //   m <= maxUp && -m <= maxDown
-      // }
-      val numIval   = steps.map { m =>
-        if (m < -maxDown)
-          maxDown.toDouble / -m
-        else if (m > maxUp)
-          maxUp.toDouble / m
-        else
-          1.0
-      } .sum
-      val numGood   = numReg + numIval
-      val maxGood   = midi.size + steps.size
-      numGood / maxGood
-    }
-
-    def apply(c: Chromosome): Double = {
-      val lines = Horizontal.fromChords(c.map(_._1))
-      lines.map(evalLine).mean
-    }
-  }
-
-  sealed trait Selection extends muta.Selection[Chromosome]
-
-  case class SelectionRoulette(size: SelectionSize = SelectionPercent(33))
-    extends muta.impl.SelectionRouletteImpl[Chromosome] with Selection
-
-  case class SelectionTruncation(size: SelectionSize = SelectionPercent(20))
-    extends muta.impl.SelectionTruncationImpl[Chromosome] with Selection
-
-  sealed trait BreedingFunction extends muta.BreedingFunction[Chromosome, Global]
-
-  case class Breeding(elitism       : SelectionSize     = SelectionNumber(20),
-                     crossoverWeight: SelectionPercent  = SelectionPercent(50),
-                     crossover      : BreedingFunction  = Crossover,
-                     mutation       : BreedingFunction  = Mutation())
-    extends muta.impl.BreedingImpl[Chromosome, Global]
-
-  object Crossover extends muta.impl.CrossoverVecImpl[(Chord, ChordEval), Global] with BreedingFunction
-
-  case class Mutation(chords: SelectionSize = SelectionPercent(20),
-                      voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
-    extends muta.impl.MutationVecImpl [(Chord, ChordEval), Global] with BreedingFunction {
-
-    override protected val numGenesSize = chords
-
-    def mutate(gene0: (Chord, ChordEval))(implicit r: util.Random): (Chord, ChordEval) = {
-      // println("Muta!")
-      val gene = gene0._1
-
-      val num       = r.nextInt(math.max(0, voices(gene.size) - 1) + 1)
-      val pitches   = gene.pitches.scramble
-      val (a, b)    = pitches.splitAt(num)
-      val bMid      = b.map(_.midi)
-
-      @tailrec def mkMut(): Vec[Pitch] = {
-        val mut       = a.map { p =>
-          val old     = p.midi
-          val poss    = (old - interval to old + interval) diff (bMid :+ old)
-
-          val nu = if (poss.isEmpty) old else {
-            val i     = r.nextInt(poss.size)
-            poss(i)
-          }
-          nu.asPitch
-        }
-        if (mut == mut.distinct) mut else mkMut() // cheesy way to repeat if there are duplicates
-      }
-
-      val newP    = mkMut() ++ b
-      val notes   = (gene.notes zip newP).map {
-        case (n, p) => n.copy(pitch = p)
-      }
-
-      val gene1 = gene.copy(notes = notes.sortBy(_.pitch))
-      (gene1, if (gene1 == gene) gene0._2 else ChordNeutral)
-    }
-  }
-
-  def defaultGeneration: Generation = Generation()
+  def defaultGeneration: Generation = GenerationImpl()
   def defaultEvaluation: Evaluation = SampleEvaluation()
   def defaultSelection : Selection  = SelectionRoulette()
-  def defaultBreeding  : Breeding   = Breeding()
+  def defaultBreeding  : Breeding   = BreedingImpl()
 
   val chromosomeClassTag = reflect.classTag[Chromosome]
 
@@ -187,4 +194,59 @@ object GeneticSystem extends muta.System {
 
   override def chromosomeEditorOption: Option[(Component, () => Chromosome, (Chromosome) => Unit)] =
     Some((chordSeqView2, () => chordSeqView2.chords, setChromoEditor))
+
+  // serialization
+  private implicit val fivalformat  = SealedTraitFormat[ForbiddenInterval]
+  private implicit val vconsFormat  = SealedTraitFormat[VerticalConstraint]
+  private implicit val voiceFormat  = SealedTraitFormat[Voice]
+  private implicit val globalFormat = SealedTraitFormat[GlobalImpl]
+  // private implicit val alleleFormat = SealedTraitFormat[(Chord, ChordEval)]
+  object chromosomeFormat extends Format[Chromosome] {
+    def reads(json: JsValue): JsResult[Chromosome] = json match {
+      case JsArray(sq) =>
+        val res = Try {
+          val chromo: Chromosome = sq.map {
+            case JsObject(sq1) =>
+              val m     = sq1.toMap
+              val cj    = m.getOrElse("chord", sys.error(s"Field 'chord' not found in $sq1"))
+              val chord = ChordFormat.reads(cj).get
+              val eval  = m.get("eval") match {
+                case Some(JsString("good")) => ChordGood
+                case Some(JsString("bad" )) => ChordBad
+                case None                   => ChordNeutral
+                case other                  => sys.error(s"Unexpected 'eval' value $other")
+              }
+              (chord, eval)
+
+            case other => sys.error(s"Not a JSON object $other")
+          } (breakOut)
+          chromo
+        }
+        res match {
+          case Success(c) => JsSuccess(c)
+          case Failure(e) => JsError(e.getMessage)
+        }
+
+      case _ => JsError(s"Not an array $json")
+    }
+
+    def writes(c: Chromosome): JsValue = JsArray(
+      c.map { case (chord, eval) =>
+        val fields0 = ("chord" -> ChordFormat.writes(chord)) :: Nil
+        val fields  = if (eval == ChordNeutral) fields0 else {
+          ("eval" -> JsString(eval match {
+            case ChordGood    => "good"
+            case ChordBad     => "bad"
+            case ChordNeutral => assert(assertion = false); ""
+          })) :: fields0
+        }
+        JsObject(fields)
+      }
+    )
+  }
+  val generationFormat  = SealedTraitFormat[GenerationImpl]
+  val selectionFormat   = SealedTraitFormat[SelectionImpl ]
+  private implicit val breedingFunFormat  = SealedTraitFormat[BreedingFunctionImpl]
+  val breedingFormat    = SealedTraitFormat[BreedingImpl  ]
+  val evaluationFormat  = SealedTraitFormat[EvaluationImpl]
 }
