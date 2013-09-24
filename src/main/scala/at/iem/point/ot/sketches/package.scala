@@ -8,6 +8,7 @@ import language.higherKinds
 import play.api.libs.json.{JsNumber, JsSuccess, JsError, JsString, JsArray, JsResult, JsValue, Format}
 import scala.util.{Failure, Success, Try}
 import collection.breakOut
+import scala.collection.generic.CanBuildFrom
 
 package object sketches {
   val Vec             = collection.immutable.IndexedSeq
@@ -97,6 +98,34 @@ package object sketches {
         val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
         res :+ agg
       }
+    }
+  }
+
+  implicit final class RichIterableLike[A, CC[~] <: Iterable[~]](val it: CC[A]) extends AnyVal {
+    def foreachPair(fun: (A, A) => Unit): Unit = {
+      val iter  = it.iterator
+      if (iter.hasNext) {
+        var pred = iter.next()
+        while (iter.hasNext) {
+          val succ = iter.next()
+          fun(pred, succ)
+          pred = succ
+        }
+      }
+    }
+
+    def mapPairs[B, To](fun: (A, A) => B)(implicit cbf: CanBuildFrom[CC[A], B, To]): To = {
+      val b     = cbf(it)
+      val iter  = it.iterator
+      if (iter.hasNext) {
+        var pred = iter.next()
+        while (iter.hasNext) {
+          val succ = iter.next()
+          b += fun(pred, succ)
+          pred = succ
+        }
+      }
+      b.result()
     }
   }
 

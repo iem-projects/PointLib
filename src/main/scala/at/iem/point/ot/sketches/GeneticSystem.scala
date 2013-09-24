@@ -10,6 +10,8 @@ import scala.swing.{Component, Label}
 import scala.annotation.tailrec
 import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsArray, JsValue, Format, SealedTraitFormat}
 import collection.breakOut
+import de.sciss.jacop
+import JaCoP.search.{SmallestDomain, IndomainMin, SimpleSelect}
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 
@@ -26,11 +28,48 @@ case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
 case class GenerationImpl(size: Int = 400, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
   extends muta.Generation[GeneticSystem.Chromosome, GlobalImpl] {
 
-  def apply(r: Random): GeneticSystem.Chromosome =
-    Vec.fill(global.length) {
-      val c = Vertical.generate(voices = global.voices.size, base = 48.asPitch /* , useAllIntervals = true */)(r)
-      (c, ChordNeutral)
+  def apply(r: Random): GeneticSystem.Chromosome = {
+    val voices    = global.voices
+    val numVoices = voices.size
+    val num       = global.length
+
+    import jacop._
+    implicit val model = new Model
+    import Implicits._
+
+    val vars = Vec.fill(num) {
+      val cv = voices.map { vc =>
+        new IntVar(vc.lowest, vc.highest)
+      }
+      cv.foreachPair { case (hi, lo) =>
+        hi #> lo
+      }
+      cv
     }
+    vars.foreachPair { (c1, c2) =>
+      voices.zipWithIndex.foreach { case (vc, vci) =>
+        val p1 = c1(vci)
+        val p2 = c2(vci)
+        p2 #<= (p1 + vc.maxUp  )
+        p2 #>= (p1 - vc.maxDown)
+      }
+    }
+
+    require(model.consistency(), s"Constraints model is not consistent")
+
+    val select  = new SimpleSelect[IntVar](vars.flatten.toArray, new SmallestDomain[IntVar](), new IndomainMin[IntVar]())
+    val result  = satisfy[IntVar](select)
+
+    require(result, s"Constraints could not be satisfied")
+
+    val chromo: GeneticSystem.Chromosome = vars.map { vc =>
+      val pitches = vc.map(v => v.value().asPitch).reverse
+      val notes   = pitches.map(pitch => OffsetNote(offset = 0, pitch = pitch, duration = 1, velocity = 80))
+      (Chord(notes), ChordNeutral)
+    }
+
+    chromo
+  }
 }
 
 sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
@@ -93,9 +132,18 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 }
 
 /** Constraint on the vertical (harmonic) structure. */
-sealed trait VerticalConstraint
+sealed trait VerticalConstraint {
+  /** Verifies whether the contraint is satisfied (`true`) or not (`false`). */
+  def apply(chord: Chord): Boolean
+}
 /** Constraint which forbids to occurrence of a particular interval */
-case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint
+case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint {
+  def apply(chord: Chord): Boolean = chord.allIntervals.forall { ival =>
+    val i0  = ival.semitones
+    val i   = if (i0 <= 12) i0 else (i0 - 12) % 12 + 12 // preserve octave!!
+    i != steps
+  }
+}
 
 /** Constraint which forbids to co-presence of two given intervals.
   *
@@ -106,7 +154,10 @@ case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint
   */
 case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
                                  b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
-  extends VerticalConstraint
+  extends VerticalConstraint {
+
+  def apply(chord: Chord): Boolean = ???
+}
 
 case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2, maxDown: Int = 2) extends EvaluationImpl {
   def evalLine(line: Vec[Pitch]): Double = {
