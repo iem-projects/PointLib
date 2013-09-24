@@ -11,7 +11,7 @@ import scala.annotation.tailrec
 import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsArray, JsValue, Format, SealedTraitFormat}
 import collection.breakOut
 import de.sciss.jacop
-import JaCoP.search.{SmallestDomain, IndomainMin, SimpleSelect}
+import JaCoP.search.{IndomainRandom, SmallestDomain, IndomainMin, SimpleSelect}
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 
@@ -25,7 +25,7 @@ case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
                       vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
                       length  : Int = 12)
 
-case class GenerationImpl(size: Int = 400, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
+case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
   extends muta.Generation[GeneticSystem.Chromosome, GlobalImpl] {
 
   def apply(r: Random): GeneticSystem.Chromosome = {
@@ -57,18 +57,26 @@ case class GenerationImpl(size: Int = 400, global: GlobalImpl = GlobalImpl(), se
 
     require(model.consistency(), s"Constraints model is not consistent")
 
-    val select  = new SimpleSelect[IntVar](vars.flatten.toArray, new SmallestDomain[IntVar](), new IndomainMin[IntVar]())
-    val result  = satisfy[IntVar](select)
-
-    require(result, s"Constraints could not be satisfied")
-
-    val chromo: GeneticSystem.Chromosome = vars.map { vc =>
+    def mkChromo(): GeneticSystem.Chromosome = vars.map { vc =>
       val pitches = vc.map(v => v.value().asPitch).reverse
       val notes   = pitches.map(pitch => OffsetNote(offset = 0, pitch = pitch, duration = 1, velocity = 80))
       (Chord(notes), ChordNeutral)
     }
 
-    chromo
+    val select        = new SimpleSelect[IntVar](vars.flatten.toArray,
+      new SmallestDomain[IntVar](),
+      new IndomainRandom2(r) // new IndomainMin[IntVar]()
+    )
+    val solutionsB    = Vec.newBuilder[GeneticSystem.Chromosome]
+    limitOnSolutions  = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
+    timeOutValue      = 30    // seconds
+    val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
+    val solutions     = solutionsB.result()
+
+    require(result, s"Constraints could not be satisfied")
+    // println(s"num-solutions ${solutions.size}")
+
+    solutions.choose(r)
   }
 }
 

@@ -40,6 +40,8 @@ seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("at.iem.point.ot.sketches.GeneticApp")
 
+appbundle.javaOptions += "-Xmx1024m"
+
 appbundle.name := "GeneticAlgorithm"
 
 appbundle.target <<= baseDirectory

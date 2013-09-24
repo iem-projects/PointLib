@@ -667,7 +667,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val label = dfs
+    val label = dfs()
     labels = Array(label)
 
     printFunctions = new Array(printSolutions.size)
@@ -720,7 +720,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val label = dfs
+    val label = dfs()
     labels = Array(label)
 
     printFunctions = new Array(printSolutions.size)
@@ -778,7 +778,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val masterLabel = dfs
+    val masterLabel = dfs()
     labels = new Array(select.size)
     labels(0) = masterLabel
 
@@ -797,7 +797,7 @@ package object jacop {
     var lastLabel = masterLabel
     if (select.length > 1)
       for (i <- 1 until select.length) {
-        val label = dfs
+        val label = dfs()
         previousSearch.addChildSearch(label)
         label.setSelectChoicePoint(select(i))
         previousSearch = label
@@ -864,7 +864,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val masterLabel = dfs
+    val masterLabel = dfs()
     labels = new Array(select.size)
     labels(0) = masterLabel
 
@@ -885,7 +885,7 @@ package object jacop {
     var lastLabel = masterLabel
     if (select.length > 1)
       for (i <- 1 until select.length) {
-        val label = dfs
+        val label = dfs()
         previousSearch.addChildSearch(label)
         label.setSelectChoicePoint(select(i))
         previousSearch = label
@@ -946,7 +946,7 @@ package object jacop {
    *
    * @return standard depth first search.
    */
-  def dfs[T <: JaCoP.core.Var](implicit m: ClassTag[T]): DepthFirstSearch[T] = {
+  def dfs[T <: JaCoP.core.Var]()(implicit m: ClassTag[T]): DepthFirstSearch[T] = {
     val label = new DepthFirstSearch[T]
 
     label.setAssignSolution(true)
