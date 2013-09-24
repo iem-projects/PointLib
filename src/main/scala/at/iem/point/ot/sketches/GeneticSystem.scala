@@ -206,12 +206,12 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       val succInfo = succ.fold("") { case (c, _) =>
         c.pitches.mkString("; pred = ", ", ", "")
       }
-      println(s"Warning: could not mutate $thisInfo$predInfo$succInfo")
+      if (WARN_MUTA) println(s"Warning: could not mutate $thisInfo$predInfo$succInfo")
       return gene
     }
 
     val chordOut = solutions.choose(r)
-    println(s"Mutated: ${chordOut.pitches.mkString(", ")}")
+    // println(s"Mutated: ${chordOut.pitches.mkString(", ")}")
     chordOut -> ChordNeutral
   }
 
