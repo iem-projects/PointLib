@@ -11,7 +11,8 @@ import collection.breakOut
 import scala.collection.generic.CanBuildFrom
 
 package object sketches {
-  val WARN_MUTA = false
+  val WARN_MUTA       = true
+  val DEBUG_MUTA      = false
 
   val Vec             = collection.immutable.IndexedSeq
   type Vec[+A]        = collection.immutable.IndexedSeq[A]

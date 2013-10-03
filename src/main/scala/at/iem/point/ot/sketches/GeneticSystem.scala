@@ -11,8 +11,12 @@ import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsA
 import collection.breakOut
 import de.sciss.jacop
 import JaCoP.search.{SmallestDomain, SimpleSelect}
+import de.sciss.numbers
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
+object Voice {
+  implicit val format = SealedTraitFormat[Voice]
+}
 
 /** The global configuration for the generation of chromosomes.
   *
@@ -21,7 +25,7 @@ case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: In
   * @param length    the number of chords to produce
   */
 case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
-                      vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
+                      vertical: Vec[VerticalConstraint] = Vec.empty /* not yet working: Vec(ForbiddenInterval(12)) */,
                       length  : Int = 12)
 
 case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
@@ -79,8 +83,6 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
   }
 }
 
-sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
-
 sealed trait SelectionImpl extends muta.Selection[GeneticSystem.Chromosome]
 
 case class SelectionRoulette(size: SelectionSize = SelectionPercent(33))
@@ -91,7 +93,7 @@ case class SelectionTruncation(size: SelectionSize = SelectionPercent(20))
 
 sealed trait BreedingFunctionImpl extends muta.BreedingFunction[GeneticSystem.Chromosome, GlobalImpl]
 
-case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(20),
+case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(5),
                         crossoverWeight: SelectionPercent  = SelectionPercent(0 /* 50 */),  // crossover doesn't honor constraints yet
                         crossover      : BreedingFunctionImpl  = Crossover,
                         mutation       : BreedingFunctionImpl  = Mutation())
@@ -150,6 +152,8 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     implicit val model = new Model
     import Implicits._
 
+    if (DEBUG_MUTA) println()
+
     val pitchesSel = chord.pitches.reverse.zip(sel)
     val vars = pitchesSel.zip(glob.voices).map { case ((p, psel), vc) =>
       val midi = p.midi
@@ -161,12 +165,14 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       } else new IntVar(midi, midi)
     }
     vars.foreachPair{ case (hi, lo) =>
+      if (DEBUG_MUTA) println(s"{${hi.min()}...${hi.max()}} #> {${lo.min()}...${lo.max()}}")
       hi #> lo
     }
 
     pred.foreach { case (predC, _) =>
       vars.zip(predC.pitches.reverse).zip(glob.voices).foreach { case ((iv, predP), vc) =>
         val pp = predP.midi
+        if (DEBUG_MUTA) println(s"Pred: ${pp - vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${pp + vc.maxUp}")
         iv #<= (pp + vc.maxUp  )
         iv #>= (pp - vc.maxDown)
       }
@@ -175,8 +181,9 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     succ.foreach { case (succC, _) =>
       vars.zip(succC.pitches.reverse).zip(glob.voices).foreach { case ((iv, succP), vc) =>
         val sp = succP.midi
-        iv #<= (sp - vc.maxUp  )
-        iv #>= (sp + vc.maxDown)
+        if (DEBUG_MUTA) println(s"Succ: ${sp + vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${sp - vc.maxUp}")
+        iv #>= (sp - vc.maxUp  )
+        iv #<= (sp + vc.maxDown)
       }
     }
 
@@ -204,14 +211,14 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
         c.pitches.mkString("; pred = ", ", ", "")
       }
       val succInfo = succ.fold("") { case (c, _) =>
-        c.pitches.mkString("; pred = ", ", ", "")
+        c.pitches.mkString("; succ = ", ", ", "")
       }
       if (WARN_MUTA) println(s"Warning: could not mutate $thisInfo$predInfo$succInfo")
       return gene
     }
 
     val chordOut = solutions.choose(r)
-    // println(s"Mutated: ${chordOut.pitches.mkString(", ")}")
+    if (DEBUG_MUTA) println(s"Mutated: ${chordOut.pitches.mkString(", ")}")
     chordOut -> ChordNeutral
   }
 
@@ -272,39 +279,93 @@ case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
   def apply(chord: Chord): Boolean = ???
 }
 
-case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2, maxDown: Int = 2) extends EvaluationImpl {
-  def evalLine(line: Vec[Pitch]): Double = {
-    val midi      = line.map(_.midi)
-    // val numReg    = midi.count(m => m >= lowest && m <= highest)
-    val numReg    = midi.map { m =>
-      if (m < lowest)
-        m.toDouble / lowest
-      else if (m > highest)
-        highest.toDouble / m
-      else
-        1.0
-    } .sum
+sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
 
-    val steps     = midi.pairDiff
-    // val numIval   = steps.count { m =>
-    //   m <= maxUp && -m <= maxDown
-    // }
-    val numIval   = steps.map { m =>
-      if (m < -maxDown)
-        maxDown.toDouble / -m
-      else if (m > maxUp)
-        maxUp.toDouble / m
-      else
-        1.0
-    } .sum
-    val numGood   = numReg + numIval
-    val maxGood   = midi.size + steps.size
-    numGood / maxGood
+case class ParallelEval(funs: Vec[EvaluationImpl], aggr: ReduceFunction = Mean) extends EvaluationImpl {
+  override def apply(c: GeneticSystem.Chromosome): Double = aggr(funs.map(_.apply(c)))
+}
+
+case class FrameIntervalEval(reduce: ReduceFunction =
+                             Match(gen = ConstantEnv(13), AbsDif, ComposeReduceUnary(Mean, LinLin(0, 10, 1, 0))))
+  extends EvaluationImpl {
+
+  override def apply(c: GeneticSystem.Chromosome): Double = {
+    val dseq = c.map(_._1.frameInterval.semitones.toDouble)
+    reduce(dseq)
   }
+}
 
-  def apply(c: GeneticSystem.Chromosome): Double = {
-    val lines = Horizontal.fromChords(c.map(_._1))
-    lines.map(evalLine).mean
+object EvaluationImpl {
+  implicit object format extends Format[EvaluationImpl] {
+    def reads(json: JsValue): JsResult[EvaluationImpl] = ???
+
+    def writes(eval: EvaluationImpl): JsValue = ???
+  }
+}
+
+sealed trait EnvelopeFunction extends (Int => Vec[Double])
+
+case class ConstantEnv(value: Double = 0.0) extends EnvelopeFunction {
+  override def apply(num: Int): Vec[Double] = Vec.fill(num)(value)
+}
+
+case class ScaleEnv(scale: UnaryOp = LinearEnvelope(0, 1)) extends EnvelopeFunction {
+  override def apply(num: Int): Vec[Double] = Vec.tabulate(num)(i => scale(i.toDouble / (num - 1)))
+}
+
+sealed trait ReduceFunction extends (Vec[Double] => Double)
+
+case class Match(gen: EnvelopeFunction = ConstantEnv(), op: BinaryOp = AbsDif, aggr: ReduceFunction = Mean)
+  extends ReduceFunction {
+
+  override def apply(x: Vec[Double]): Double = {
+    val y = gen(x.size)
+    val d = (x zip y).map(op.tupled)
+    aggr(d)
+  }
+}
+
+case object Mean extends ReduceFunction {
+  def apply(fits: Vec[Double]): Double = fits.sum / fits.size
+}
+
+case object RootMeanSquare extends ReduceFunction {
+  def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
+}
+
+case object Minimum extends ReduceFunction {
+  def apply(fits: Vec[Double]): Double = fits.min
+}
+
+case object Maximum extends ReduceFunction {
+  def apply(fits: Vec[Double]): Double = fits.max
+}
+
+case class ReduceWeighted(balance: Double = 0.5, fun: ReduceFunction = Mean) extends ReduceFunction {
+  def apply(fits: Vec[Double]): Double = {
+    val sz  = fits.size
+    val w   = Vec.tabulate(sz) { i =>
+      import numbers.Implicits._
+      i.linlin(0, sz - 1, 1 - balance, balance)
+    }
+    val m = (fits zip w).map { case (f, i) => f * i }
+    fun(m)
+  }
+}
+
+case class ComposeReduceUnary(first: ReduceFunction, andThen: UnaryOp) extends ReduceFunction {
+  override def apply(in: Vec[Double]): Double = andThen(first(in))
+}
+
+case class ComposeUnaryReduce(first: UnaryOp, andThen: ReduceFunction) extends ReduceFunction {
+  override def apply(in: Vec[Double]): Double = andThen(in.map(first.apply))
+}
+
+object ReduceFunction {
+  implicit object format extends Format[ReduceFunction] {
+    def reads(json: JsValue): JsResult[ReduceFunction] = ???
+
+    def writes(fun: ReduceFunction): JsValue = ???
   }
 }
 
@@ -312,9 +373,12 @@ object GeneticSystem extends muta.System {
   def manual = false
 
   val DefaultVoices = Vec(
-    Voice(lowest = 72, highest = 96),
-    Voice(lowest = 48, highest = 72),
-    Voice(lowest = 24, highest = 48)
+//    Voice(lowest = 72, highest = 96),
+//    Voice(lowest = 48, highest = 72),
+//    Voice(lowest = 24, highest = 48)
+    Voice(lowest = 48, highest = 96, maxUp = 6, maxDown = 6),
+    Voice(lowest = 36, highest = 84, maxUp = 6, maxDown = 6),
+    Voice(lowest = 24, highest = 72, maxUp = 6, maxDown = 6)
   )
 
   type Global     = GlobalImpl
@@ -326,7 +390,7 @@ object GeneticSystem extends muta.System {
   type Breeding   = BreedingImpl
 
   def defaultGeneration: Generation = GenerationImpl()
-  def defaultEvaluation: Evaluation = SampleEvaluation()
+  def defaultEvaluation: Evaluation = FrameIntervalEval()
   def defaultSelection : Selection  = SelectionRoulette()
   def defaultBreeding  : Breeding   = BreedingImpl()
 
@@ -365,7 +429,7 @@ object GeneticSystem extends muta.System {
   // serialization
   private implicit val fivalformat  = SealedTraitFormat[ForbiddenInterval]
   private implicit val vconsFormat  = SealedTraitFormat[VerticalConstraint]
-  private implicit val voiceFormat  = SealedTraitFormat[Voice]
+  // private implicit val voiceFormat  = SealedTraitFormat[Voice]
   private implicit val globalFormat = SealedTraitFormat[GlobalImpl]
   // private implicit val alleleFormat = SealedTraitFormat[(Chord, ChordEval)]
   object chromosomeFormat extends Format[Chromosome] {
@@ -415,5 +479,8 @@ object GeneticSystem extends muta.System {
   val selectionFormat   = SealedTraitFormat[SelectionImpl ]
   private implicit val breedingFunFormat  = SealedTraitFormat[BreedingFunctionImpl]
   val breedingFormat    = SealedTraitFormat[BreedingImpl  ]
-  val evaluationFormat  = SealedTraitFormat[EvaluationImpl]
+  // private implicit val unaryOpFormat    = SealedTraitFormat[UnaryOp]
+  // private implicit val binaryOpFormat   = SealedTraitFormat[BinaryOp]
+  // private implicit val reduceFunFormat  = SealedTraitFormat[ReduceFunction]
+  val evaluationFormat  = EvaluationImpl.format // SealedTraitFormat[EvaluationImpl]
 }
