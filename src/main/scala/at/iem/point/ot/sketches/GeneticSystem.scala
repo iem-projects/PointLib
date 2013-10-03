@@ -295,6 +295,16 @@ case class FrameIntervalEval(reduce: ReduceFunction =
   }
 }
 
+case class VoiceEval(voice: Int = 1, reduce: ReduceFunction =
+                    Match(gen = ConstantEnv(60), AbsDif, ComposeReduceUnary(Mean, LinLin(0, 10, 1, 0))))
+  extends EvaluationImpl {
+
+  override def apply(c: GeneticSystem.Chromosome): Double = {
+    val seq = c.map(_._1.pitches.reverse(voice).midi.toDouble)
+    reduce(seq)
+  }
+}
+
 object EvaluationImpl {
   implicit object format extends Format[EvaluationImpl] {
     def reads(json: JsValue): JsResult[EvaluationImpl] = ???
