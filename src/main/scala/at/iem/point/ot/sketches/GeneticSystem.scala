@@ -92,7 +92,7 @@ case class SelectionTruncation(size: SelectionSize = SelectionPercent(20))
 sealed trait BreedingFunctionImpl extends muta.BreedingFunction[GeneticSystem.Chromosome, GlobalImpl]
 
 case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(20),
-                        crossoverWeight: SelectionPercent  = SelectionPercent(50),
+                        crossoverWeight: SelectionPercent  = SelectionPercent(0 /* 50 */),  // crossover doesn't honor constraints yet
                         crossover      : BreedingFunctionImpl  = Crossover,
                         mutation       : BreedingFunctionImpl  = Mutation())
   extends muta.impl.BreedingImpl[GeneticSystem.Chromosome, GlobalImpl]
