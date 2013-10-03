@@ -5,7 +5,7 @@ import de.sciss.guiflitz.AutoView
 import de.sciss.desktop.Window
 import de.sciss.desktop.impl.WindowImpl
 import reflect.runtime.universe.TypeTag
-import scala.swing.ScrollPane
+import scala.swing.{Action, ScrollPane}
 
 abstract class SettingsFrame[A: TypeTag](init: A, title: String) { me =>
   final val view = {
@@ -23,6 +23,14 @@ abstract class SettingsFrame[A: TypeTag](init: A, title: String) { me =>
     title           = s"${me.title} Settings"
     closeOperation  = Window.CloseDispose
     contents        = new ScrollPane(view.component)
+
+    //    bindMenu("extra.refresh", Action("") {
+    //      view.component.peer.invalidate()
+    //      view.component.peer.revalidate()
+    //      pack()
+    //      view.component.peer.repaint()
+    //    })
+
     pack()
     front()
   }

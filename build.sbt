@@ -45,7 +45,7 @@ seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("at.iem.point.sh.sketches.gui.GeneticApp")
 
-appbundle.name := "GeneticAlgorithm"
+appbundle.name := "SH_GeneticAlgorithm"
 
 appbundle.target <<= baseDirectory
 

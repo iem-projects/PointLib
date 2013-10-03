@@ -31,6 +31,10 @@ object GeneticApp extends SwingApplicationImpl("Genetic Algorithm") {
           Item("table", proxy("Selection As PDF Table..."     -> (menu1 +         VK_T)))
         )
       )
+      //    ).add(
+      //      Group("extra", "Extra").add(
+      //        Item("refresh", proxy("Refresh" -> (menu1 + VK_R)))
+      //      )
     )
   }
 }
