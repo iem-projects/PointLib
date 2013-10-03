@@ -309,6 +309,8 @@ case class SampleEvaluation(highest: Int = 96, lowest: Int = 36, maxUp: Int = 2,
 }
 
 object GeneticSystem extends muta.System {
+  def manual = false
+
   val DefaultVoices = Vec(
     Voice(lowest = 72, highest = 96),
     Voice(lowest = 48, highest = 72),
@@ -331,12 +333,12 @@ object GeneticSystem extends muta.System {
   val chromosomeClassTag = reflect.classTag[Chromosome]
 
   def generationView(init: Generation, config: Config) = AutoView(init, config)
-  // def evaluationView(init: Evaluation, config: Config) = AutoView(init, config)
+  def evaluationView(init: Evaluation, config: Config) = AutoView(init, config)
   def selectionView (init: Selection , config: Config) = AutoView(init, config)
   def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
 
-
-  def evaluationViewOption = None
+  // Option[(Evaluation, AutoView.Config) => AutoView[Evaluation]]
+  def evaluationViewOption = if (manual) None else Some(evaluationView)
 
   private val chordSeqView  = new ChordSeqView
   private val chordSeqView2 = new ChordSeqView
@@ -350,7 +352,7 @@ object GeneticSystem extends muta.System {
   }
 
   // human evaluation
-  override def humanEvaluationSteps = 6
+  override def humanEvaluationSteps = if (manual) 6 else 0
 
   private def setChromoEditor(c: Chromosome): Unit =
     if (c != null) {

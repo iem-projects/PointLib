@@ -16,10 +16,11 @@ resolvers ++= Seq(
 )
 
 libraryDependencies in ThisBuild ++= Seq(
-  "de.sciss" %% "pointillism" % "0.2.+",
-  "de.sciss" %% "pdflitz"     % "1.0.+",
-  "de.sciss" %% "muta"        % "0.2.+",
-  "de.sciss" %  "abc4j"       % "0.6.+"
+  "de.sciss" %% "pointillism"         % "0.2.+",
+  "de.sciss" %% "pdflitz"             % "1.0.+",
+  "de.sciss" %% "muta"                % "0.2.+",
+  "de.sciss" %% "audiowidgets-swing"  % "1.3.1+",
+  "de.sciss" %  "abc4j"               % "0.6.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
@@ -42,7 +43,7 @@ appbundle.mainClass := Some("at.iem.point.ot.sketches.GeneticApp")
 
 appbundle.javaOptions += "-Xmx1024m"
 
-appbundle.name := "GeneticAlgorithm"
+appbundle.name := "OT_GeneticAlgorithm"
 
 appbundle.target <<= baseDirectory
 
