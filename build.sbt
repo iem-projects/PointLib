@@ -48,7 +48,7 @@ initialCommands in console :=
 
 seq(appbundle.settings: _*)
 
-appbundle.name := "FeatureExtraction"
+appbundle.name := "ER_FeatureExtraction"
 
 appbundle.icon := Some(file("icon.png"))
 
