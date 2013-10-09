@@ -4,16 +4,15 @@ import scala.swing.{Frame, ScrollPane, SimpleSwingApplication}
 import gui._
 import spire.syntax._
 import de.sciss.treetable._
-import collection.immutable.{IndexedSeq => IIdxSeq}
 
-import Fitness.Chromosome
 import javax.swing.Icon
 import java.awt.{Graphics2D, Graphics, Component}
 import de.sciss.swingplus.Implicits._
 import de.sciss.swingplus.CloseOperation
+import at.iem.point.sh.sketches.genetic.GeneticSystem.Chromosome
 
 object ChromosomeViewTest extends SimpleSwingApplication {
-  final case class Node(index: Int, chromosome: Chromosome, fitness: Double, children: IIdxSeq[Node])
+  final case class Node(index: Int, chromosome: Chromosome, fitness: Double, children: Vec[Node])
 
   lazy val top = new Frame { f =>
     implicit val rng = Fitness.rng(666L)
@@ -67,7 +66,7 @@ object ChromosomeViewTest extends SimpleSwingApplication {
     tt.rootVisible  = false
     // tt.expandPath(TreeTable.Path.empty)
     // XXX TODO: working around TreeTable issue #1
-    tt.peer.setDefaultRenderer(classOf[IIdxSeq[_]], new j.DefaultTreeTableCellRenderer {
+    tt.peer.setDefaultRenderer(classOf[Vec[_]], new j.DefaultTreeTableCellRenderer {
       override def getTreeTableCellRendererComponent(treeTable: j.TreeTable, value: Any, selected: Boolean,
                                                      hasFocus: Boolean, row: Int, column: Int): java.awt.Component = {
         super.getTreeTableCellRendererComponent(treeTable, value, selected, hasFocus, row, column)

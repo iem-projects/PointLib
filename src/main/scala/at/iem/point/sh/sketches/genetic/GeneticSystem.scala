@@ -8,6 +8,10 @@ import play.api.libs.json.Format
 import de.sciss.guiflitz.AutoView.Config
 import de.sciss.guiflitz.AutoView
 import spire.math.Rational
+import scala.swing.{Graphics2D, Label}
+import at.iem.point.sh.sketches.gui.ChromosomeView
+import javax.swing.Icon
+import java.awt.Graphics
 
 object GeneticSystem extends muta.System {
   type Chromosome = Vec[Cell]
@@ -41,4 +45,34 @@ object GeneticSystem extends muta.System {
   def selectionView (init: Selection , config: Config) = AutoView(init, config)
   def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
   def evaluationViewOption = Some(evaluationView)
+
+  //  private object ViewComponent extends swing.Component {
+  //    var chromosome: Chromosome = Vec.empty
+  //
+  //    override protected def paintComponent(g: Graphics2D): Unit = {
+  //      ChromosomeView.paint(chromosome, g2, width = peer.getWidth, height = peer.getHeight, widthDur = ???)
+  //    }
+  //  }
+
+  override def chromosomeView(c: Chromosome, default: Label, selected: Boolean, focused: Boolean): swing.Component = {
+    // if (c != null) ViewComponent.chromosome = c
+    // ViewComponent
+    val cn = c.map(_.normalized)
+    val sz = ChromosomeView.preferredSize(cn)
+    default.text == null
+    default.icon = new Icon {
+      def getIconWidth  = sz.width
+      def getIconHeight = sz.height
+
+      def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int) {
+        g.translate(x, y)
+        val widthDur: Double = 9 // XXX TODO: need global - duration.toDouble * 1.1
+        ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D],
+          default.peer.getWidth  - x,
+          default.peer.getHeight - y, widthDur)
+        g.translate(-x, -y)
+      }
+    }
+    default
+  }
 }
