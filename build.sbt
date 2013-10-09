@@ -17,7 +17,7 @@ resolvers ++= Seq(
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.2.+",
   "de.sciss" %% "pdflitz"             % "1.0.+",
-  "de.sciss" %% "muta"                % "0.2.+",
+  "de.sciss" %% "muta"                % "0.3.+",
   "de.sciss" %% "audiowidgets-swing"  % "1.3.1+",
   "de.sciss" %% "numbers"             % "0.1.+",
   "de.sciss" %  "abc4j"               % "0.6.+"
