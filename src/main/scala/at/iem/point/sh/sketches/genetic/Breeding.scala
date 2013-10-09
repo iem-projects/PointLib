@@ -4,7 +4,8 @@ package genetic
 import Fitness._
 import spire.math.Rational
 import collection.immutable.{IndexedSeq => Vec}
-import GeneticSystem.Chromosome
+import at.iem.point.sh.sketches.genetic.GeneticSystem.{Global, Chromosome}
+import de.sciss.muta
 
 /** A type describing the breeding procedure.
   *
@@ -17,7 +18,7 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
                     crossoverWeight: /* SelectionSize. */ Percentage = /* SelectionSize. */ Percentage(80),
                     crossover: BreedingFunction = /* BreedingFunction. */ OnePointCrossover,
                     mutation : BreedingFunction = /* BreedingFunction. */ SingleCellMutation)
-  extends ((GenomeSel, Rational, util.Random) => Genome) {
+  extends muta.Breeding[Chromosome, Global] { // ((GenomeSel, Rational, util.Random) => Genome) {
 
   override def apply(g: GenomeSel, duration: Rational, r: util.Random): Genome = {
     val szOut = g.size

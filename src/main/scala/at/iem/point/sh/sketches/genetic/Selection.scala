@@ -5,6 +5,8 @@ import collection.immutable.{IndexedSeq => Vec}
 import Fitness._
 import scala.annotation.tailrec
 import scala.util.Random
+import de.sciss.muta
+import at.iem.point.sh.sketches.genetic.GeneticSystem.Chromosome
 
 // object Selection {
   // cf. http://en.wikipedia.org/wiki/Fitness_proportionate_selection
@@ -46,7 +48,7 @@ import scala.util.Random
     }
   }
 // }
-sealed trait Selection extends ((GenomeVal, util.Random) => Genome)
+sealed trait Selection extends muta.Selection[Chromosome] // ((GenomeVal, util.Random) => Genome)
 
 // object SelectionSize {
 

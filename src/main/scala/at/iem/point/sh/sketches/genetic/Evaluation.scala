@@ -8,6 +8,7 @@ import Fitness._
 import language.existentials
 import de.sciss.numbers.Implicits._
 import GeneticSystem.Chromosome
+import de.sciss.muta
 
 // object Evaluation {
   case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),
@@ -95,7 +96,7 @@ case class EvalEvenOdd(even: Evaluation, odd: Evaluation, combine: MatchFunction
 /** An `Evaluation` is the container for the whole fitness evaluation process, taking an input chromosome
   * and returning a single fitness value.
   */
-sealed trait Evaluation extends (Chromosome => Double)
+sealed trait Evaluation extends muta.Evaluation[Chromosome] // (Chromosome => Double)
 
 // object ChromosomeFunction {
   case object BindTrailingRests extends ChromosomeFunction {
