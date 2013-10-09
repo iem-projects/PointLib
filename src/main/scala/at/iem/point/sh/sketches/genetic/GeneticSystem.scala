@@ -22,11 +22,6 @@ object GeneticSystem extends muta.System {
 
   type Global     = Rational
 
-  //  implicit val rationalFormat     : Format[Rational]        = AutoFormat[Rational]
-  //  implicit val noteOrRestFormat   : Format[NoteOrRest]      = AutoFormat[NoteOrRest]
-  //  implicit val notesOrRestsFormat : Format[Vec[NoteOrRest]] = AutoFormat[Vec[NoteOrRest]]
-  //  implicit val cellFormat         : Format[Cell]            = AutoFormat[Cell]
-
   def defaultGeneration: Generation = GenerationImpl()
   def defaultEvaluation: Evaluation = EvalWindowed() // EvalSerial()
   def defaultSelection : Selection  = SelectionRoulette()
@@ -45,14 +40,6 @@ object GeneticSystem extends muta.System {
   def selectionView (init: Selection , config: Config) = AutoView(init, config)
   def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
   def evaluationViewOption = Some(evaluationView)
-
-  //  private object ViewComponent extends swing.Component {
-  //    var chromosome: Chromosome = Vec.empty
-  //
-  //    override protected def paintComponent(g: Graphics2D): Unit = {
-  //      ChromosomeView.paint(chromosome, g2, width = peer.getWidth, height = peer.getHeight, widthDur = ???)
-  //    }
-  //  }
 
   override def chromosomeView(c: Chromosome, default: Label, selected: Boolean, focused: Boolean): swing.Component = {
     // if (c != null) ViewComponent.chromosome = c

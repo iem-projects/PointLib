@@ -14,7 +14,7 @@ licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
-  "de.sciss"                 %% "muta"               % "0.2.+",           // GA framework
+  "de.sciss"                 %% "muta"               % "0.3.+",           // GA framework
   "org.spire-math"           %% "spire"              % "0.4.0",           // Rational Numbers
   "com.github.wookietreiber" %% "scala-chart"        % "0.3.0-SNAPSHOT",  // JFreeChart integration
   "de.sciss"                 %% "pdflitz"            % "1.0.+",           // PDF export
