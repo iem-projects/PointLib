@@ -1,7 +1,8 @@
 package at.iem.point.ot.sketches
 
-import play.api.libs.json.{JsResult, JsValue, Format, SealedTraitFormat}
+import play.api.libs.json.{JsResult, JsValue, Format}
 import de.sciss.numbers
+import de.sciss.play.json.AutoFormat
 
 sealed trait UnaryOp extends (Double => Double)
 
@@ -36,7 +37,7 @@ case class ExpLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0.1, dst
 }
 
 object UnaryOp {
-  implicit val format = SealedTraitFormat[UnaryOp]
+  implicit val format = AutoFormat[UnaryOp]
 }
 
 sealed trait BinaryOp extends ((Double, Double) => Double)

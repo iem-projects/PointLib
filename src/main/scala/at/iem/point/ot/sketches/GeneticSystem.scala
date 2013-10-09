@@ -4,18 +4,18 @@ import de.sciss.muta
 import de.sciss.guiflitz.AutoView.Config
 import de.sciss.guiflitz.AutoView
 import at.iem.point.illism._
-import scala.util.{Success, Failure, Try, Random}
+import scala.util.Random
 import de.sciss.muta.{SelectionNumber, SelectionPercent, SelectionSize}
 import scala.swing.{Component, Label}
-import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsArray, JsValue, Format, SealedTraitFormat}
-import collection.breakOut
+import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsValue, Format}
 import de.sciss.jacop
 import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
+import de.sciss.play.json.AutoFormat
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 object Voice {
-  implicit val format = SealedTraitFormat[Voice]
+  implicit val format = AutoFormat[Voice]
 }
 
 /** The global configuration for the generation of chromosomes.
@@ -33,7 +33,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
 
   def apply(r: Random): GeneticSystem.Chromosome = {
     val voices    = global.voices
-    val numVoices = voices.size
+    // val numVoices = voices.size
     val num       = global.length
 
     import jacop._
@@ -380,7 +380,7 @@ object ReduceFunction {
 }
 
 object GeneticSystem extends muta.System {
-  def manual = false
+  def manual = true
 
   val DefaultVoices = Vec(
 //    Voice(lowest = 72, highest = 96),
@@ -437,60 +437,50 @@ object GeneticSystem extends muta.System {
     Some((chordSeqView2, () => chordSeqView2.chords, setChromoEditor))
 
   // serialization
-  private implicit val fivalformat  = SealedTraitFormat[ForbiddenInterval]
-  private implicit val vconsFormat  = SealedTraitFormat[VerticalConstraint]
-  // private implicit val voiceFormat  = SealedTraitFormat[Voice]
-  private implicit val globalFormat = SealedTraitFormat[GlobalImpl]
-  // private implicit val alleleFormat = SealedTraitFormat[(Chord, ChordEval)]
-  object chromosomeFormat extends Format[Chromosome] {
-    def reads(json: JsValue): JsResult[Chromosome] = json match {
-      case JsArray(sq) =>
-        val res = Try {
-          val chromo: Chromosome = sq.map {
-            case JsObject(sq1) =>
-              val m     = sq1.toMap
-              val cj    = m.getOrElse("chord", sys.error(s"Field 'chord' not found in $sq1"))
-              val chord = ChordFormat.reads(cj).get
-              val eval  = m.get("eval") match {
-                case Some(JsString("good")) => ChordGood
-                case Some(JsString("bad" )) => ChordBad
-                case None                   => ChordNeutral
-                case other                  => sys.error(s"Unexpected 'eval' value $other")
-              }
-              (chord, eval)
+  private implicit val fivalformat  = AutoFormat[ForbiddenInterval]
+  private implicit val vconsFormat  = AutoFormat[VerticalConstraint]
+  // private implicit val voiceFormat  = AutoFormat[Voice]
+  private implicit val globalFormat = AutoFormat[GlobalImpl]
+  // private implicit val alleleFormat = AutoFormat[(Chord, ChordEval)]
 
-            case other => sys.error(s"Not a JSON object $other")
-          } (breakOut)
-          chromo
+  private implicit val geneFormat   = new Format[Gene] {
+    def reads(json: JsValue): JsResult[Gene] = json match {
+      case JsObject(sq1) =>
+        val m     = sq1.toMap
+        val cj    = m.getOrElse("chord", sys.error(s"Field 'chord' not found in $sq1"))
+        val chord = ChordFormat.reads(cj).get
+        val eval  = m.get("eval") match {
+          case Some(JsString("good")) => ChordGood
+          case Some(JsString("bad" )) => ChordBad
+          case None                   => ChordNeutral
+          case other                  => sys.error(s"Unexpected 'eval' value $other")
         }
-        res match {
-          case Success(c) => JsSuccess(c)
-          case Failure(e) => JsError(e.getMessage)
-        }
+        JsSuccess((chord, eval))
 
-      case _ => JsError(s"Not an array $json")
+      case other => JsError(s"Not a JSON object $other")
     }
 
-    def writes(c: Chromosome): JsValue = JsArray(
-      c.map { case (chord, eval) =>
-        val fields0 = ("chord" -> ChordFormat.writes(chord)) :: Nil
-        val fields  = if (eval == ChordNeutral) fields0 else {
-          ("eval" -> JsString(eval match {
-            case ChordGood    => "good"
-            case ChordBad     => "bad"
-            case ChordNeutral => assert(assertion = false); ""
-          })) :: fields0
-        }
-        JsObject(fields)
+    def writes(gene: Gene): JsValue = {
+      val (chord, eval) = gene
+      val fields0 = ("chord" -> ChordFormat.writes(chord)) :: Nil
+      val fields  = if (eval == ChordNeutral) fields0 else {
+        ("eval" -> JsString(eval match {
+          case ChordGood    => "good"
+          case ChordBad     => "bad"
+          case ChordNeutral => assert(assertion = false); ""
+        })) :: fields0
       }
-    )
+      JsObject(fields)
+    }
   }
-  val generationFormat  = SealedTraitFormat[GenerationImpl]
-  val selectionFormat   = SealedTraitFormat[SelectionImpl ]
-  private implicit val breedingFunFormat  = SealedTraitFormat[BreedingFunctionImpl]
-  val breedingFormat    = SealedTraitFormat[BreedingImpl  ]
-  // private implicit val unaryOpFormat    = SealedTraitFormat[UnaryOp]
-  // private implicit val binaryOpFormat   = SealedTraitFormat[BinaryOp]
-  // private implicit val reduceFunFormat  = SealedTraitFormat[ReduceFunction]
-  val evaluationFormat  = EvaluationImpl.format // SealedTraitFormat[EvaluationImpl]
+  val chromosomeFormat  = AutoFormat[Vec[Gene]]
+
+  val generationFormat  = AutoFormat[GenerationImpl]
+  val selectionFormat   = AutoFormat[SelectionImpl ]
+  private implicit val breedingFunFormat  = AutoFormat[BreedingFunctionImpl]
+  val breedingFormat    = AutoFormat[BreedingImpl  ]
+  // private implicit val unaryOpFormat    = AutoFormat[UnaryOp]
+  // private implicit val binaryOpFormat   = AutoFormat[BinaryOp]
+  // private implicit val reduceFunFormat  = AutoFormat[ReduceFunction]
+  val evaluationFormat  = EvaluationImpl.format // AutoFormat[EvaluationImpl]
 }

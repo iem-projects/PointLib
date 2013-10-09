@@ -1,18 +1,17 @@
-name := "ot-sketches"
+name         := "ot-sketches"
 
-version := "0.0.1"
+version      := "0.1.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
-homepage := Some(url("https://github.com/iem-projects/PointLib/"))
+homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
-licenses := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
+licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 
 resolvers ++= Seq(
-  "Mandubian repository snapshots" at "https://github.com/mandubian/mandubian-mvn/raw/master/snapshots/",
-  "Sonatype OSS snapshots"         at "https://oss.sonatype.org/content/repositories/snapshots/"
+  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 )
 
 libraryDependencies in ThisBuild ++= Seq(
@@ -46,7 +45,7 @@ appbundle.javaOptions += "-Xmx1024m"
 
 appbundle.name := "OT_GeneticAlgorithm"
 
-appbundle.target <<= baseDirectory
+appbundle.target := baseDirectory.value
 
 appbundle.icon := Some(file("icon.png"))
 
