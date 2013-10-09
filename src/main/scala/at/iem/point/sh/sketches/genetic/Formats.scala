@@ -5,7 +5,7 @@ import de.sciss.play.json.AutoFormat
 
 // note: running into SI-7588 - when this happens,
 // comment out the real stuff below, uncomment the ??? stuff, and then vice versa
-object Formats {
+object FormatsX {
 //  implicit val scaleFunction        : Format[ScaleFunction]       = ???
 //  implicit val matchFunction        : Format[MatchFunction]       = ???
 //  implicit val percentage           : Format[Percentage]          = ???

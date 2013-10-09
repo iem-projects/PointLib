@@ -7,6 +7,7 @@ import spire.math.Rational
 import Fitness._
 import language.existentials
 import de.sciss.numbers.Implicits._
+import GeneticSystem.Chromosome
 
 // object Evaluation {
   case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),

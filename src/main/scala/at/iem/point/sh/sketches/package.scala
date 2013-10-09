@@ -1,11 +1,15 @@
 package at.iem.point.sh
 
 import spire.math.{Rational, compat}
-import scala.collection.immutable.{IndexedSeq => Vec}
 import at.iem.point.illism.rhythm.Cell
 import de.sciss.file._
+import play.api.libs.json.{JsSuccess, JsString, JsError, JsNumber, JsObject, JsResult, JsValue, Format}
+import scala.util.{Failure, Try, Success}
 
 package object sketches {
+  type Vec[+A] = collection.immutable.IndexedSeq[A]
+  val  Vec     = collection.immutable.IndexedSeq
+
   implicit val rationalNumeric    = compat.numeric   [Rational]
   implicit val rationalFractional = compat.fractional[Rational]
 
@@ -67,5 +71,43 @@ package object sketches {
       val hiF = (hi / r).floor.toInt + 1
       (loF until hiF).map(r * _)
     }
+  }
+
+  implicit object RationalFormat extends Format[Rational] {
+    def reads(json: JsValue): JsResult[Rational] = json match {
+      case JsString(s) => Try(Rational(s)) match {
+        case Success(r) => JsSuccess(r)
+        case Failure(e) => JsError(s"Not a rational: '$s' - ${e.getMessage}")
+      }
+      case other => JsError(s"Not a JSON string $other")
+    }
+
+    def writes(r: Rational): JsValue = JsString(r.toString)
+  }
+
+  implicit object cellFormat extends Format[Cell] {
+    def reads(json: JsValue): JsResult[Cell] = json match {
+      case JsObject(fs) =>
+        val map = fs.toMap
+        map.get("id") match {
+          case Some(JsNumber(num)) =>
+            val id = num.toInt
+            map.get("dur").fold[JsResult[Cell]](JsError(s"Missing dur field in $json")) { jsf =>
+              RationalFormat.reads(jsf).map { dur =>
+                baseCells(id).copy(dur = dur)
+              }
+            }
+
+          case Some(other)  => JsError(s"Not a JSON number $other")
+          case None         => JsError(s"Missing id field in $json")
+        }
+
+      case other => JsError(s"Not a JSON object $other")
+    }
+
+    def writes(cell: Cell): JsValue = JsObject(Seq(
+      "id"  -> JsNumber(cell.id),
+      "dur" -> RationalFormat.writes(cell.dur)
+    ))
   }
 }

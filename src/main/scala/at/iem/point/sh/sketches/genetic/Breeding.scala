@@ -4,6 +4,7 @@ package genetic
 import Fitness._
 import spire.math.Rational
 import collection.immutable.{IndexedSeq => Vec}
+import GeneticSystem.Chromosome
 
 /** A type describing the breeding procedure.
   *

@@ -5,6 +5,7 @@ import java.awt._
 import java.awt.geom.{Rectangle2D, Line2D}
 import scala.swing.Swing
 import Swing._
+import at.iem.point.sh.sketches.genetic.GeneticSystem
 
 //trait ChromosomeView[C, G] {
 //  def shape(chromosome: C): Shape
@@ -35,7 +36,7 @@ object ChromosomeView {
   private def line(x1: Double, y1: Double, x2: Double, y2: Double): Shape = new Line2D     .Double(x1, y1, x2, y2)
   private def rect(x : Double, y : Double, w : Double, h : Double): Shape = new Rectangle2D.Double(x , y , w , h )
 
-  def preferredSize(cn: Chromosome): Dimension = {
+  def preferredSize(cn: GeneticSystem.Chromosome): Dimension = {
     val totalDur  = cn.dur.toDouble
     val w = (totalDur * PreferredScale + 0.5).toInt
     (w, PreferredHeight)
@@ -49,7 +50,7 @@ object ChromosomeView {
     * @param height   the height in pixels
     * @param widthDur the duration (in wholes) corresponding to the nominal `width`
     */
-  def paint(cn: Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double) {
+  def paint(cn: GeneticSystem.Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double) {
     val sz    = cn.size
     if (sz == 0) return
 

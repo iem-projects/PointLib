@@ -2,7 +2,6 @@ package at.iem.point.sh.sketches
 
 import spire.math.Rational
 import scala.util.Random
-import collection.immutable.{IndexedSeq => Vec}
 import scala.annotation.tailrec
 import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
@@ -10,8 +9,9 @@ import spire.syntax._
 object Fitness {
   val TEST_CORPUS = false // `true` to use test corpus of single note cells, `false` to use Sonja's cells
 
+  import genetic.GeneticSystem.Chromosome
+
   type Sequence   = Vec[NoteOrRest]
-  type Chromosome = Vec[Cell]
   type Genome     = Vec[Chromosome]
   type GenomeVal  = Vec[(Chromosome, Double)]
   type GenomeSel  = Vec[(Chromosome, Double, Boolean)]

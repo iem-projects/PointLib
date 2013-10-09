@@ -1,10 +1,10 @@
 package at.iem.point.sh.sketches
 
-import collection.immutable.{IndexedSeq => Vec}
 import spire.syntax._
 import java.io.{FileOutputStream, OutputStreamWriter}
 import de.sciss.file._
 import at.iem.point.illism.rhythm.LilyTimeSignature
+import genetic.GeneticSystem.Chromosome
 
 trait FitnessLike extends App {
   import Fitness._

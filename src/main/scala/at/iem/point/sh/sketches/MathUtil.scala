@@ -1,7 +1,5 @@
 package at.iem.point.sh.sketches
 
-import collection.immutable.{IndexedSeq => Vec}
-
 object MathUtil {
   /** Calculates the mean and standard deviation of a given vector
     *
