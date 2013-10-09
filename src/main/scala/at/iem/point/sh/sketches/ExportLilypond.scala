@@ -1,17 +1,16 @@
 package at.iem.point.sh.sketches
 
 import de.sciss.file._
-import java.io.{FileWriter, FileOutputStream, OutputStreamWriter}
+import java.io.{FileOutputStream, OutputStreamWriter}
 import Fitness.GenomeVal
 import de.sciss.desktop.{FileDialog, OptionPane, Window}
 import scala.annotation.tailrec
 import de.sciss.guiflitz.{Springs, SpringPanel}
-import at.iem.point.illism.rhythm.{LilyTimeSignature, Cell}
-import at.iem.point.sh.sketches.genetic.{Settings, Formats, Evaluation}
-import play.api.libs.json.Json
+import at.iem.point.illism.rhythm.LilyTimeSignature
+import de.sciss.muta.HeaderInfo
 
 object ExportLilypond {
-  def dialog(settings: Settings, genome: GenomeVal, parent: Option[Window] = None) {
+  def dialog(info: HeaderInfo, genome: GenomeVal, parent: Option[Window] = None) {
     import swing._
 
     //    val lbTitle = new Label("Title:"          , null, Alignment.Trailing)
@@ -58,7 +57,7 @@ object ExportLilypond {
       val dlg = FileDialog.save(init = Some(defaultFile()), title = "Export As Lilypond Score")
       val res = dlg.show(parent)
       res.foreach { f =>
-        ExportLilypond(settings = settings, genome = genome, out = f,
+        ExportLilypond(info = info, genome = genome, out = f,
           timeSig = LilyTimeSignature(ggTime.selection.index), tupletBrackets = ggTuplet.selected,
           midi = ggMIDI.selected)
       }
@@ -83,11 +82,11 @@ object ExportLilypond {
     * @param out      the file (extension will be stripped!)
     * @param midi     whether to output to MIDI file as well or not
     */
-  def apply(settings: Settings, genome: GenomeVal, out: File,
+  def apply(info: HeaderInfo, genome: GenomeVal, out: File,
             timeSig: LilyTimeSignature = LilyTimeSignature.Raw, tupletBrackets: Boolean = true,
             midi: Boolean = true) {
 
-    import settings.info.{title, subtitle, iterations}
+    import info.{title, subtitle, iterations}
 
     // ---- lilypond test output ----
     val header = raw"""\header {
@@ -180,8 +179,8 @@ object ExportLilypond {
     val cmdRes = cmd.!
     if (cmdRes != 0 && cmdRes != 1) sys.error(s"Lilypond exited with code $cmdRes")
 
-    val jsonPath  = lyf.replaceExt("json")
-    SettingsIO.write(settings, jsonPath)
+    // val jsonPath  = lyf.replaceExt("json")
+    // SettingsIO.write(settings, jsonPath)
 
     Seq(pdfViewer, lyf.replaceExt("pdf").path).!
   }

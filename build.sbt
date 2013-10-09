@@ -1,30 +1,25 @@
-name := "sh_sketches"
+name         := "sh_sketches"
 
-version := "0.0.1-SNAPSHOT"
+version      := "0.1.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
 
-homepage := Some(url("https://github.com/iem-projects/PointLib"))
+homepage     := Some(url("https://github.com/iem-projects/PointLib"))
 
-licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
+licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 
-// required for play-json
-resolvers += "Mandubian repository snapshots" at "https://github.com/mandubian/mandubian-mvn/raw/master/snapshots/"
+// required for play-json-sealed
+resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 
 libraryDependencies ++= Seq(
+  "de.sciss"                 %% "muta"               % "0.2.+",           // GA framework
   "org.spire-math"           %% "spire"              % "0.4.0",           // Rational Numbers
   "com.github.wookietreiber" %% "scala-chart"        % "0.3.0-SNAPSHOT",  // JFreeChart integration
   "de.sciss"                 %% "pdflitz"            % "1.0.+",           // PDF export
   "de.sciss"                 %% "pointillism-rhythm" % "0.2.+",           // Manipulating rhythmic cells
-  "de.sciss"                 %% "fileutil"           % "1.0.+",           // Easy file representation
-  "de.sciss"                 %% "desktop"            % "0.3.+",
-  "de.sciss"                 %% "treetable-scala"    % "1.3.+",
-  "de.sciss"                 %% "guiflitz"           % "0.0.2+",          // Automatic configuration GUIs
-  "de.sciss"                 %% "processor"          % "0.2.+",           // Asynchronous iteration
-  // "play"                     %% "play-json"          % "2.2-SNAPSHOT"     // JSON
-  "de.sciss"                 %% "play-json-sealed"   % "0.0.+"
+  "de.sciss"                 %% "numbers"            % "0.1.+"
 )
 
 retrieveManaged := true
@@ -45,8 +40,8 @@ seq(appbundle.settings: _*)
 
 appbundle.mainClass := Some("at.iem.point.sh.sketches.gui.GeneticApp")
 
-appbundle.name := "SH_GeneticAlgorithm"
+appbundle.name      := "SH_GeneticAlgorithm"
 
-appbundle.target <<= baseDirectory
+appbundle.target    := baseDirectory.value
 
-appbundle.icon := Some(file("icon.png"))
+appbundle.icon      := Some(file("icon.png"))

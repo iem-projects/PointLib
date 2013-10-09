@@ -2,6 +2,7 @@ package at.iem.point.sh.sketches
 
 import Fitness._
 import spire.syntax._
+import de.sciss.numbers.Implicits._
 
 object VelocityFitnessEvt extends FitnessLike {
   lazy val veloStart  = r"1/4" // r"1/32" // r"1/64"

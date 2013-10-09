@@ -2,6 +2,7 @@ package at.iem.point.sh.sketches
 
 import Fitness._
 import at.iem.point.illism.rhythm.Ladma
+import de.sciss.numbers.Implicits._
 
 object EntropyFitnessDur extends FitnessLike {
   override lazy val title     = "Increasing Entropy"

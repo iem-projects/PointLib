@@ -6,6 +6,7 @@ import at.iem.point.illism.rhythm.{Note, Ladma}
 import spire.math.Rational
 import Fitness._
 import language.existentials
+import de.sciss.numbers.Implicits._
 
 // object Evaluation {
   case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),

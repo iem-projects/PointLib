@@ -3,6 +3,7 @@ package at.iem.point.sh.sketches
 import Fitness._
 import at.iem.point.illism.rhythm.Ladma
 import spire.syntax._
+import de.sciss.numbers.Implicits._
 
 object MobilityFitnessEvt extends FitnessLike {
   override lazy val title     = "Increasing Mobility"

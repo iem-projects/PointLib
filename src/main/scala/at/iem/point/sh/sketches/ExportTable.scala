@@ -2,13 +2,12 @@ package at.iem.point.sh.sketches
 
 import Fitness._
 import java.io.File
-import at.iem.point.sh.sketches.genetic.Settings
 import at.iem.point.sh.sketches.gui.ChromosomeView
 import de.sciss.pdflitz.Generate
 import java.awt.Dimension
 
 object ExportTable {
-  def apply(f: File, genome: GenomeVal, settings: Settings) {
+  def apply(f: File, genome: GenomeVal): Unit = {
     val num   = genome.size
     // val dur   = settings.generation.wholeDur.toDouble * 1.1
     val dur   = genome.map(_._1.dur).max.toDouble
