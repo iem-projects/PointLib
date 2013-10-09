@@ -6,6 +6,9 @@ import spire.math.Rational
 import collection.immutable.{IndexedSeq => Vec}
 import at.iem.point.sh.sketches.genetic.GeneticSystem.{Global, Chromosome}
 import de.sciss.muta
+import de.sciss.muta.{SelectionPercent, SelectionNumber, SelectionSize}
+import de.sciss.play.json.AutoFormat
+import play.api.libs.json.Format
 
 /** A type describing the breeding procedure.
   *
@@ -14,8 +17,8 @@ import de.sciss.muta
   * @param crossover        the crossover breeding function, applied with the selected chromosomes and number of children to produce
   * @param mutation         the mutation  breeding function, applied with the selected chromosomes and number of children to produce
   */
-case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
-                    crossoverWeight: /* SelectionSize. */ Percentage = /* SelectionSize. */ Percentage(80),
+case class BreedingImpl(elitism: SelectionSize = /* SelectionSize. */ SelectionNumber(5),
+                    crossoverWeight: SelectionPercent = SelectionPercent(80),
                     crossover: BreedingFunction = /* BreedingFunction. */ OnePointCrossover,
                     mutation : BreedingFunction = /* BreedingFunction. */ SingleCellMutation)
   extends muta.Breeding[Chromosome, Global] { // ((GenomeSel, Rational, util.Random) => Genome) {
@@ -156,7 +159,7 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
   }
 
   case class CombinedMutation(a: BreedingFunction = MultiCellMutation(),
-                              b: BreedingFunction = SwapMutation(), balance: Percentage = Percentage(50))
+                              b: BreedingFunction = SwapMutation(), balance: SelectionPercent = SelectionPercent(50))
     extends BreedingFunction {
 
     override def apply(g: Genome, num: Int, duration: Rational, r: util.Random): Genome = {
@@ -170,3 +173,7 @@ case class Breeding(elitism: SelectionSize = /* SelectionSize. */ Number(5),
 
 // }
 sealed trait BreedingFunction extends ((Genome, Int, Rational, util.Random) => Genome)
+
+object BreedingFunction {
+  implicit val format: Format[BreedingFunction] = AutoFormat[BreedingFunction]
+}

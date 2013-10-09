@@ -9,46 +9,47 @@ import language.existentials
 import de.sciss.numbers.Implicits._
 import GeneticSystem.Chromosome
 import de.sciss.muta
+import play.api.libs.json.Format
+import de.sciss.play.json.AutoFormat
 
-// object Evaluation {
-  case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),
-                          fun   : LocalFunction     = /* LocalFunction. */ GeomMean,
-                          target: LocalFunction     = /* LocalFunction. */ Exp(0.0625, 0.25),
-                          fit   : MatchFunction     = /* MatchFunction. */ MatchRelNegative,
-                          aggr  : AggregateFunction = /* AggregateFunction. */ AggrMean)
-    extends Evaluation {
+case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ WindowEvents(),
+                        fun   : LocalFunction     = /* LocalFunction. */ GeomMean,
+                        target: LocalFunction     = /* LocalFunction. */ Exp(0.0625, 0.25),
+                        fit   : MatchFunction     = /* MatchFunction. */ MatchRelNegative,
+                        aggr  : AggregateFunction = /* AggregateFunction. */ AggrMean)
+  extends EvaluationImpl {
 
-    private val fitT = fit.tupled.apply _
+  private val fitT = fit.tupled.apply _
 
-    def apply(c: Chromosome): Double = {
-      val slices  = window(c)
-        val evals   = slices.map(fun   )
-      val targets = slices.map(target)
-      val errors  = (evals zip targets).map(fitT)
-      aggr(errors)
-    }
+  def apply(c: Chromosome): Double = {
+    val slices  = window(c)
+      val evals   = slices.map(fun   )
+    val targets = slices.map(target)
+    val errors  = (evals zip targets).map(fitT)
+    aggr(errors)
   }
+}
 
-  case class EvalGlobal(fun   : Evaluation    = /* Evaluation. */ EvalConst(),
-                        target: Evaluation    = /* Evaluation. */ EvalConst(),
-                        error : MatchFunction = /* MatchFunction. */ MatchRelReciprocal)
-    extends Evaluation {
+case class EvalGlobal(fun   : EvaluationImpl = /* Evaluation. */ EvalConst(),
+                      target: EvaluationImpl = /* Evaluation. */ EvalConst(),
+                      error : MatchFunction  = /* MatchFunction. */ MatchRelReciprocal)
+  extends EvaluationImpl {
 
-    def apply(c: Chromosome): Double = {
-      val eval  = fun(c.map(_.normalized))
-      val t     = target(c)
-      error(eval, t)
-    }
+  def apply(c: Chromosome): Double = {
+    val eval  = fun(c.map(_.normalized))
+    val t     = target(c)
+    error(eval, t)
   }
+}
 
-  case class EvalWrap(local: LocalFunction) extends Evaluation {
-    def apply(sq: Chromosome): Double = {
-      val win = Slice(sq.flattenCells, 0, 0, 0.5)
-      local(win)
-    }
+case class EvalWrap(local: LocalFunction) extends EvaluationImpl {
+  def apply(sq: Chromosome): Double = {
+    val win = Slice(sq.flattenCells, 0, 0, 0.5)
+    local(win)
   }
+}
 
-case class EvalEvenOdd(even: Evaluation, odd: Evaluation, combine: MatchFunction) extends Evaluation {
+case class EvalEvenOdd(even: EvaluationImpl, odd: EvaluationImpl, combine: MatchFunction) extends EvaluationImpl {
   override def apply(c: Chromosome): Double = {
     val sq          = c.flattenCells
     val (ite, ito)  = sq.view.zipWithIndex.partition(_._2 % 2 == 0)
@@ -60,77 +61,88 @@ case class EvalEvenOdd(even: Evaluation, odd: Evaluation, combine: MatchFunction
   }
 }
 
-  case class EvalConst(d: Double = 0.0) extends Evaluation {
-    def apply(sq: Chromosome): Double = d
-  }
+case class EvalConst(d: Double = 0.0) extends EvaluationImpl {
+  def apply(sq: Chromosome): Double = d
+}
 
-  /** Counts the number of duplicate cells in a chromosome. */
-  case class EvalDuplicateCells(ignoreStretch: Boolean = true) extends Evaluation {
-    def apply(sq: Chromosome): Double = {
-      val grouped = if (ignoreStretch) {
-        sq.groupBy(_.id)
-      } else {
-        sq.groupBy(c => (c.id, c.dur))
-      }
-      val numUnique = grouped.size
-      val numDup    = sq.size - numUnique
-      numDup
+/** Counts the number of duplicate cells in a chromosome. */
+case class EvalDuplicateCells(ignoreStretch: Boolean = true) extends EvaluationImpl {
+  def apply(sq: Chromosome): Double = {
+    val grouped = if (ignoreStretch) {
+      sq.groupBy(_.id)
+    } else {
+      sq.groupBy(c => (c.id, c.dur))
     }
+    val numUnique = grouped.size
+    val numDup    = sq.size - numUnique
+    numDup
   }
+}
 
-  /** Produces a sequential evaluation, by passing the chromosome first through a `Chromosome => Chromosome`
-    * function and then through a subsequent `Chromosome => Double` evaluation.
-    */
-  case class EvalSerial(a: ChromosomeFunction = /* ChromosomeFunction. */ BindTrailingRests,
-                        b: Evaluation = EvalWindowed())  extends Evaluation {
-    override def apply(c: Chromosome): Double = b(a(c))
-  }
+// -------------------------------------------------------------------------------------
 
-  case class EvalParallel(a: Evaluation     = EvalWindowed(),
-                          b: Evaluation     = EvalGlobal(EvalDuplicateCells(), EvalConst(1), /* MatchFunction. */ MatchLessThan),
-                          op: MatchFunction = /* MatchFunction. */ MatchTimes) extends Evaluation {
-    override def apply(c: Chromosome): Double = op(a(c), b(c))
-  }
-// }
+/** A `ChromosomeFunction` pre-processes a chromosome before it is sent to another evaluation. */
+sealed trait ChromosomeFunction extends (Chromosome => Chromosome)
+
+/** Produces a sequential evaluation, by passing the chromosome first through a `Chromosome => Chromosome`
+  * function and then through a subsequent `Chromosome => Double` evaluation.
+  */
+case class EvalSerial(a: ChromosomeFunction = /* ChromosomeFunction. */ BindTrailingRests,
+                      b: EvaluationImpl = EvalWindowed()) extends EvaluationImpl {
+  override def apply(c: Chromosome): Double = b(a(c))
+}
+
+case class EvalParallel(a: EvaluationImpl = EvalWindowed(),
+                        b: EvaluationImpl = EvalGlobal(EvalDuplicateCells(), EvalConst(1), /* MatchFunction. */ MatchLessThan),
+                        op: MatchFunction = /* MatchFunction. */ MatchTimes) extends EvaluationImpl {
+  override def apply(c: Chromosome): Double = op(a(c), b(c))
+}
 
 /** An `Evaluation` is the container for the whole fitness evaluation process, taking an input chromosome
   * and returning a single fitness value.
   */
-sealed trait Evaluation extends muta.Evaluation[Chromosome] // (Chromosome => Double)
+sealed trait EvaluationImpl extends muta.Evaluation[Chromosome] // (Chromosome => Double)
 
-// object ChromosomeFunction {
-  case object BindTrailingRests extends ChromosomeFunction {
-    override def apply(c: Chromosome): Chromosome = {
-      val durs  = c.flattenCells.bindTrailingRests
-      val cell  = durs.map(Note).toCell
-      Vec(cell)
-    }
+case object BindTrailingRests extends ChromosomeFunction {
+  override def apply(c: Chromosome): Chromosome = {
+    val durs  = c.flattenCells.bindTrailingRests
+    val cell  = durs.map(Note).toCell
+    Vec(cell)
   }
-// }
-/** A `ChromosomeFunction` pre-processes a chromosome before it is sent to another evaluation. */
-sealed trait ChromosomeFunction extends (Chromosome => Chromosome)
+}
 
-// object WindowFunction {
-  case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
-    require(step >= 1 && size >= step)
+object ChromosomeFunction {
+  implicit val format: Format[ChromosomeFunction] = AutoFormat[ChromosomeFunction]
+}
 
-    def apply(c: Chromosome): Vec[Slice] = {
-      val slices    = slideByEvents(size, step)(c)
-      val zipped    = flatWithAccum(c)
-      val w1        = math.max(1, zipped.size - size)
-      // require(w1 > 0, s"For $seq w1 is $w1")
-      val w2        = w1.toDouble
-      val m         = slices.map { case (off, idx, slice) =>
-        val w       = math.min(1.0, idx.toDouble / w2)
-        Slice(slice, idx, off, w)
-      }
-      m
-    }
-  }
-// }
+// -----------------------------------------------------
+
 /** A `WindowFunction` produces a sliding window view of a chromosome, by flattening its cells and returning a
   *  sequence of cell sequences. */
 sealed trait WindowFunction extends (Chromosome => Vec[Slice])
+
+case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
+  require(step >= 1 && size >= step)
+
+  def apply(c: Chromosome): Vec[Slice] = {
+    val slices    = slideByEvents(size, step)(c)
+    val zipped    = flatWithAccum(c)
+    val w1        = math.max(1, zipped.size - size)
+    // require(w1 > 0, s"For $seq w1 is $w1")
+    val w2        = w1.toDouble
+    val m         = slices.map { case (off, idx, slice) =>
+      val w       = math.min(1.0, idx.toDouble / w2)
+      Slice(slice, idx, off, w)
+    }
+    m
+  }
+}
+
+object WindowFunction {
+  implicit val format: Format[WindowFunction] = AutoFormat[WindowFunction]
+}
+
+// ------------------------------------------------------------------------------
 
 /** A slice is a cell sequence which was taken from a chromosome.
   *
@@ -142,6 +154,10 @@ sealed trait WindowFunction extends (Chromosome => Vec[Slice])
 case class Slice(sq: Sequence, idx: Int, offset: Rational, w: Double) {
   def size: Int = sq.size
 }
+
+// ------------------------------------------------------------------------------
+
+sealed trait LocalFunction extends (Slice => Double)
 
 case object LadmaEntropy extends LocalFunction {
   def apply(win: Slice): Double = Ladma.entropy(win.sq.toCell)
@@ -227,7 +243,13 @@ case class ExpExp(lo: Double = 1.0, hi: Double = 2.0) extends LocalFunction {
   def apply(win: Slice): Double = win.w.linexp(0, 1, lo, hi).linexp(lo, hi, lo, hi)
 }
 
-sealed trait LocalFunction extends (Slice => Double)
+object LocalFunction {
+  implicit val format: Format[LocalFunction] = AutoFormat[LocalFunction]
+}
+
+// --------------------------------------------------------
+
+sealed trait MatchFunction extends ((Double, Double) => Double)
 
 /** The relative match, which is the reciprocal of the relative error. This is limited to 1 per mille
   * relative error, in order not to produce infinitely good matches, which would be bad for aggregation.
@@ -277,14 +299,20 @@ case class MatchScale(a: ScaleFunction = ScaleLinLin(), b: ScaleFunction = Scale
   def apply(a: Double, b: Double): Double = combine(me.a(a), me.b(b))
 }
 
-sealed trait MatchFunction extends ((Double, Double) => Double)
+object MatchFunction {
+  implicit val format: Format[MatchFunction] = AutoFormat[MatchFunction]
+}
+
+// --------------------------------------------------------
+
+sealed trait AggregateFunction extends (Vec[Double] => Double)
 
 case object AggrMean extends AggregateFunction {
   def apply(fits: Vec[Double]): Double = fits.sum / fits.size
 }
 
 case object AggrRMS extends AggregateFunction {
-  def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map(x => 1.0/(x * x)).sum / fits.size)
+  def apply(fits: Vec[Double]): Double = 1.0 / math.sqrt(fits.map((x: Double) => 1.0/(x * x)).sum / fits.size)
 }
 
 case object AggrMin extends AggregateFunction {
@@ -295,7 +323,13 @@ case object AggrMax extends AggregateFunction {
   def apply(fits: Vec[Double]): Double = fits.max
 }
 
-sealed trait AggregateFunction extends (Vec[Double] => Double)
+object AggregateFunction {
+  implicit val format: Format[AggregateFunction] = AutoFormat[AggregateFunction]
+}
+
+// ------------------------------------------------------------------
+
+sealed trait ScaleFunction extends (Double => Double)
 
 case class ScaleLinLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0, dstHi: Double = 1) extends ScaleFunction {
   override def apply(in: Double): Double = in.linlin(srcLo, srcHi, dstLo, dstHi)
@@ -306,4 +340,7 @@ case class ScaleLinExp(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0.1
 case class ScaleExpLin(srcLo: Double = 0, srcHi: Double = 1, dstLo: Double = 0.1, dstHi: Double = 1) extends ScaleFunction {
   override def apply(in: Double): Double = in.explin(srcLo, srcHi, dstLo, dstHi)
 }
-sealed trait ScaleFunction extends (Double => Double)
+
+object ScaleFunction {
+  implicit val format: Format[ScaleFunction] = AutoFormat[ScaleFunction]
+}

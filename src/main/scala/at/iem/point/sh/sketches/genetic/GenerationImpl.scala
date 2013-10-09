@@ -6,12 +6,12 @@ import de.sciss.muta
 import at.iem.point.sh.sketches.genetic.GeneticSystem.{Chromosome, Global}
 import scala.util.Random
 
-case class Generation(size: Int = 100, duration: Int = 32, seed: Int /* Long */ = 0)
+case class GenerationImpl(size: Int = 100, duration: Int = 32, seed: Int = 0)
   extends muta.Generation[Chromosome, Global] {
 
   def wholeDur = Rational(duration, 4)
 
   def global: Global = wholeDur
 
-  override def apply(r: Random): Chromosome = ???
+  override def apply(r: Random): Chromosome = Fitness.randomSequence(wholeDur)(r)
 }

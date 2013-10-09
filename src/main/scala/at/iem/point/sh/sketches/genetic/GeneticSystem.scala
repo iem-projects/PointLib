@@ -11,10 +11,10 @@ import spire.math.Rational
 
 object GeneticSystem extends muta.System {
   type Chromosome = Vec[Cell]
-  type Generation = genetic.Generation
-  type Evaluation = genetic.Evaluation
-  type Selection  = genetic.Selection
-  type Breeding   = genetic.Breeding
+  type Generation = GenerationImpl
+  type Evaluation = EvaluationImpl
+  type Selection  = SelectionImpl
+  type Breeding   = BreedingImpl
 
   type Global     = Rational
 
@@ -23,16 +23,16 @@ object GeneticSystem extends muta.System {
   //  implicit val notesOrRestsFormat : Format[Vec[NoteOrRest]] = AutoFormat[Vec[NoteOrRest]]
   //  implicit val cellFormat         : Format[Cell]            = AutoFormat[Cell]
 
-  def defaultGeneration: Generation = genetic.Generation()
-  def defaultEvaluation: Evaluation = ??? // FrameIntervalEval()
-  def defaultSelection : Selection  = ??? // SelectionRoulette()
-  def defaultBreeding  : Breeding   = genetic.Breeding()
+  def defaultGeneration: Generation = GenerationImpl()
+  def defaultEvaluation: Evaluation = EvalWindowed() // EvalSerial()
+  def defaultSelection : Selection  = SelectionRoulette()
+  def defaultBreeding  : Breeding   = BreedingImpl()
 
   val chromosomeFormat : Format[Vec[Cell]]  = AutoFormat[Vec[Cell]]
-  val breedingFormat   : Format[Breeding]   = ???
-  val evaluationFormat : Format[Evaluation] = ???
-  val generationFormat : Format[Generation] = ???
-  val selectionFormat  : Format[Selection]  = ???
+  val selectionFormat  : Format[Selection]  = SelectionImpl.format // AutoFormat[SelectionImpl]
+  val breedingFormat   : Format[Breeding]   = AutoFormat[BreedingImpl]
+  val generationFormat : Format[Generation] = AutoFormat[GenerationImpl]
+  implicit lazy val evaluationFormat: Format[Evaluation] = AutoFormat[EvaluationImpl] // recursive!
 
   val chromosomeClassTag = reflect.classTag[Chromosome]
 
