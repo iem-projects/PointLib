@@ -5,6 +5,7 @@ import java.io.{FileOutputStream, OutputStreamWriter}
 import de.sciss.file._
 import at.iem.point.illism.rhythm.LilyTimeSignature
 import genetic.GeneticSystem.Chromosome
+import at.iem.point.sh.sketches.genetic.GlobalImpl
 
 trait FitnessLike extends App {
   import Fitness._
@@ -84,7 +85,8 @@ trait FitnessLike extends App {
   }
 
   def run() {
-    val res     = produce(duration = duration, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
+    val glob    = GlobalImpl(crochets = (duration * 4).toInt)
+    val res     = produce(global = glob, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
     val sorted  = res.distinct.sortBy(-_._2)
 
     sorted.take(5).foreach(println)

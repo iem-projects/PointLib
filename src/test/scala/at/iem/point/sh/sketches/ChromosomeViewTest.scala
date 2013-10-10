@@ -10,6 +10,7 @@ import java.awt.{Graphics2D, Graphics, Component}
 import de.sciss.swingplus.Implicits._
 import de.sciss.swingplus.CloseOperation
 import at.iem.point.sh.sketches.genetic.GeneticSystem.Chromosome
+import at.iem.point.sh.sketches.genetic.GlobalImpl
 
 object ChromosomeViewTest extends SimpleSwingApplication {
   final case class Node(index: Int, chromosome: Chromosome, fitness: Double, children: Vec[Node])
@@ -18,7 +19,8 @@ object ChromosomeViewTest extends SimpleSwingApplication {
     implicit val rng = Fitness.rng(666L)
 
     val nodes = Vector.tabulate(5) { idx =>
-      val sq  = Fitness.randomSequence(r"12")
+      val glob  = GlobalImpl(crochets = 12 * 4)
+      val sq    = Fitness.randomSequence(glob)
       // val cv  = new ChromosomeView(sq)
       // cv
       val f   = 1.0 // XXX TODO

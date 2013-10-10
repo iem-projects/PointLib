@@ -7,7 +7,6 @@ import de.sciss.play.json.AutoFormat
 import play.api.libs.json.Format
 import de.sciss.guiflitz.AutoView.Config
 import de.sciss.guiflitz.AutoView
-import spire.math.Rational
 import scala.swing.{Graphics2D, Label}
 import at.iem.point.sh.sketches.gui.ChromosomeView
 import javax.swing.Icon
@@ -20,7 +19,7 @@ object GeneticSystem extends muta.System {
   type Selection  = SelectionImpl
   type Breeding   = BreedingImpl
 
-  type Global     = Rational
+  type Global     = GlobalImpl
 
   def defaultGeneration: Generation = GenerationImpl()
   def defaultEvaluation: Evaluation = EvalWindowed() // EvalSerial()

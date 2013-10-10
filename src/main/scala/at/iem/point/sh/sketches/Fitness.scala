@@ -5,6 +5,7 @@ import scala.util.Random
 import scala.annotation.tailrec
 import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
 import spire.syntax._
+import at.iem.point.sh.sketches.genetic.GeneticSystem.Global
 
 object Fitness {
   val TEST_CORPUS = false // `true` to use test corpus of single note cells, `false` to use Sonja's cells
@@ -46,7 +47,7 @@ object Fitness {
     * @param rnd            random number generator
     * @return               the output population after then `iter`'th iteration.
     */
-  def produce(duration: Rational, iter: Int, pop: Int)
+  def produce(global: Global, iter: Int, pop: Int)
              (fitness: Chromosome => Double, selectAndBreed: GenomeVal => Genome)
              (implicit rnd: Random): GenomeVal = {
 
@@ -55,7 +56,7 @@ object Fitness {
       loop(g1, it - 1)
     }
 
-    val p0  = Vector.fill(pop)(randomSequence(duration))
+    val p0  = Vec.fill(pop)(randomSequence(global))
     val res = loop(p0, iter)
     weigh(res)(fitness)
   }
@@ -352,15 +353,18 @@ object Fitness {
   }
 
   /** Generates a random sequence from the `corpus` which is at least as long as a given `duration`. */
-  def randomSequence(duration: Rational)(implicit rnd: Random): Chromosome = {
+  def randomSequence(global: Global)(implicit rnd: Random): Chromosome = {
+    val co  = global.corpus
+    val dur = global.duration
+
     @tailrec def loop(seq: Chromosome, d: Rational): Vec[Cell] = {
-      val c     = corpus.choose()
+      val c     = co.choose()
       val sqn   = seq :+ c
       val dn    = d + c.dur
-      if (dn >= duration) sqn else loop(sqn, dn)
+      if (dn >= dur) sqn else loop(sqn, dn)
     }
 
-    loop(Vector.empty, 0)
+    loop(Vec.empty, 0)
   }
 
   /** This was a test to find alternative sequence slices by selectively dropping cells, until valid

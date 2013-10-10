@@ -1,11 +1,14 @@
 package at.iem.point.sh.sketches
 
+import at.iem.point.sh.sketches.genetic.GlobalImpl
+
 object BoundaryVersionsApp extends App {
   import Fitness._
 
   implicit val r = rng(3L)
+  val glob = GlobalImpl(crochets = 16)
   for (i <- 1 to 10) {
-    val sq = randomSequence(4)
+    val sq = randomSequence(glob)
     println("\nInput sequence:")
     println(sq)
     val sqn = sq.map(_.normalized)
