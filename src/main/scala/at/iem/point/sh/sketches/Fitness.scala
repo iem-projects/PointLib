@@ -39,7 +39,7 @@ object Fitness {
 
   /** Runs the whole genetic algorithm, producing an initial population and running over a given number of iterations.
     *
-    * @param duration       target duration of the chromosomes (in whole notes)
+    * @param global         global parameters such as target duration of the chromosomes
     * @param iter           number of iterations
     * @param pop            population size
     * @param fitness        fitness function

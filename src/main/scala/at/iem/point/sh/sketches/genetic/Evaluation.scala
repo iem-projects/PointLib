@@ -23,7 +23,7 @@ case class EvalWindowed(window: WindowFunction    = /* WindowFunction. */ Window
 
   def apply(c: Chromosome): Double = {
     val slices  = window(c)
-      val evals   = slices.map(fun   )
+    val evals   = slices.map(fun   )
     val targets = slices.map(target)
     val errors  = (evals zip targets).map(fitT)
     aggr(errors)
@@ -138,6 +138,20 @@ case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
   }
 }
 
+case class WindowCells(normalize: Boolean = false) extends WindowFunction {
+  def apply(c: Chromosome): Vec[Slice] = {
+    val sq  = c.seq
+    val w2  = 1.0 / math.max(1, sq.size - 1)
+    var off = Rational(0)
+    sq.zipWithIndex.map { case (c0, idx) =>
+      val c1 = if (normalize) c0.normalized else c0
+      val s  = Slice(c1.elements, idx, off, idx.toDouble / w2)
+      off += c1.dur
+      s
+    }
+  }
+}
+
 object WindowFunction {
   implicit val format: Format[WindowFunction] = AutoFormat[WindowFunction]
 }
@@ -178,6 +192,25 @@ case object GeomMean extends LocalFunction {
 case object NumPauses extends LocalFunction {
   def apply(win: Slice): Double = win.sq.count(_.isRest)
 }
+
+case object SliceSize extends LocalFunction {
+  def apply(win: Slice): Double = win.sq.size
+}
+
+//case class Count(value: Double = 0.25, err: Double = 0.05) extends LocalFunction {
+//  def apply(win: Slice): Double = win.sq.count(_.dur.denominatorAsLong == value)
+//}
+
+case class CountDenoms(value: Int = 4) extends LocalFunction {
+  def apply(win: Slice): Double = win.sq.count(_.dur.denominatorAsLong == value)
+}
+
+//case class DropPauses(andThen: LocalFunction) extends LocalFunction {
+//  def apply(win: Slice): Double = {
+//    val f = win.copy(sq = win.sq.collect { case n: Note => n })
+//    andThen(f)
+//  }
+//}
 
 case class AutoCorrelation(restsDistinct: Boolean = true, aggr: AggregateFunction = AggrMean)
   extends LocalFunction {
@@ -275,6 +308,11 @@ case object MatchAbsReciprocal extends MatchFunction {
   def apply(eval: Double, target: Double): Double = {
     math.min(1.0, 1.0 / (1000 * math.abs(eval - target)))
   }
+}
+
+case class MatchAbs(maxDiff: Double = 10) extends MatchFunction {
+  def apply(eval: Double, target: Double): Double =
+    (eval absdif target).linlin(0, maxDiff, 1, 0).max(0)
 }
 
 case object MatchMin extends MatchFunction {
