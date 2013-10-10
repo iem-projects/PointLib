@@ -145,7 +145,7 @@ case class WindowCells(normalize: Boolean = false) extends WindowFunction {
     var off = Rational(0)
     sq.zipWithIndex.map { case (c0, idx) =>
       val c1 = if (normalize) c0.normalized else c0
-      val s  = Slice(c1.elements, idx, off, idx.toDouble / w2)
+      val s  = Slice(c1.elements, idx, off, idx.toDouble * w2)
       off += c1.dur
       s
     }
@@ -193,8 +193,16 @@ case object NumPauses extends LocalFunction {
   def apply(win: Slice): Double = win.sq.count(_.isRest)
 }
 
+case object NumNotes extends LocalFunction {
+  def apply(win: Slice): Double = win.sq.count(!_.isRest)
+}
+
 case object SliceSize extends LocalFunction {
   def apply(win: Slice): Double = win.sq.size
+}
+
+case object SliceDuration extends LocalFunction {
+  def apply(win: Slice): Double = win.sq.map(_.dur).sum.toDouble
 }
 
 //case class Count(value: Double = 0.25, err: Double = 0.05) extends LocalFunction {
