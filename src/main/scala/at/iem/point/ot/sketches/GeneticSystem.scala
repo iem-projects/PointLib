@@ -26,7 +26,7 @@ object Voice {
   * @param length    the number of chords to produce
   */
 case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
-                      vertical: Vec[VerticalConstraint] = Vec.empty /* not yet working: Vec(ForbiddenInterval(12)) */,
+                      vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
                       length  : Int = 12)
 
 case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
@@ -43,7 +43,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
 
     val vars = Vec.fill(num) {
       val ch = Vec.fill(numVoices)(new IntVar())
-      GeneticSystem.constrainChord(ch, voices, global.vertical)
+      GeneticSystem.constrainVert(ch, voices, global.vertical)
       ch
     }
     vars.foreachPair { (c1, c2) =>
@@ -132,10 +132,10 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
   protected def numGenes(chromosome: Chromosome)(implicit random: util.Random): Int =
     random.nextInt(numGenesSize(chromosome.size))
 
-  def mutate(glob: Global, gene: Gene, pred: Option[Gene], succ: Option[Gene])(implicit r: util.Random): Gene = {
+  def mutate(global: Global, gene: Gene, pred: Option[Gene], succ: Option[Gene])(implicit r: util.Random): Gene = {
     val (chord, _) = gene
     val csz   = chord.size
-    require(csz == glob.voices.size)
+    require(csz == global.voices.size)
 
     val num   = voices(csz)
     val sel   = Vec.tabulate(csz)(_ < num).scramble
@@ -147,36 +147,40 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     if (DEBUG_MUTA) println()
 
     val pitchesSel = chord.pitches.reverse.zip(sel)
-    val vars = pitchesSel.zip(glob.voices).map { case ((p, psel), vc) =>
+    val vars = pitchesSel.map { case (p, psel) =>
       val midi = p.midi
       if (psel) {
-        val lo = math.max(vc.lowest , midi - interval)
-        val hi = math.min(vc.highest, midi + interval)
-        assert(lo <= hi)
+        val lo = midi - interval
+        val hi = midi + interval
         new IntVar(lo, hi)
       } else new IntVar(midi, midi)
     }
-    vars.foreachPair { case (hi, lo) =>
-      if (DEBUG_MUTA) println(s"{${hi.min()}...${hi.max()}} #> {${lo.min()}...${lo.max()}}")
-      hi #> lo
-    }
+    GeneticSystem.constrainVert(vars, global.voices, global.vertical)
+    //    vars.foreachPair { case (hi, lo) =>
+    //      if (DEBUG_MUTA) println(s"{${hi.min()}...${hi.max()}} #> {${lo.min()}...${lo.max()}}")
+    //      hi #> lo
+    //    }
 
     pred.foreach { case (predC, _) =>
-      vars.zip(predC.pitches.reverse).zip(glob.voices).foreach { case ((iv, predP), vc) =>
-        val pp = predP.midi
-        if (DEBUG_MUTA) println(s"Pred: ${pp - vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${pp + vc.maxUp}")
-        iv #<= (pp + vc.maxUp  )
-        iv #>= (pp - vc.maxDown)
-      }
+      val pred: Vec[IntVar] = predC.pitches.reverse.map(_.midi: IntVar)
+      GeneticSystem.constrainHoriz(pred, vars, global.voices)
+      //      vars.zip(predC.pitches.reverse).zip(glob.voices).foreach { case ((iv, predP), vc) =>
+      //        val pp = predP.midi
+      //        if (DEBUG_MUTA) println(s"Pred: ${pp - vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${pp + vc.maxUp}")
+      //        iv #<= (pp + vc.maxUp  )
+      //        iv #>= (pp - vc.maxDown)
+      //      }
     }
     // something with the following is wrong probably:
     succ.foreach { case (succC, _) =>
-      vars.zip(succC.pitches.reverse).zip(glob.voices).foreach { case ((iv, succP), vc) =>
-        val sp = succP.midi
-        if (DEBUG_MUTA) println(s"Succ: ${sp + vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${sp - vc.maxUp}")
-        iv #>= (sp - vc.maxUp  )
-        iv #<= (sp + vc.maxDown)
-      }
+      val succ: Vec[IntVar] = succC.pitches.reverse.map(_.midi: IntVar)
+      GeneticSystem.constrainHoriz(vars, succ, global.voices)
+      //      vars.zip(succC.pitches.reverse).zip(global.voices).foreach { case ((iv, succP), vc) =>
+      //        val sp = succP.midi
+      //        if (DEBUG_MUTA) println(s"Succ: ${sp + vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${sp - vc.maxUp}")
+      //        iv #>= (sp - vc.maxUp  )
+      //        iv #<= (sp + vc.maxDown)
+      //      }
     }
 
     require(model.consistency(), s"Constraints model is not consistent")
@@ -404,7 +408,7 @@ object GeneticSystem extends muta.System {
   type Selection  = SelectionImpl
   type Breeding   = BreedingImpl
 
-  def constrainChord(cv: Vec[jacop.IntVar], voices: Vec[Voice],
+  def constrainVert(cv: Vec[jacop.IntVar], voices: Vec[Voice],
                      vertical: Vec[VerticalConstraint])
                     (implicit m: jacop.Model): Unit = {
     import jacop._
