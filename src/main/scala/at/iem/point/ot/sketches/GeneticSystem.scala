@@ -284,6 +284,8 @@ case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
   extends VerticalConstraint {
 
   def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
+    import jacop._
+    import Implicits._
     ???
   }
 }
