@@ -12,6 +12,7 @@ import de.sciss.jacop
 import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
+import de.sciss.jacop.{Model, IntVar}
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 object Voice {
@@ -33,7 +34,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
 
   def apply(r: Random): GeneticSystem.Chromosome = {
     val voices    = global.voices
-    // val numVoices = voices.size
+    val numVoices = voices.size
     val num       = global.length
 
     import jacop._
@@ -41,21 +42,12 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     import Implicits._
 
     val vars = Vec.fill(num) {
-      val cv = voices.map { vc =>
-        new IntVar(vc.lowest, vc.highest)
-      }
-      cv.foreachPair { case (hi, lo) =>
-        hi #> lo
-      }
-      cv
+      val ch = Vec.fill(numVoices)(new IntVar())
+      GeneticSystem.constrainChord(ch, voices, global.vertical)
+      ch
     }
     vars.foreachPair { (c1, c2) =>
-      voices.zipWithIndex.foreach { case (vc, vci) =>
-        val p1 = c1(vci)
-        val p2 = c2(vci)
-        p2 #<= (p1 + vc.maxUp  )
-        p2 #>= (p1 - vc.maxDown)
-      }
+      GeneticSystem.constrainHoriz(c1, c2, voices)
     }
 
     require(model.consistency(), s"Constraints model is not consistent")
@@ -164,7 +156,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
         new IntVar(lo, hi)
       } else new IntVar(midi, midi)
     }
-    vars.foreachPair{ case (hi, lo) =>
+    vars.foreachPair { case (hi, lo) =>
       if (DEBUG_MUTA) println(s"{${hi.min()}...${hi.max()}} #> {${lo.min()}...${lo.max()}}")
       hi #> lo
     }
@@ -253,15 +245,26 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 
 /** Constraint on the vertical (harmonic) structure. */
 sealed trait VerticalConstraint {
-  /** Verifies whether the contraint is satisfied (`true`) or not (`false`). */
-  def apply(chord: Chord): Boolean
+  // /** Verifies whether the contraint is satisfied (`true`) or not (`false`). */
+  // def apply(chord: Chord): Boolean
+
+  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit
 }
 /** Constraint which forbids to occurrence of a particular interval */
 case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint {
-  def apply(chord: Chord): Boolean = chord.allIntervals.forall { ival =>
-    val i0  = ival.semitones
-    val i   = if (i0 <= 12) i0 else (i0 - 12) % 12 + 12 // preserve octave!!
-    i != steps
+  //  def apply(chord: Chord): Boolean = chord.allIntervals.forall { ival =>
+  //    val i0  = ival.semitones
+  //    val i   = if (i0 <= 12) i0 else (i0 - 12) % 12 + 12 // preserve octave!!
+  //    i != steps
+  //  }
+
+  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
+    import jacop._
+    import Implicits._
+    chord.combinations(2).foreach { case Vec(hi, lo) =>
+      // note: we assume hi > lo, so unison cannot be mixed up with octave
+      (hi - lo).mod(steps) #\= 0
+    }
   }
 }
 
@@ -276,7 +279,9 @@ case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
                                  b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
   extends VerticalConstraint {
 
-  def apply(chord: Chord): Boolean = ???
+  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
+    ???
+  }
 }
 
 sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
@@ -398,6 +403,33 @@ object GeneticSystem extends muta.System {
   type Evaluation = EvaluationImpl
   type Selection  = SelectionImpl
   type Breeding   = BreedingImpl
+
+  def constrainChord(cv: Vec[jacop.IntVar], voices: Vec[Voice],
+                     vertical: Vec[VerticalConstraint])
+                    (implicit m: jacop.Model): Unit = {
+    import jacop._
+    // voice registers
+    (cv zip voices).foreach { case (v, vc) =>
+      v #>= vc.lowest
+      v #<= vc.highest
+    }
+    // no voices crossing
+    cv.foreachPair { case (hi, lo) =>
+      hi #> lo
+    }
+    // custom vertical constraints
+    vertical.foreach(_.apply(cv))
+  }
+
+  def constrainHoriz(pred: Vec[jacop.IntVar], succ: Vec[jacop.IntVar],
+                     voices: Vec[Voice])(implicit m: jacop.Model): Unit = {
+    voices.zipWithIndex.foreach { case (vc, vci) =>
+      val p1 = pred(vci)
+      val p2 = succ(vci)
+      p2 #<= (p1 + vc.maxUp  )
+      p2 #>= (p1 - vc.maxDown)
+    }
+  }
 
   def defaultGeneration: Generation = GenerationImpl()
   def defaultEvaluation: Evaluation = FrameIntervalEval()
