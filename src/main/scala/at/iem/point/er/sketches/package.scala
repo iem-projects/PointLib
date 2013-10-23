@@ -1,6 +1,7 @@
 package at.iem.point.er
 
 import concurrent.ExecutionContext
+import de.sciss.file._
 
 package object sketches {
   implicit val global = ExecutionContext.Implicits.global
@@ -21,4 +22,6 @@ package object sketches {
     def explin(inLo: Double, inHi: Double, outLo: Double, outHi: Double): Double =
    		math.log(d / inLo) / math.log(inHi / inLo) * (outHi - outLo) + outLo
   }
+
+  lazy val baseDir = userHome / "Desktop" / "IEM" / "POINT" / "composers" / "eva_reiter"
 }

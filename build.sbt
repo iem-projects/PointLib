@@ -27,7 +27,8 @@ libraryDependencies ++= Seq(
   "org.spire-math" %% "spire" % "0.3.0",                                    // Rational Numbers
   //
   "com.github.wookietreiber" %% "scala-chart" % "0.2.0" % "test",           // JFreeChart integration
-  "de.sciss" %% "pdflitz" % "1.0.+" % "test"
+  "de.sciss" %% "pdflitz" % "1.0.+" % "test",
+  "de.sciss" %% "numbers" % "0.1.+" % "test"
 )
 
 retrieveManaged := true
