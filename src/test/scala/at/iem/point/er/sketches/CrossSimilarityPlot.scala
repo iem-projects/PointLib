@@ -7,6 +7,8 @@ import scala.swing.Swing
 import ChartSupport._
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
 import java.awt.BasicStroke
+import org.jfree.data.xy.XYSeriesCollection
+import de.sciss.pdflitz
 
 object CrossSimilarityPlot extends App {
   lazy val simFile    = baseDir / "struga_out" / "test2.aif"
@@ -16,11 +18,15 @@ object CrossSimilarityPlot extends App {
   lazy val fftOverlap = 2
   lazy val sr         = 44100.0 / (fftSize/fftOverlap)
   lazy val crossLen   = 9.0 // seconds
-  lazy val tMin       = 20.0 // 0.0 // time axis minimum in seconds
-  lazy val tMax       = 30.0 // 10.0 // 430.0 // .13991 // time axis minimum in seconds
+  // lazy val tMin       = 20.0 // 0.0 // time axis minimum in seconds
+  // lazy val tMax       = 30.0 // 10.0 // 430.0 // .13991 // time axis minimum in seconds
   lazy val decimation = 4
 
+  lazy val outFiles   = baseDir / "sim_out" / "heidelberger1a_sim"
+
   run()
+
+  case class Range(min: Double, max: Double)
 
   def run(): Unit = {
     val af        = AudioFile.openRead(simFile)
@@ -57,30 +63,49 @@ object CrossSimilarityPlot extends App {
       val coll  = norm1.toXYSeriesCollection()
 
       Swing.onEDT {
-        val chart = ChartFactories.XYLineChart(coll, legend = false)
-        val plot  = chart.plot
-        val yAxis = plot.getRangeAxis
-        val xAxis = plot.getDomainAxis
-        val r = plot.getRenderer.asInstanceOf[XYLineAndShapeRenderer]
-        // val r = new XYSplineRenderer
-        // plot.setRenderer(r)
-        r.setDrawSeriesLineAsPath(true)   // !
-        r.setBaseShapesFilled(false)
-        r.setSeriesShapesFilled(0, false)
-        r.setBaseShapesVisible(false)
-        // r.setBaseStroke(new BasicStroke(2f))
-        // r.setBaseOutlineStroke(new BasicStroke(2f))
-        r.setSeriesStroke(0, new BasicStroke(2f)) // , BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 4f))
-        yAxis.setRange(minY, maxY)
-        yAxis.setVisible(false)
-        xAxis.setRange(tMin, tMax)
-        xAxis.setVisible(false)
-        chart.printableLook()
-        showChart(chart, 600, 400)
+        implicit val range = Range(minY, maxY)
+        plotAll(coll)
       }
-
     } finally {
       af.close()
     }
+  }
+
+  private def plotAll(coll: XYSeriesCollection)(implicit range: Range): Unit = {
+    for (page <- 0 until 8) {
+      for (system <- 0 until 3) {
+        plotSystem(coll, page, system)
+      }
+    }
+    println("Done.")
+  }
+
+  private def plotSystem(coll: XYSeriesCollection, page: Int, system: Int)(implicit range: Range): Unit = {
+    val tMin  = (page * 3 + system) * 10.0
+    val tMax  = tMin + 10.0
+    val chart = ChartFactories.XYLineChart(coll, legend = false)
+    val plot  = chart.plot
+    val yAxis = plot.getRangeAxis
+    val xAxis = plot.getDomainAxis
+    val r = plot.getRenderer.asInstanceOf[XYLineAndShapeRenderer]
+    // val r = new XYSplineRenderer
+    // plot.setRenderer(r)
+    r.setDrawSeriesLineAsPath(true)   // !
+    r.setBaseShapesFilled(false)
+    r.setSeriesShapesFilled(0, false)
+    r.setBaseShapesVisible(false)
+    // r.setBaseStroke(new BasicStroke(2f))
+    // r.setBaseOutlineStroke(new BasicStroke(2f))
+    r.setSeriesStroke(0, new BasicStroke(2f)) // , BasicStroke.CAP_BUTT, BasicStroke.JOIN_ROUND, 4f))
+    yAxis.setRange(range.min, range.max)
+    yAxis.setVisible(false)
+    xAxis.setRange(tMin, tMax)
+    xAxis.setVisible(false)
+    chart.printableLook()
+    // showChart(chart, 600, 400)
+    val draw = drawAction(chart, 600, 400)
+    val outFile = outFiles.parent / s"${outFiles.name}_p${page + 1}s${system + 1}.pdf"
+    println(s"Saving '${outFile.name}'...")
+    pdflitz.Generate(outFile, draw)
   }
 }

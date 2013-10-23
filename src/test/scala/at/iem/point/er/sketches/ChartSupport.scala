@@ -8,6 +8,7 @@ import scala.swing.{Frame, Swing}
 import scala.swing.event.WindowClosing
 import de.sciss.pdflitz.Generate.QuickDraw
 import de.sciss.pdflitz
+import Swing._
 
 object ChartSupport {
   implicit class RichChart[P <: Plot](chart: Chart[P]) {
@@ -53,8 +54,11 @@ object ChartSupport {
     }
   }
 
+  def drawAction(chart: Chart[_], w: Int, h: Int) = QuickDraw(w -> h) { g =>
+    chart.peer.draw(g, new Rectangle(0, 0, w, h))
+  }
+
   def showChart(chart: Chart[_], w: Int, h: Int, frameTitle: String = ""): Unit = {
-    import Swing._
     val p = chart.toPanel
     p.peer.asInstanceOf[org.jfree.chart.ChartPanel].setMouseWheelEnabled(true) // SO #19281374
     val f = new Frame {
@@ -67,11 +71,7 @@ object ChartSupport {
       }
     }
 
-    val sz  = new Rectangle(0, 0, w, h)
-    val draw = QuickDraw(w -> h) { g =>
-      chart.peer.draw(g, sz)
-    }
-
+    val draw = drawAction(chart, w, h)
     new pdflitz.SaveAction(draw :: Nil).setupMenu(f)
 
     f.pack()
