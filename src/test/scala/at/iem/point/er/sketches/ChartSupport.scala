@@ -55,6 +55,9 @@ object ChartSupport {
   }
 
   def drawAction(chart: Chart[_], w: Int, h: Int) = QuickDraw(w -> h) { g =>
+    // g.setColor(Color.red)
+    // g.fillRect(0, 0, w, h)
+
     chart.peer.draw(g, new Rectangle(0, 0, w, h))
   }
 

@@ -6,11 +6,13 @@ import scalax.chart.{ChartFactories, Charting}
 import scala.swing.Swing
 import ChartSupport._
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
-import java.awt.BasicStroke
+import java.awt.{Color, BasicStroke}
 import org.jfree.data.xy.XYSeriesCollection
 import de.sciss.pdflitz
 
 object CrossSimilarityPlot extends App {
+  def test = false
+
   lazy val simFile    = baseDir / "struga_out" / "test2.aif"
 
   lazy val smoothing  = 48
@@ -18,6 +20,7 @@ object CrossSimilarityPlot extends App {
   lazy val fftOverlap = 2
   lazy val sr         = 44100.0 / (fftSize/fftOverlap)
   lazy val crossLen   = 9.0 // seconds
+  lazy val useOffset  = false
   // lazy val tMin       = 20.0 // 0.0 // time axis minimum in seconds
   // lazy val tMax       = 30.0 // 10.0 // 430.0 // .13991 // time axis minimum in seconds
   lazy val decimation = 4
@@ -47,7 +50,7 @@ object CrossSimilarityPlot extends App {
       val (maxY, _) = smp.maxBy(_._1)
       // println(s"Min: ${smp.minBy(_._1)}; Max: ${smp.maxBy(_._1)}")
 
-      val timeOff   = crossLen/2
+      val timeOff   = if (useOffset) crossLen/2 else 0.0
 
       import Charting._
       val norm = smp.map { case (f, i) =>
@@ -72,8 +75,8 @@ object CrossSimilarityPlot extends App {
   }
 
   private def plotAll(coll: XYSeriesCollection)(implicit range: Range): Unit = {
-    for (page <- 0 until 8) {
-      for (system <- 0 until 3) {
+    for (page <- 0 until (if (test) 1 else 8)) {
+      for (system <- 0 until (if (test) 1 else 3)) {
         plotSystem(coll, page, system)
       }
     }
@@ -88,6 +91,8 @@ object CrossSimilarityPlot extends App {
     val yAxis = plot.getRangeAxis
     val xAxis = plot.getDomainAxis
     val r = plot.getRenderer.asInstanceOf[XYLineAndShapeRenderer]
+    // plot.setOutlineVisible(false)
+    plot.setOutlinePaint(new Color(0x00, 0x00, 0x00, 0x3F)) // semi transparent
     // val r = new XYSplineRenderer
     // plot.setRenderer(r)
     r.setDrawSeriesLineAsPath(true)   // !
@@ -102,10 +107,13 @@ object CrossSimilarityPlot extends App {
     xAxis.setRange(tMin, tMax)
     xAxis.setVisible(false)
     chart.printableLook()
+    chart.peer.setBackgroundPaint(new Color(0xFF, 0xFF, 0xFF, 0))
+    plot.setBackgroundPaint(new Color(0xFF, 0xFF, 0xFF, 0x00))
+    //plot.setBackgroundAlpha(0f)
     // showChart(chart, 600, 400)
     val draw = drawAction(chart, 600, 400)
     val outFile = outFiles.parent / s"${outFiles.name}_p${page + 1}s${system + 1}.pdf"
     println(s"Saving '${outFile.name}'...")
-    pdflitz.Generate(outFile, draw)
+    pdflitz.Generate(outFile, draw, overwrite = test)
   }
 }
