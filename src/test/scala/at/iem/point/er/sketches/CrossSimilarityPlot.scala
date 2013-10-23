@@ -24,6 +24,8 @@ object CrossSimilarityPlot extends App {
   // lazy val tMin       = 20.0 // 0.0 // time axis minimum in seconds
   // lazy val tMax       = 30.0 // 10.0 // 430.0 // .13991 // time axis minimum in seconds
   lazy val decimation = 4
+  lazy val width      = 860
+  lazy val height     = 368
 
   lazy val outFiles   = baseDir / "sim_out" / "heidelberger1a_sim"
 
@@ -84,8 +86,12 @@ object CrossSimilarityPlot extends App {
   }
 
   private def plotSystem(coll: XYSeriesCollection, page: Int, system: Int)(implicit range: Range): Unit = {
-    val tMin  = (page * 3 + system) * 10.0
-    val tMax  = tMin + 10.0
+    // val tMin  = (page * 3 + system) * 10.0
+    // val tMax  = tMin + 10.0
+    val timeIdx = page * 3 + system
+    val tMin    = scoreTimes(timeIdx)
+    val tMax    = scoreTimes(timeIdx + 1)
+
     val chart = ChartFactories.XYLineChart(coll, legend = false)
     val plot  = chart.plot
     val yAxis = plot.getRangeAxis
@@ -111,7 +117,7 @@ object CrossSimilarityPlot extends App {
     plot.setBackgroundPaint(new Color(0xFF, 0xFF, 0xFF, 0x00))
     //plot.setBackgroundAlpha(0f)
     // showChart(chart, 600, 400)
-    val draw = drawAction(chart, 600, 400)
+    val draw = drawAction(chart, width, height)
     val outFile = outFiles.parent / s"${outFiles.name}_p${page + 1}s${system + 1}.pdf"
     println(s"Saving '${outFile.name}'...")
     pdflitz.Generate(outFile, draw, overwrite = test)
