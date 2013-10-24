@@ -10,6 +10,7 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   override def rowHeight = 176 // 128 // 64
 
   protected override def init(): Unit = {
+    super.init()
     import Menu._
     val root = menuFactory
     root.add(Group("extra", "Extra")
