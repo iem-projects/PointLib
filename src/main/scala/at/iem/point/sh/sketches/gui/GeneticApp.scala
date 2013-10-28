@@ -10,6 +10,7 @@ import scala.swing.Action
 
 object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   protected override def init(): Unit = {
+    super.init()
     import Menu._
     import KeyStrokes._
     import KeyEvent._
