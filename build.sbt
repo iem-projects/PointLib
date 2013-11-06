@@ -1,21 +1,20 @@
-name := "ms-sketches"
+name          := "ms-sketches"
 
-version := "0.0.1-SNAPSHOT"
+version       := "0.1.0-SNAPSHOT"
 
-organization := "at.iem.point"
+organization  := "at.iem.point"
 
-scalaVersion := "2.10.1"
+scalaVersion  := "2.10.3"
 
-homepage := Some(url("https://github.com/iem-projects/PointLib/"))
+homepage      := Some(url("https://github.com/iem-projects/PointLib/"))
 
-licenses := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
+licenses      := Seq("GPL v2+" -> url("http://www.gnu.org/licenses/gpl-2.0.txt"))
 
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "contextsnake" % "0.1.1+",
-  "de.sciss" %% "fingertree"   % "1.4.+",
+  "de.sciss" %% "fingertree"   % "1.5.+",
   "de.sciss" %% "pointillism"  % "0.2.+",
-  "de.sciss" %% "pdflitz"      % "1.0.+",
-  "com.github.wookietreiber" %% "scala-chart" % "latest.integration"
+  "de.sciss" %% "pdflitz"      % "1.0.1+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:implicitConversions")
