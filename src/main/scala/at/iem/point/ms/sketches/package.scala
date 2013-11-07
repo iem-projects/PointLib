@@ -1,30 +1,17 @@
 package at.iem.point.ms
 
-import java.io.{IOException, File}
 import java.awt.EventQueue
 import java.text.DecimalFormat
 import java.math.RoundingMode
 import de.sciss.midi
 import language.higherKinds
+import de.sciss.file._
 
 package object sketches {
-  val  IIdxSeq    = collection.immutable.IndexedSeq
-  type IIdxSeq[A] = collection.immutable.IndexedSeq[A]
+  val  Vec    = collection.immutable.IndexedSeq
+  type Vec[A] = collection.immutable.IndexedSeq[A]
 
-  def file(path: String): File = new File(path)
-
-  implicit final class RichFile(val f: File) extends AnyVal {
-    def / (child: String): File = new File(f, child)
-    def files: List[File] = {
-      val arr = f.listFiles()
-      if (arr == null) throw new IOException(s"Not a directory: $f")
-      arr.toList
-    }
-    def filesOption: Option[List[File]] = Option(f.listFiles()).map(_.toList)
-    def name: String = f.getName
-  }
-
-  var recPath = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "mattias_skoeld"
+  var recPath = userHome / "Desktop" / "IEM" / "POINT" / "composers" / "mattias_skoeld"
 
   object Study {
     case class Raw(idx: Int) extends Study {

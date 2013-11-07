@@ -16,7 +16,7 @@ object Tempo {
   //  private final val divisions2 = divisions.init
   //  private final val divisions3 = divisions2.init
 
-  type Durations = IIdxSeq[Rational]
+  type Durations = Vec[Rational]
 
   /** The result of the algorithm.
     *
@@ -27,7 +27,7 @@ object Tempo {
     */
   final case class Result(wholeDuration: Double, tempoBase: Rational, tempoNom: Int, durations: Durations)
 
-  def quantize(durations: IIdxSeq[Double], qpm: Double, maxDenom: Int = 32,
+  def quantize(durations: Vec[Double], qpm: Double, maxDenom: Int = 32,
             doubleDotted: Boolean = false): Result = {
     require(durations.size >= 1, s"Must have at least one duration (number is ${durations.size})")
 
@@ -38,9 +38,9 @@ object Tempo {
     Result(tup._1, tup._2, tup._3, tup._4.map(_.sum))
   }
 
-  private def calcNotes(durations: IIdxSeq[Double], _tempoFrac: Double,
+  private def calcNotes(durations: Vec[Double], _tempoFrac: Double,
                         _divisions: List[Rational],
-                        doubleDotted: Boolean): (Double, Rational, Int, IIdxSeq[Durations]) = {
+                        doubleDotted: Boolean): (Double, Rational, Int, Vec[Durations]) = {
     @tailrec def tempoSig(note: Rational = r1_4): (Rational, Int) = {
       val factor  = 4 * note
       val tempo   = _tempoFrac * factor.doubleValue()
@@ -70,7 +70,7 @@ object Tempo {
 
     var gagaismo = true
 
-    val _notes: IIdxSeq[IIdxSeq[Rational]] = values.map { v =>
+    val _notes: Vec[Vec[Rational]] = values.map { v =>
       val frac  = Rational(v)
       val lim   = frac.limitDenominatorTo(96)
       // val rest  = lim - note
@@ -100,7 +100,7 @@ object Tempo {
     (_wholeDur, _tempoBase, _tempoNom, _notes)
   }
 
-  private def dot(sq: IIdxSeq[Rational], doubleDotted: Boolean): IIdxSeq[Rational] =
+  private def dot(sq: Vec[Rational], doubleDotted: Boolean): Vec[Rational] =
     sq match {
       case init :+ a :+ b :+ c if doubleDotted && a.numerator == 1 && a == b * 2 && b == c * 2 => // Doppelpunktierung
         init :+ (a + b + c)
@@ -115,7 +115,7 @@ object Tempo {
     * @param doubleDotted   whether double dotted notes are allowed or not
     * @return               the search result
     */
-  def guess(durations: IIdxSeq[Double], maxDenom: Int = 32, doubleDotted: Boolean = false): Result = {
+  def guess(durations: Vec[Double], maxDenom: Int = 32, doubleDotted: Boolean = false): Result = {
     require(durations.size >= 1, s"Must have at least one duration (number is ${durations.size})")
 
     val minDurSec = durations.min
@@ -139,7 +139,7 @@ object Tempo {
       val tempoFrac1  = tempoFrac0 * 3.0  // 1.5  // stop at this tempo
       val tempoFactor = math.pow(2,1.0/128) // increase tempo by this factor in each iteration
       var t = tempoFrac0
-      var bestRes: (Double, Rational, Int, IIdxSeq[Durations]) = null
+      var bestRes: (Double, Rational, Int, Vec[Durations]) = null
       var bestCost1 = Int.MaxValue
       var bestCost2 = Double.PositiveInfinity
       var bestT     = 0.0

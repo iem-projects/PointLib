@@ -9,12 +9,12 @@ object NoteUtil2 {
   /** Produces note groups by applying a sliding time window with given
     * window length (`size`) and step size (`step`) in seconds.
     */
-  def slidingWindow[A](notes: IIdxSeq[A], size: Double, step: Double)
-                      (implicit view: A => Double): IIdxSeq[IIdxSeq[A]] = {
+  def slidingWindow[A](notes: Vec[A], size: Double, step: Double)
+                      (implicit view: A => Double): Vec[Vec[A]] = {
     if (notes.isEmpty) return Vector.empty
 
-    type Notes      = IIdxSeq[A]
-    type NoteGroups = IIdxSeq[Notes]
+    type Notes      = Vec[A]
+    type NoteGroups = Vec[Notes]
 
     require(step > 0 && step <= size)
 

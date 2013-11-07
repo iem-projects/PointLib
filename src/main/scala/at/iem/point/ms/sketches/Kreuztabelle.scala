@@ -5,6 +5,7 @@ import Swing._
 import GUI._
 import at.iem.point.illism._
 import de.sciss.midi
+import de.sciss.file._
 
 object Kreuztabelle extends App {
   def DEBUG = false

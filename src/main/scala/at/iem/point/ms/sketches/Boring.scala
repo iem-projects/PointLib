@@ -5,7 +5,7 @@ import GUI._
 import Swing._
 import at.iem.point.illism._
 import at.iem.point.illism.rhythm.{Ladma, numericCompat}
-import spire.math.Rational
+import de.sciss.file._
 
 object Boring extends App {
   Swing.onEDT {
@@ -70,7 +70,7 @@ object Boring extends App {
         val dursQuant = xs.map(_._2)
         val dur = dursQuant.sum
         if (dur == 0) None else Some(
-          rhythm.Cell(i, dursQuant.map(rhythm.Note(_)), dur)
+          rhythm.Cell(i, dursQuant.map(rhythm.Note), dur)
         )
       }
       val mf  = measure match {
@@ -125,7 +125,7 @@ object Boring extends App {
         m
       } else if (measure.startsWith("horiz")) {
         val segm0 = (0 until 4).flatMap { ch =>
-          val notes: IIdxSeq[OffsetNote] = midi.notes(channel = ch)
+          val notes: Vec[OffsetNote] = midi.notes(channel = ch)
           notes.map(_.offset).drop(1) zip notes.map(_.pitch.midi).pairDiff.map(_.abs)  // (offset, directed interval)
         }
         val segm = segm0.sortBy(_._1)
