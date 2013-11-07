@@ -14,21 +14,37 @@ object Boring extends App {
     which match {
       case "--kreuz"  => kreuz()
       case "--ladma"  => ladmaVerlauf()
-      case _          => harmonicVerlauf()
+      case "--harm"   => harmonicVerlauf()
+
+      case _ =>
+        println(
+          """Options:
+            |
+            |--kreuz  Interval cross table
+            |--ladma  Ladma progressions
+            |--harm   Harmonic ambitus progressions
+            |
+            |""".stripMargin)
+        sys.exit(1)
     }
   }
 
-  def kreuz() {
-    val panes = Seq(true, false).flatMap { all =>
-      val c1 = Kreuztabelle.analyze(Study.Boring(26), allIntervals = all)
-      val c2 = Kreuztabelle.analyze(Study.Raw   ( 5), allIntervals = all)
-      Seq(c1, c2)
+  def kreuz(): Unit = {
+    val ins   = newBoring ++ newPromising
+
+    val panes = ins.map { study =>
+      Seq(true, false).map { all =>
+        // val ins = Seq(Study.Boring(26), Study.Raw(5))
+        Kreuztabelle.analyze(study, allIntervals = all)
+      }
     }
-    val panel = panes.asGrid(2, 2)
-    frame("Kreuztabelle", panel, (1000, 1000))
+    panes.foreach { p =>
+      val panel = p.asGrid(2, 1)
+      frame("Kreuztabelle", panel, (600, 1200))
+    }
   }
 
-  def ladmaVerlauf() {
+  def ladmaVerlauf(): Unit = {
     val measure = "mobility"
 
     // val sts = Vector(Study.Boring(26), Study.Raw(5))
@@ -87,14 +103,18 @@ object Boring extends App {
     ms.plot(ylabel = measure.capitalize, title = s"${measure.capitalize} Comparison", legends = sts.map(_.file.name))
   }
 
-  def harmonicVerlauf() {
-    val measure   = "horiz-ambi"  // either of "chord-mean", "chord-var", "horiz-var", "horiz-ambi"
-    val ivalClass = false
+  def harmonicVerlauf(): Unit = {
+    // val sts     = newBoring // Vector(Study.Boring(26), Study.Boring(29), Study.Raw(5), Study.Raw(10))
+    val sts = newPromising
+    sts.grouped(3).foreach(harmonicCore)
+  }
 
+  private def harmonicCore(sts: Vec[Study]): Unit = {
+    val measure   = "chord-var"  // either of "chord-mean", "chord-var", "horiz-var", "horiz-ambi"
+    val ivalClass = false
     // val sts     = Vector(Study.Raw(4), Study.Raw(5), Study.Raw(6), Study.Raw(7))
     // val sts     = Vector(Study.Raw(8), Study.Raw(9), Study.Raw(10), Study.Raw(11))
     // val sts     = Vector(Study.Boring(26), Study.Boring(29), Study.Boring(31))
-    val sts     = Vector(Study.Boring(26), Study.Boring(29), Study.Raw(5), Study.Raw(10))
     val winSecs = 16.0
     val winOver = 8
 

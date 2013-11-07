@@ -50,7 +50,7 @@ object Plotting {
   }
 
   private def plotXY(series: ISeq[XYSeries], legends: ISeq[String],
-                     title: String, xlabel: String, ylabel: String) {
+                     title: String, xlabel: String, ylabel: String): Unit = {
     // val sz = datasets.size
 
     val dataset = new XYSeriesCollection
@@ -84,15 +84,15 @@ object Plotting {
     val panel = new ChartPanel(chart, false)
     panel.setBackground(Color.white)
     val _title = title
-    new Frame {
+    val fr = new Frame {
       title     = _title
       contents  = Component.wrap(panel)
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
       new pdflitz.SaveAction(panel :: Nil).setupMenu(this)
       pack()
       centerOnScreen()
-      open()
     }
+    fr.open()
     // val f = chart.toFrame(title = title)
   }
 }

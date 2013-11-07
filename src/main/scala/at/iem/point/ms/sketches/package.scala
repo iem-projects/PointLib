@@ -38,6 +38,11 @@ package object sketches {
       def raw = true
       def file: File = recPath / "boring" / f"study_#$idx%02du.mid"
     }
+
+    case class Promising(idx: Int) extends Study {
+      def raw = true
+      def file: File = recPath / "promising" / f"study_#$idx%02d!.mid"
+    }
   }
   sealed trait Study {
     def file: File
@@ -49,12 +54,15 @@ package object sketches {
     midi.Sequence.readFile(study.file)
   }
 
+  def newBoring     = (Vec(35, 37, 38) ++ (40 to 47) ++ Vec(50, 51)).map(Study.Boring)
+  def newPromising  = Vec(33, 34, 39, 52, 53).map(Study.Promising)
+
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
   }
 
-//  final val german  = Language.German
-//  final val english = Language.English
+  //  final val german  = Language.German
+  //  final val english = Language.English
 
   private lazy val dfRound3 = {
     val res = new DecimalFormat("#.###")
