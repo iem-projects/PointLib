@@ -35,7 +35,7 @@ object SVM extends App {
   val (pTrain, pTest) = splitHalf(allPromising.map(process))
 
   val allTrain = bTrain ++ pTrain
-  val allTest  = bTest  ++ bTest
+  val allTest  = bTest  ++ pTest
 
   def tempFile(name: String): File = {
     val dir = file("analysis") / "svm"
