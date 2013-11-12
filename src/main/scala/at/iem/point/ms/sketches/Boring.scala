@@ -35,7 +35,7 @@ object Boring extends App {
     val panes = ins.map { study =>
       Seq(true, false).map { all =>
         // val ins = Seq(Study.Boring(26), Study.Raw(5))
-        Kreuztabelle.analyze(study, allIntervals = all)
+        Kreuztabelle.analyzeAndPlot(study, allIntervals = all)
       }
     }
     panes.foreach { p =>

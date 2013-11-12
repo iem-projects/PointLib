@@ -10,25 +10,33 @@ import de.sciss.file._
 object Kreuztabelle extends App {
   def DEBUG = false
 
+  type M = Map[Int, Map[Int, Int]]
+
   Swing.onEDT {
     run(chordSize = -1, intervalClasses = true, idx = 11)
   }
 
-  def analyze(study: Study, allIntervals: Boolean = false,
-              intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
-    val f       = load(study)
+  def analyzeAndPlot(study: Study, allIntervals: Boolean = false,
+                     intervalClasses: Boolean = false, chordSize: Int = -1): Component = {
+    val map     = analyze(study, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize)
     val title0  = s"${study.file.name}: ${if (allIntervals) "all" else "layered"} interval ${if (intervalClasses) "classes " else ""}cross corr."
     val title   = if (chordSize < 0) title0 else s"$title0; sz=$chordSize"
-    apply(f, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize, title = title)
+    plotData(map, intervalClasses = intervalClasses, title = title)
+  }
+
+  def analyze(study: Study, allIntervals: Boolean = false,
+              intervalClasses: Boolean = false, chordSize: Int = -1): M = {
+    val f = load(study)
+    apply(f, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize)
   }
 
   def apply(seq: midi.Sequence, allIntervals: Boolean = false,
-              intervalClasses: Boolean = false, chordSize: Int = -1, title: String = "Title"): Component = {
+            intervalClasses: Boolean = false, chordSize: Int = -1): M = {
     val n   = seq.notes
     val nf0 = ChordUtil.findHarmonicFields(n)
     val nf  = if (chordSize < 0) nf0 else nf0.filter(_.size == chordSize)
 
-//    var max = 0.0
+    // var max = 0.0
     var mp  = Map.empty[Int, Map[Int, Int]] withDefaultValue(Map.empty withDefaultValue 0)
 
     nf.foreach { ch =>
@@ -43,9 +51,17 @@ object Kreuztabelle extends App {
       }
     }
 
-//    println(mp)
+    mp
+  }
 
-    val panel  = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
+  def plot(seq: midi.Sequence, allIntervals: Boolean = false,
+              intervalClasses: Boolean = false, chordSize: Int = -1, title: String = "Title"): Component = {
+    val mp  = apply(seq, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize)
+    plotData(mp, intervalClasses = intervalClasses, title = title )
+  }
+
+  private def plotData(mp: M, intervalClasses: Boolean, title: String = "Title"): Component = {
+    val panel = ContinguencyChart(mp, if (intervalClasses) 7 else 12, title)
     panel
   }
 
@@ -57,7 +73,7 @@ object Kreuztabelle extends App {
       allIntervals <- Seq(true, false)
     } yield {
       val study = if (raw) Study.Raw(idx) else Study.Edited(idx)
-      analyze(study, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
+      analyzeAndPlot(study, allIntervals = allIntervals, chordSize = chordSize, intervalClasses = intervalClasses)
     }
 
     val panel = panes.asGrid(2, 2)

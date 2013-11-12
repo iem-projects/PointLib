@@ -23,7 +23,8 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:impli
 retrieveManaged := true
 
 initialCommands in console :=
-"""import at.iem.point.ms.sketches._
-  |import scalax.chart._
-  |import scalax.chart.Charting._
-""".stripMargin
+  """import at.iem.point.ms.sketches._
+    |import scalax.chart._
+    |import scalax.chart.Charting._
+    |import de.sciss.file._
+  """.stripMargin

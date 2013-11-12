@@ -15,7 +15,8 @@ package object sketches {
 
   object Study {
     case class Raw(idx: Int) extends Study {
-      def raw = true
+      def isRaw     = true
+      def isBoring  = false
       def file: File = if (idx == 0) {
         recPath / "MIDI" / s"ms_midiexample_[raw].mid"
       } else {
@@ -26,7 +27,8 @@ package object sketches {
     }
 
     case class Edited(idx: Int) extends Study {
-      def raw = false
+      def isRaw     = false
+      def isBoring  = false
       def file: File = if (idx == 0) {
         recPath / "MIDI" / s"ms_midiexample_[edited].mid"
       } else {
@@ -35,19 +37,22 @@ package object sketches {
     }
 
     case class Boring(idx: Int) extends Study {
-      def raw = true
-      def file: File = recPath / "boring" / f"study_#$idx%02du.mid"
+      def isRaw     = true
+      def isBoring  = true
+      def file      = recPath / "boring" / f"study_#$idx%02du.mid"
     }
 
     case class Promising(idx: Int) extends Study {
-      def raw = true
-      def file: File = recPath / "promising" / f"study_#$idx%02d!.mid"
+      def isRaw     = true
+      def isBoring  = false
+      def file      = recPath / "promising" / f"study_#$idx%02d!.mid"
     }
   }
   sealed trait Study {
-    def file: File
-    def idx: Int
-    def raw: Boolean
+    def file    : File
+    def idx     : Int
+    def isRaw   : Boolean
+    def isBoring: Boolean
   }
 
   def load(study: Study = Study.Edited(0)): midi.Sequence = {
@@ -56,6 +61,9 @@ package object sketches {
 
   def newBoring     = (Vec(35, 37, 38) ++ (40 to 47) ++ Vec(50, 51)).map(Study.Boring)
   def newPromising  = Vec(33, 34, 39, 52, 53).map(Study.Promising)
+
+  def allBoring     = Vec(26, 29, 31).map(Study.Boring) ++ newBoring
+  def allPromising  = Vec(5, 10).map(Study.Promising) ++ newPromising
 
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
