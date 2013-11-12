@@ -38,8 +38,11 @@ object SVM extends App {
   object TrainOptions {
     var tpe   : SvmType = SvmType.C_SVC   // default: C_SVC
     var kernel: Kernel  = Kernel.Radial   // default: Radial
+    var cCost : Double  = 1.0             // default: 1
+    var shrinking: Boolean = true         // default: true
 
-    def toOptions: List[String] = tpe.toOptions ++ kernel.toOptions
+    def toOptions: List[String] = tpe.toOptions ++ kernel.toOptions ++ List("-c", cCost.toString) ++
+      List("-h", (if (shrinking) 1 else 0).toString)
   }
 
   def kreuzVec(map: Map[Int, Map[Int, Int]]): Vec[Vec[Int]] =
