@@ -531,7 +531,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
   * @param glb greatest lower bound for variable's domain.
   * @param lub least upper bound on variable's domain.
   */
-class SetVar(name : String, glb : Int, lub : Int)(implicit model: Model)
+class SetVar(name: String, glb: Int, lub: Int)(implicit model: Model)
   extends JaCoP.set.core.SetVar(model, name, glb, lub) {
 
   /** Defines an anonymous set variable.
@@ -606,7 +606,7 @@ class SetVar(name : String, glb : Int, lub : Int)(implicit model: Model)
     * @param that second parameter for the constraint.
     * @return result this constraint.
     */
-  def in (that: SetVar): Constraint = {
+  def in(that: SetVar): Constraint = {
     val c = new AinB(this, that)
     model.constr += c
     c

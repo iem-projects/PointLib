@@ -34,7 +34,10 @@ initialCommands in console :=
     |import scalax.chart._
     |import scalax.chart.Charting._
     |implicit val random = mkRandom()
-  """.stripMargin
+    |import de.sciss.jacop
+    |import jacop.Implicits._
+    |implicit val model = new jacop.Model()
+    |""".stripMargin
 
 // ---- app bundle ----
 
