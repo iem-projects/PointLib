@@ -12,7 +12,6 @@ import de.sciss.jacop
 import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
-import de.sciss.jacop.{Model, IntVar}
 
 case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
 object Voice {
@@ -286,6 +285,20 @@ case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
   def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
     import jacop._
     import Implicits._
+
+    val modA = new jacop.IntVar()
+    val modB = new jacop.IntVar()
+
+    chord.combinations(2).foreach { case Vec(hi, lo) =>
+      (hi - lo).mod(a.steps) #\= modA
+    }
+    chord.combinations(2).foreach { case Vec(hi, lo) =>
+      (hi - lo).mod(b.steps) #\= modB
+    }
+
+    // modA #= 0 <=> bA
+    // modB #= 0 <=> bB
+
     ???
   }
 }

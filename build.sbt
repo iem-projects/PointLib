@@ -17,10 +17,11 @@ resolvers ++= Seq(
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.2.+",
   "de.sciss" %% "pdflitz"             % "1.0.+",
-  "de.sciss" %% "muta"                % "0.3.1+",
+  "de.sciss" %% "muta"                % "0.3.2+",
   "de.sciss" %% "audiowidgets-swing"  % "1.3.1+",
   "de.sciss" %% "numbers"             % "0.1.+",
-  "de.sciss" %  "abc4j"               % "0.6.+"
+  "de.sciss" %  "abc4j"               % "0.6.+",
+  "de.sciss" %% "guiflitz"            % "0.1.1+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
@@ -39,13 +40,13 @@ initialCommands in console :=
 
 seq(appbundle.settings: _*)
 
-appbundle.mainClass := Some("at.iem.point.ot.sketches.GeneticApp")
+appbundle.mainClass   := Some("at.iem.point.ot.sketches.GeneticApp")
 
 appbundle.javaOptions += "-Xmx1024m"
 
-appbundle.name := "OT_GeneticAlgorithm"
+appbundle.name        := "OT_GeneticAlgorithm"
 
-appbundle.target := baseDirectory.value
+appbundle.target      := baseDirectory.value
 
-appbundle.icon := Some(file("icon.png"))
+appbundle.icon        := Some(file("icon.png"))
 
