@@ -12,8 +12,22 @@ import de.sciss.jacop
 import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
+import collection.breakOut
 
-case class Voice(maxUp: Int = 2, maxDown: Int = 2, lowest: Int = 36, highest: Int = 96)
+sealed trait FiniteConstraintType
+case object Allow  extends FiniteConstraintType
+case object Forbid extends FiniteConstraintType
+object FiniteConstraintType {
+  implicit val format = AutoFormat[FiniteConstraintType]
+}
+
+case class VoiceDirection(limit: Int, step: Int = 2, constraint: FiniteConstraintType = Forbid, intervals: String = "")
+object VoiceDirection {
+  implicit val format = AutoFormat[VoiceDirection]
+}
+
+case class Voice(up: VoiceDirection = VoiceDirection(limit = 96), down: VoiceDirection = VoiceDirection(limit = 36))
+
 object Voice {
   implicit val format = AutoFormat[Voice]
 }
@@ -255,6 +269,7 @@ sealed trait VerticalConstraint {
 }
 
 sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
+  /** Forbidden intervals sorted top to bottom */
   protected def intervals: Vec[Int]
 
   def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
@@ -290,18 +305,13 @@ case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint with Fo
 
 /** Constraint which forbids to co-presence of two given intervals.
   *
-  * @param a          the first interval
-  * @param b          the second interval
-  * @param neighbor   if `true`, intervals `a` and `b` may not occur as neighboring intervals, if `false`
-  *                   then `a` and `b` may not occur anywhere in the chord.
+  * @param top      the top (upper) interval
+  * @param bottom   the bottom (lower) interval
   */
-case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(2),
-                                 b: ForbiddenInterval = ForbiddenInterval(3), neighbor: Boolean = false)
-  extends VerticalConstraint with ForbiddenIntervalLike {
+case class ForbiddenIntervalPair(top: Int = 3, bottom: Int = 2) extends VerticalConstraint with ForbiddenIntervalLike {
+  // require(!neighbor, s"Neighbor constraint not yet supported")
 
-  require(!neighbor, s"Neighbor constraint not yet supported")
-
-  protected val intervals = Vec(a.steps, b.steps)
+  protected val intervals = Vec(top, bottom)
 }
 
 sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
@@ -407,13 +417,16 @@ object ReduceFunction {
 object GeneticSystem extends muta.System {
   def manual = true
 
+  //  val DefaultVoices = Vec(
+  //    Voice(lowest = 48, highest = 96, maxUp = 6, maxDown = 6),
+  //    Voice(lowest = 36, highest = 84, maxUp = 6, maxDown = 6),
+  //    Voice(lowest = 24, highest = 72, maxUp = 6, maxDown = 6)
+  //  )
+
   val DefaultVoices = Vec(
-//    Voice(lowest = 72, highest = 96),
-//    Voice(lowest = 48, highest = 72),
-//    Voice(lowest = 24, highest = 48)
-    Voice(lowest = 48, highest = 96, maxUp = 6, maxDown = 6),
-    Voice(lowest = 36, highest = 84, maxUp = 6, maxDown = 6),
-    Voice(lowest = 24, highest = 72, maxUp = 6, maxDown = 6)
+    Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
+    Voice(down = VoiceDirection(limit = 36, step = 6), up = VoiceDirection(limit = 84, step = 6)),
+    Voice(down = VoiceDirection(limit = 24, step = 6), up = VoiceDirection(limit = 72, step = 6))
   )
 
   type Global     = GlobalImpl
@@ -430,8 +443,8 @@ object GeneticSystem extends muta.System {
     import jacop._
     // voice registers
     (cv zip voices).foreach { case (v, vc) =>
-      v #>= vc.lowest
-      v #<= vc.highest
+      v #>= vc.down.limit
+      v #<= vc.up  .limit
     }
     // no voices crossing
     cv.foreachPair { case (hi, lo) =>
@@ -441,13 +454,36 @@ object GeneticSystem extends muta.System {
     vertical.foreach(_.apply(cv))
   }
 
+  private def stringToIntervals(s: String): Vec[Int] = {
+    val t = s.trim
+    if (t.isEmpty) Vec.empty
+    else t.split(' ').collect {
+      case x if !x.isEmpty => x.toInt
+    } (breakOut)
+  }
+
   def constrainHoriz(pred: Vec[jacop.IntVar], succ: Vec[jacop.IntVar],
                      voices: Vec[Voice])(implicit m: jacop.Model): Unit = {
     voices.zipWithIndex.foreach { case (vc, vci) =>
       val p1 = pred(vci)
       val p2 = succ(vci)
-      p2 #<= (p1 + vc.maxUp  )
-      p2 #>= (p1 - vc.maxDown)
+      p2 #<= (p1 + vc.up  .step)
+      p2 #>= (p1 - vc.down.step)
+
+      ((vc.up, 1) :: (vc.down, -1) :: Nil).foreach { case (dir, sign) =>
+        val ivals = stringToIntervals(dir.intervals)
+        val forb  = dir.constraint match {
+          case Forbid => ivals
+          case Allow  => (0 to dir.step).diff(ivals)   // invert: forbid all but the mentioned intervals
+        }
+        if (forb.nonEmpty) {
+          val stepFound       = p2 - p1
+          val stepsForbidden  = forb.map(_ * sign)
+          stepsForbidden.foreach { stepForbidden =>
+            stepFound #!= stepForbidden
+          }
+        }
+      }
     }
   }
 
