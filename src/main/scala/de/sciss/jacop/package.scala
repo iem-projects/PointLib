@@ -73,47 +73,47 @@ package object jacop {
     model.impose(c)
   }
 
-  /** Wrapper for [[JaCoP.constraints.Sum]].
-    *
-    * @param xs array of variables to be summed up.
-    * @param result summation result.
-    */
-  def sum[A <: JaCoP.core.IntVar](xs: IIterable[A], result: IntVar)(implicit model: Model): Unit = {
-    val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Sum]].
+  //    *
+  //    * @param xs array of variables to be summed up.
+  //    * @param result summation result.
+  //    */
+  //  def assignSum(xs: IIterable[IntVar], result: IntVar)(implicit model: Model): Unit = {
+  //    val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.Sum]].
     *
     * @param xs variables to be summed up.
     * @return summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
+  def sum(xs: IntVar*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
 
-  /** Wrapper for [[JaCoP.constraints.SumWeight]].
-    *
-    * @param xs tuples consisting of variables and their corresponding weights
-    * @param result summation result.
-    */
-  def weightedSum[A <: JaCoP.core.IntVar](xs: IIterable[(A, Int)], result: IntVar)(implicit model: Model): Unit = {
-    val (vars, weights) = xs.unzip
-    val c = new SumWeight(vars.toArray[JaCoP.core.IntVar], weights.toArray[Int], result)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.SumWeight]].
+  //    *
+  //    * @param xs tuples consisting of variables and their corresponding weights
+  //    * @param sum summation result.
+  //    */
+  //  def assignWeightedSum(xs: IIterable[(IntVar, Int)], sum: IntVar)(implicit model: Model): Unit = {
+  //    val (vars, weights) = xs.unzip
+  //    val c = new SumWeight(vars.toArray[JaCoP.core.IntVar], weights.toArray[Int], sum)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.SumWeight]].
     *
     * @param xs tuples consisting of variables and their respective weights
     * @return summation result.
     */
-  def weightedSum[A <: JaCoP.core.IntVar](xs: (A, Int)*)(implicit model: Model): IntVar = {
+  def weightedSum(xs: (IntVar, Int)*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val (vars, weights) = xs.unzip
     val c = new SumWeight(vars.toArray[JaCoP.core.IntVar], weights.toArray[Int], result)
@@ -127,7 +127,7 @@ package object jacop {
     * @param x variable for abs operation.
     * @return absolute value result.
     */
-  def abs(x: JaCoP.core.IntVar)(implicit model: Model): IntVar = {
+  def abs(x: IntVar)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new AbsXeqY(x, result)
     if (trace) println(c)
@@ -135,35 +135,34 @@ package object jacop {
     result
   }
 
-  /** Wrapper for [[JaCoP.constraints.Max]].
-    *
-    * @param xs variables where maximum values is to be found.
-    * @param mx maximum value.
-    */
-  def max[A <: JaCoP.core.IntVar](xs: IIterable[A], mx: JaCoP.core.IntVar)(implicit model: Model): Unit = {
-    val c = new Max(xs.toArray[JaCoP.core.IntVar], mx)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Max]].
+  //    *
+  //    * @param xs variables where maximum values is to be found.
+  //    * @param mx maximum value.
+  //    */
+  //  def assignMax(xs: IIterable[IntVar], mx: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+  //    val c = new Max(xs.toArray[JaCoP.core.IntVar], mx)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
-  /** Wrapper for [[JaCoP.constraints.Min]].
-    *
-    * @param xs array of variables where mnimimum values is to be found.
-    * @param mn minimum value.
-    */
-  def min[A <: JaCoP.core.IntVar](xs: IIterable[A], mn: JaCoP.core.IntVar)
-                                 (implicit model: Model): Unit = {
-    val c = new Min(xs.toArray[JaCoP.core.IntVar], mn)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Min]].
+  //    *
+  //    * @param xs array of variables where minimum values is to be found.
+  //    * @param mn minimum value.
+  //    */
+  //  def assignMin(xs: IIterable[IntVar], mn: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+  //    val c = new Min(xs.toArray[JaCoP.core.IntVar], mn)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.Max]].
     *
     * @param xs variables where maximum values is to be found.
     * @return max value.
     */
-  def max[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
+  def max(xs: IntVar*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Max(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
@@ -175,30 +174,30 @@ package object jacop {
     * @param xs variables where minimum values is to be found.
     * @return minimum value.
     */
-  def min[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
+  def min(xs: IntVar*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Min(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
 
-  /** Wrapper for [[JaCoP.constraints.Count]].
-    *
-    * @param xs variables to count number of values value.
-    * @param count of values value.
-    */
-  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], count: A, value: Int)(implicit model: Model): Unit = {
-    val c = new Count(xs.toArray[JaCoP.core.IntVar], count, value)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Count]].
+  //    *
+  //    * @param xs variables to count number of values value.
+  //    * @param count of values value.
+  //    */
+  //  def assignCount(xs: IIterable[IntVar], value: Int, count: IntVar)(implicit model: Model): Unit = {
+  //    val c = new Count(xs.toArray[JaCoP.core.IntVar], count, value)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.Count]].
     *
     * @param xs variables to count number of values value.
     * @return number of values value.
     */
-  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], value: Int)(implicit model: Model): IntVar = {
+  def count(xs: IIterable[IntVar], value: Int)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Count(xs.toArray[JaCoP.core.IntVar], result, value)
     model.constr += c
@@ -206,56 +205,73 @@ package object jacop {
     result
   }
 
-  /** Wrapper for [[JaCoP.constraints.Values]].
-    *
-    * @param xs variables to count number of different values.
-    * @param count of different values.
-    */
-  def values[A <: JaCoP.core.IntVar](xs: IIterable[A], count: IntVar)(implicit model: Model): Unit = {
-    val c = new Values(xs.toArray[JaCoP.core.IntVar], count)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Values]].
+  //    *
+  //    * @param xs variables to count number of different values.
+  //    * @param count of different values.
+  //    */
+  //  def assignNumDistinct(xs: IIterable[IntVar], count: IntVar)(implicit model: Model): Unit = {
+  //    val c = new Values(xs.toArray[JaCoP.core.IntVar], count)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.Values]].
     *
     * @param xs variables to count number of different values.
     * @return number of different values.
     */
-  def values[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
+  def numDistinct(xs: IntVar*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Values(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
 
-  /** Wrapper for [[JaCoP.constraints.Element]].
-    *
-    * @param index    index to select element from list of elements.
-    * @param xs       sequence of integers that can be assigned to values.
-    * @param value    value selected from list of elements.
-    */
-  def element(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar)(implicit model: Model): Unit = {
-    val c = new Element(index, xs.toArray, value)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.constraints.Element]].
+  //    *
+  //    * @param index    index to select element from list of elements.
+  //    * @param xs       sequence of integers that can be assigned to values.
+  //    * @param value    value selected from list of elements.
+  //    */
+  //  def assignElementAt(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+  //    val c = new Element(index, xs.toArray, value)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
+
+  //  /** Wrapper for [[JaCoP.constraints.Element]].
+  //    *
+  //    * @param index    index to select element from list of elements.
+  //    * @param xs       sequence of integers that can be assigned to values.
+  //    * @param value    value selected from list of elements.
+  //    * @param offset   value of index offset (shift).
+  //    */
+  //  def assignElementAt(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar, offset: Int = 0)
+  //             (implicit model: Model): Unit = {
+  //    val c = new Element(index, xs.toArray, value, offset)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
     * @param index    index to select element from list of elements.
     * @param xs       sequence of integers that can be assigned to values.
-    * @param value    value selected from list of elements.
     * @param offset   value of index offset (shift).
+    * @return         the variable yielding the element at the given index
     */
-  def element(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar, offset: Int)
-             (implicit model: Model): Unit = {
+  def elementAt(index: IntVar, xs: Vec[Int], offset: Int = 0)(implicit model: Model): IntVar = {
+    val value = new IntVar()
     val c = new Element(index, xs.toArray, value, offset)
     if (trace) println(c)
     model.impose(c)
+    value
   }
 
   /** Wrapper for [[JaCoP.constraints.Diff2]].
+    *
+    * XXX TODO: remove arrays, unify sequences
     *
     * @param x coordinate X of rectangle.
     * @param y coordinate Y of rectangle.
@@ -271,6 +287,8 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Diff2]].
     *
+    * XXX TODO: remove array
+    *
     * @param rectangles array of four element vectors representing rectnagles [x, y, lx, ly]
     */
   def diff2(rectangles: Array[Array[IntVar]])(implicit model: Model): Unit = {
@@ -280,6 +298,8 @@ package object jacop {
   }
 
   /** Wrapper for [[JaCoP.constraints.Cumulative]].
+    *
+    * XXX TODO: remove arrays, unify sequences
     *
     * @param t array of start times of tasks.
     * @param d array of duration of tasks.
@@ -298,13 +318,15 @@ package object jacop {
     *
     * @param nodes variables, which domains define next nodes in the graph.
     */
-  def circuit(nodes: IIterable[IntVar])(implicit model: Model): Unit = {
+  def circuit(nodes: IntVar*)(implicit model: Model): Unit = {
     val c = new Circuit(nodes.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Assignment]].
+    *
+    * XXX TODO: remove arrays, unify sequences
     *
     * @param x array of variables.
     * @param y array variables that values are permutation of x.
@@ -317,9 +339,11 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Among]].
     *
+    * XXX TODO: remove array, rename to `assignAmong`, add proper `among`
+    *
     * @param list array of variables.
     * @param kSet values to be checked.
-    * @param n number of values found.
+    * @param n    number of values found.
     */
   def among(list: Array[IntVar], kSet: IntSet, n: IntVar)(implicit model: Model): Unit = {
     val c = new Among(list.asInstanceOf[Array[JaCoP.core.IntVar]], kSet, n)
@@ -328,6 +352,8 @@ package object jacop {
   }
 
   /** Wrapper for [[JaCoP.constraints.AmongVar]].
+    *
+    * XXX TODO: remove arrays, unify sequences, rename to `assignAmong`, add proper `among`
     *
     * @param listX array of variables.
     * @param listY array of variables to be checked if their values .
@@ -341,11 +367,12 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.ExtensionalSupportVA]].
     *
+    * XXX TODO: remove arrays, unify sequences, rename to `assignTable`, add proper `table`
+    *
     * @param list   array of variables.
     * @param tuples array of tuples allowed to be assigned to variables.
     */
-  def table[A <: JaCoP.core.IntVar](list: IIterable[A], tuples: Array[Array[Int]])
-                                   (implicit model: Model): Unit = {
+  def table(list: IIterable[IntVar], tuples: Array[Array[Int]])(implicit model: Model): Unit = {
     val c = new ExtensionalSupportVA(list.toArray[JaCoP.core.IntVar], tuples)
     if (trace) println(c)
     model.impose(c)
@@ -368,12 +395,11 @@ package object jacop {
 
   /** Wrapper for JaCoP.constraints.binpack.Binpack (?).
     *
-    * @param bin  list containing which bin is assigned to an item.
-    * @param load list of loads for bins.
-    * @param w    array of weights for items.
+    * @param bins list containing which tuples of bins, their loads and their weights
     */
-  def binPacking(bin: List[IntVar], load: List[IntVar], w: Array[Int])(implicit model: Model): Unit = {
-    val c = new Binpacking(bin.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], load.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w)
+  def binPacking(bins: (IntVar, IntVar, Int)*)(implicit model: Model): Unit = {
+    val (b, load, w) = bins.unzip3
+    val c = new Binpacking(b.toArray[JaCoP.core.IntVar], load.toArray[JaCoP.core.IntVar], w.toArray)
     if (trace) println(c)
     model.impose(c)
   }
@@ -532,20 +558,20 @@ package object jacop {
     model.impose(c)
   }
 
-  /** Wrapper for [[JaCoP.set.constraints.CardAeqX]].
-    *
-    * @param s constrained set variable.
-    * @param n cardinality (IntVar variable).
-    */
-  def card(s: SetVar, n: JaCoP.core.IntVar)(implicit model: Model): Unit = {
-    val c = new CardAeqX(s, n)
-    if (trace) println(c)
-    model.impose(c)
-  }
+  //  /** Wrapper for [[JaCoP.set.constraints.CardAeqX]].
+  //    *
+  //    * @param s constrained set variable.
+  //    * @param n cardinality (IntVar variable).
+  //    */
+  //  def assignCard(s: SetVar, n: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+  //    val c = new CardAeqX(s, n)
+  //    if (trace) println(c)
+  //    model.impose(c)
+  //  }
 
   /** Wrapper for [[JaCoP.set.constraints.Match]].
     *
-    * @param a  a set variable to be matched against list of IntVar.
+    * @param a    a set variable to be matched against list of IntVar.
     * @param list variables that get values from the set.
     */
   def matching[A <: JaCoP.core.IntVar](a: SetVar, list: IIterable[A])(implicit model: Model) {
@@ -978,7 +1004,6 @@ package object jacop {
     * @return related variable selection method.
     */
   def antiFirstFailSet[A <: JaCoP.set.core.SetVar] = new MaxCardDiff[A]
-
 
   /** Wrapper for [[JaCoP.set.search.IndomainSetMin]].
     *
