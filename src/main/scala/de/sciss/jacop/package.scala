@@ -13,7 +13,8 @@ import JaCoP.search._
 import JaCoP.set.constraints._
 import JaCoP.set.search._
 import scala.reflect.ClassTag
-import collection.immutable.{IndexedSeq => Vec}
+import collection.immutable.{IndexedSeq => Vec, Iterable => IIterable, Seq => ISeq}
+import collection.breakOut
 
 /** Package for defining variables, constraints, global constraints and search
   * methods for [[JaCoP]] constraint solver in Scala.
@@ -43,10 +44,10 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Alldiff]].
     *
-    * @param x array of variables to be different.
+    * @param xs array of variables to be different.
     */
-  def alldifferent(x: Array[IntVar])(implicit model: Model): Unit = {
-    val c = new Alldiff(x.asInstanceOf[Array[JaCoP.core.IntVar]])
+  def alldifferent(xs: IIterable[IntVar])(implicit model: Model): Unit = {
+    val c = new Alldiff(xs.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
   }
@@ -77,7 +78,7 @@ package object jacop {
     * @param res array of variables to be summed up.
     * @param result summation result.
     */
-  def sum[T <: JaCoP.core.IntVar](res: List[T], result: IntVar)(implicit m: ClassTag[T], model: Model): Unit = {
+  def sum[A <: JaCoP.core.IntVar](res: IIterable[A], result: IntVar)(implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Sum(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     if (trace) println(c)
     model.impose(c)
@@ -88,7 +89,7 @@ package object jacop {
     * @param res array of variables to be summed up.
     * @return summation result.
     */
-  def sum[T <: JaCoP.core.IntVar](res: List[T])(implicit m: ClassTag[T], model: Model): IntVar = {
+  def sum[A <: JaCoP.core.IntVar](res: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new Sum(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     model.constr += c
@@ -101,8 +102,8 @@ package object jacop {
     * @param w array of weights.
     * @param result summation result.
     */
-  def weightedSum[T <: JaCoP.core.IntVar](res: List[T], w: Array[Int], result: IntVar)
-                                         (implicit m: ClassTag[T], model: Model): Unit = {
+  def weightedSum[A <: JaCoP.core.IntVar](res: IIterable[A], w: Array[Int], result: IntVar)
+                                         (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new SumWeight(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w, result)
     if (trace) println(c)
     model.impose(c)
@@ -114,8 +115,8 @@ package object jacop {
     * @param w array of weights.
     * @return summation result.
     */
-  def sum[T <: JaCoP.core.IntVar](res: List[T], w: Array[Int])
-                                 (implicit m: ClassTag[T], model: Model): IntVar = {
+  def sum[A <: JaCoP.core.IntVar](res: IIterable[A], w: Array[Int])
+                                 (implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new SumWeight(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w, result)
     if (trace) println(c)
@@ -141,8 +142,8 @@ package object jacop {
     * @param x array of variables where maximum values is to be found.
     * @param mx maxumum value.
     */
-  def max[T <: JaCoP.core.IntVar](x: List[T], mx: JaCoP.core.IntVar)
-                                 (implicit m: ClassTag[T], model: Model): Unit = {
+  def max[A <: JaCoP.core.IntVar](x: IIterable[A], mx: JaCoP.core.IntVar)
+                                 (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Max(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mx)
     if (trace) println(c)
     model.impose(c)
@@ -153,8 +154,8 @@ package object jacop {
     * @param x array of variables where mnimimum values is to be found.
     * @param mn minimum value.
     */
-  def min[T <: JaCoP.core.IntVar](x: List[T], mn: JaCoP.core.IntVar)
-                                 (implicit m: ClassTag[T], model: Model): Unit = {
+  def min[A <: JaCoP.core.IntVar](x: IIterable[A], mn: JaCoP.core.IntVar)
+                                 (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Min(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mn)
     if (trace) println(c)
     model.impose(c)
@@ -165,7 +166,7 @@ package object jacop {
     * @param x array of variables where maximum values is to be found.
     * @return max value.
     */
-  def max[T <: JaCoP.core.IntVar](x: List[T])(implicit m: ClassTag[T], model: Model): IntVar = {
+  def max[A <: JaCoP.core.IntVar](x: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new Max(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     model.constr += c
@@ -177,7 +178,7 @@ package object jacop {
     * @param x array of variables where minimum values is to be found.
     * @return minimum value.
     */
-  def min[T <: JaCoP.core.IntVar](x: List[T])(implicit m: ClassTag[T], model: Model): IntVar = {
+  def min[A <: JaCoP.core.IntVar](x: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new Min(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     model.constr += c
@@ -189,8 +190,8 @@ package object jacop {
     * @param list list of variables to count number of values value.
     * @param count of values value.
     */
-  def count[T <: JaCoP.core.IntVar](list: List[T], count: T, value: Int)
-                                   (implicit m: ClassTag[T], model: Model): Unit = {
+  def count[A <: JaCoP.core.IntVar](list: IIterable[A], count: A, value: Int)
+                                   (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Count(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], count, value)
     if (trace) println(c)
     model.impose(c)
@@ -201,8 +202,8 @@ package object jacop {
     * @param list list of variables to count number of values value.
     * @return number of values value.
     */
-  def count[T <: JaCoP.core.IntVar](list: List[T], value: Int)
-                                   (implicit m: ClassTag[T], model: Model): IntVar = {
+  def count[A <: JaCoP.core.IntVar](list: IIterable[A], value: Int)
+                                   (implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new Count(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result, value)
     model.constr += c
@@ -215,8 +216,8 @@ package object jacop {
     * @param list list of variables to count number of different values.
     * @param count of different values.
     */
-  def values[T <: JaCoP.core.IntVar](list: List[T], count: IntVar)
-                                    (implicit m: ClassTag[T], model: Model): Unit = {
+  def values[A <: JaCoP.core.IntVar](list: IIterable[A], count: IntVar)
+                                    (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Values(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], count)
     if (trace) println(c)
     model.impose(c)
@@ -227,7 +228,7 @@ package object jacop {
     * @param list list of variables to count number of different values.
     * @return number of different values.
     */
-  def values[T <: JaCoP.core.IntVar](list: List[T])(implicit m: ClassTag[T], model: Model): IntVar = {
+  def values[A <: JaCoP.core.IntVar](list: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
     val c = new Values(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     model.constr += c
@@ -245,7 +246,6 @@ package object jacop {
     if (trace) println(c)
     model.impose(c)
   }
-
 
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
@@ -267,8 +267,8 @@ package object jacop {
     * @param elements array of varibales that can be assigned to values.
     * @param value value selected from list of elements.
     */
-  def element[T <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: List[T], value: JaCoP.core.IntVar)
-                                     (implicit m: ClassTag[T], model: Model): Unit = {
+  def element[A <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: IIterable[A], value: JaCoP.core.IntVar)
+                                     (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Element(index, elements.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], value)
     if (trace) println(c)
     model.impose(c)
@@ -281,8 +281,8 @@ package object jacop {
     * @param value value selected from list of elements.
     * @param offset value of index offset (shift).
     */
-  def element[T <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: List[T], value: JaCoP.core.IntVar,
-                                      offset: Int)(implicit m: ClassTag[T], model: Model): Unit = {
+  def element[A <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: IIterable[A], value: JaCoP.core.IntVar,
+                                      offset: Int)(implicit m: ClassTag[A], model: Model): Unit = {
     val c = new Element(index, elements.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], value, offset)
     if (trace) println(c)
     model.impose(c)
@@ -377,8 +377,8 @@ package object jacop {
     * @param list array of variables.
     * @param tuples array of tuples allowed to be assigned to variables.
     */
-  def table[T <: JaCoP.core.IntVar](list: List[T], tuples: Array[Array[Int]])
-                                   (implicit m: ClassTag[T], model: Model): Unit = {
+  def table[A <: JaCoP.core.IntVar](list: IIterable[A], tuples: Array[Array[Int]])
+                                   (implicit m: ClassTag[A], model: Model): Unit = {
     val c = new ExtensionalSupportVA(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], tuples)
     if (trace) println(c)
     model.impose(c)
@@ -416,7 +416,7 @@ package object jacop {
     * @param dfa specification of finite state machine using class fsm.
     * @param vars list of variables assigned to fsm nodes.
     */
-  def regular(dfa: fsm, vars: List[IntVar])(implicit model: Model): Unit = {
+  def regular(dfa: fsm, vars: IIterable[IntVar])(implicit model: Model): Unit = {
     val c = new Regular(dfa, vars.toArray)
     if (trace) println(c)
     model.impose(c)
@@ -520,7 +520,7 @@ package object jacop {
     * @param list constraints to be disjunction.
     * @return the constraint that is a a disjunction of constraints.
     */
-  def OR(list: List[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
+  def OR(list: IIterable[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
     val c = new Or(list.toArray)
     list.foreach(e => model.constr.remove(model.constr.indexOf(e)))
     model.constr += c
@@ -544,7 +544,7 @@ package object jacop {
     * @param list constraints to be conjunction.
     * @return the constraint that is a a conjunction of constraints.
     */
-  def AND(list: List[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
+  def AND(list: IIterable[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
     val c = new And(list.toArray)
     list.foreach(e => model.constr.remove(model.constr.indexOf(e)))
     model.constr += c
@@ -605,8 +605,8 @@ package object jacop {
     * @param a  a set variable to be matched against list of IntVar.
     * @param list varibales that get values from the set.
     */
-  def matching[T <: JaCoP.core.IntVar](a: SetVar, list: List[T])
-                                      (implicit m: ClassTag[T], model: Model) {
+  def matching[A <: JaCoP.core.IntVar](a: SetVar, list: IIterable[A])
+                                      (implicit m: ClassTag[A], model: Model) {
     val c = new Match(a, list.toArray)
     if (trace) println(c)
     model.impose(c)
@@ -620,8 +620,8 @@ package object jacop {
     * @param cost Cost variable
     * @return true if solution found and false otherwise.
     */
-  def minimize[T <: JaCoP.core.Var](select: SelectChoicePoint[T], cost: IntVar, printSolutions: (() => Unit)*)
-                                   (implicit m: ClassTag[T], model: Model): Boolean = {
+  def minimize[A <: JaCoP.core.Var](select: SelectChoicePoint[A], cost: IntVar, printSolutions: (() => Unit)*)
+                                   (implicit m: ClassTag[A], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
@@ -630,9 +630,9 @@ package object jacop {
 
     _printFunctions = printSolutions.toIndexedSeq
     if (_printFunctions.nonEmpty) {
-      label.setSolutionListener(new EmptyListener[T])
+      label.setSolutionListener(new EmptyListener[A])
       label.setPrintInfo(false)
-      label.setSolutionListener(new ScalaSolutionListener[T])
+      label.setSolutionListener(new ScalaSolutionListener[A])
     }
 
     if (maxNumSolutions > 0) {
@@ -650,8 +650,8 @@ package object jacop {
     * @param cost Cost variable
     * @return true if solution found and false otherwise.
     */
-  def maximize[T <: JaCoP.core.Var](select: SelectChoicePoint[T], cost: IntVar,
-                                    printSolutions: (() => Unit)*)(implicit m: ClassTag[T], model: Model): Boolean = {
+  def maximize[A <: JaCoP.core.Var](select: SelectChoicePoint[A], cost: IntVar,
+                                    printSolutions: (() => Unit)*)(implicit m: ClassTag[A], model: Model): Boolean = {
 
     val costN = new IntVar("newCost", JaCoP.core.IntDomain.MinInt, JaCoP.core.IntDomain.MaxInt)
     costN #= -cost
@@ -664,8 +664,8 @@ package object jacop {
     * @param select select method defining variable selection and value assignment methods.
     * @return true if solution found and false otherwise.
     */
-  def satisfy[T <: JaCoP.core.Var](select: SelectChoicePoint[T], printSolutions: (() => Unit)*)
-                                  (implicit m: ClassTag[T], model: Model): Boolean = {
+  def satisfy[A <: JaCoP.core.Var](select: SelectChoicePoint[A], printSolutions: (() => Unit)*)
+                                  (implicit m: ClassTag[A], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
@@ -676,7 +676,7 @@ package object jacop {
     if (_printFunctions.nonEmpty) {
       // label.setSolutionListener(new EmptyListener[T]);
       label.setPrintInfo(false)
-      label.setSolutionListener(new ScalaSolutionListener[T])
+      label.setSolutionListener(new ScalaSolutionListener[A])
     }
 
     if (timeOut > 0)
@@ -699,8 +699,8 @@ package object jacop {
     * @param select select method defining variable selection and value assignment methods.
     * @return true if solution found and false otherwise.
     */
-  def satisfyAll[T <: JaCoP.core.Var](select: SelectChoicePoint[T], printSolutions: (() => Unit)*)
-                                     (implicit m: ClassTag[T], model: Model): Boolean = {
+  def satisfyAll[A <: JaCoP.core.Var](select: SelectChoicePoint[A], printSolutions: (() => Unit)*)
+                                     (implicit m: ClassTag[A], model: Model): Boolean = {
 
     allSolutions = true
 
@@ -714,53 +714,42 @@ package object jacop {
     * @param cost Cost variable
     * @return true if solution found and false otherwise.
     */
-  def minimizeSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
-                                      (implicit m: ClassTag[T], model: Model): Boolean = {
+  def minimizeSeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], cost: IntVar,
+                                       printSolutions: (() => Unit)*)
+                                      (implicit m: ClassTag[A], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
     val masterLabel = dfs()
-    labels = new Array(select.size)
-    labels(0) = masterLabel
 
     if (printSolutions.size > 0) {
-      masterLabel.setSolutionListener(new EmptyListener[T])
+      masterLabel.setSolutionListener(new EmptyListener[A])
       masterLabel.setPrintInfo(false)
     }
 
-    if (maxNumSolutions > 0)
-      masterLabel.respectSolutionLimitInOptimization = true
+    if (maxNumSolutions > 0) masterLabel.respectSolutionLimitInOptimization = true
+    if (timeOut         > 0) masterLabel.setTimeOut(timeOut)
 
-    if (timeOut > 0)
-      masterLabel.setTimeOut(timeOut)
+    val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
+      val label = dfs()
+      previousSearch.addChildSearch(label)
+      label.setSelectChoicePoint(sel)
 
-    var previousSearch = masterLabel
-    var lastLabel = masterLabel
-    if (select.length > 1)
-      for (i <- 1 until select.length) {
-        val label = dfs()
-        previousSearch.addChildSearch(label)
-        label.setSelectChoicePoint(select(i))
-        previousSearch = label
-        lastLabel = label
-        labels(i) = label
-
-        if (printSolutions.size > 0) {
-          label.setSolutionListener(new EmptyListener[T])
-          label.setPrintInfo(false)
-        }
-
-        if (maxNumSolutions > 0)
-          label.respectSolutionLimitInOptimization = true
-
-        if (timeOut > 0)
-          label.setTimeOut(timeOut)
+      if (printSolutions.nonEmpty) {
+        label.setSolutionListener(new EmptyListener[A])
+        label.setPrintInfo(false)
       }
+
+      if (maxNumSolutions > 0) label.respectSolutionLimitInOptimization = true
+      if (timeOut         > 0) label.setTimeOut(timeOut)
+
+      label
+    }
 
     _printFunctions = printSolutions.toIndexedSeq
     if (_printFunctions.nonEmpty) {
       lastLabel.setPrintInfo(false)
-      lastLabel.setSolutionListener(new ScalaSolutionListener[T])
+      lastLabel.setSolutionListener(new ScalaSolutionListener[A])
 
       if (maxNumSolutions > 0) {
         lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
@@ -768,18 +757,18 @@ package object jacop {
       }
     }
 
-    masterLabel.labeling(model, select(0), cost)
+    masterLabel.labeling(model, select.head, cost)
   }
 
-  /**
-   * Maximization method for sequence of search methods (specified by list of select methods).
-   *
-   * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-   * @param cost Cost variable
-   * @return true if solution found and false otherwise.
-   */
-  def maximizeSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
-                                       (implicit m: ClassTag[T], model: Model): Boolean = {
+  /** Maximization method for sequence of search methods (specified by list of select methods).
+    *  
+    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
+    * @param cost Cost variable
+    * @return true if solution found and false otherwise.
+    */
+  def maximizeSeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], cost: IntVar,
+                                       printSolutions: (() => Unit)*)
+                                      (implicit m: ClassTag[A], model: Model): Boolean = {
 
     val costN = new IntVar("newCost", JaCoP.core.IntDomain.MinInt, JaCoP.core.IntDomain.MaxInt)
     costN #= -cost
@@ -787,64 +776,50 @@ package object jacop {
     minimizeSeq(select, costN, printSolutions: _*)
   }
 
-
-  /**
-   * Search method for finding a solution using a sequence of search methods (specified by list of select methods).
-   *
-   * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-   * @return true if solution found and false otherwise.
-   */
-  def satisfySeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
-                                     (implicit m: ClassTag[T], model: Model): Boolean = {
+  /** Search method for finding a solution using a sequence of search methods (specified by list of select methods).
+    *
+    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
+    * @return true if solution found and false otherwise.
+    */
+  def satisfySeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], printSolutions: (() => Unit)*)
+                                     (implicit m: ClassTag[A], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
     val masterLabel = dfs()
-    labels = new Array(select.size)
-    labels(0) = masterLabel
 
     if (printSolutions.size > 0) {
-      masterLabel.setSolutionListener(new EmptyListener[T])
+      masterLabel.setSolutionListener(new EmptyListener[A])
       masterLabel.setPrintInfo(false)
     }
 
-    if (timeOut > 0)
-      masterLabel.setTimeOut(timeOut)
-
-    if (allSolutions)
-      masterLabel.getSolutionListener.searchAll(true)
+    if (timeOut > 0 ) masterLabel.setTimeOut(timeOut)
+    if (allSolutions) masterLabel.getSolutionListener.searchAll(true)
 
     masterLabel.getSolutionListener.recordSolutions(recordSolutions)
 
-    var previousSearch  = masterLabel
-    var lastLabel       = masterLabel
-    if (select.length > 1)
-      for (i <- 1 until select.length) {
-        val label       = dfs()
-        previousSearch.addChildSearch(label)
-        label.setSelectChoicePoint(select(i))
-        previousSearch  = label
-        lastLabel       = label
-        labels(i)       = label
+    val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
+      val label = dfs()
+      previousSearch.addChildSearch(label)
+      label.setSelectChoicePoint(sel)
 
-        if (printSolutions.size > 0) {
-          label.setSolutionListener(new EmptyListener[T])
-          label.setPrintInfo(false)
-        }
-
-        if (timeOut > 0)
-          label.setTimeOut(timeOut)
-
-        if (allSolutions)
-          label.getSolutionListener.searchAll(true)
-
-        label.getSolutionListener.recordSolutions(recordSolutions)
+      if (printSolutions.size > 0) {
+        label.setSolutionListener(new EmptyListener[A])
+        label.setPrintInfo(false)
       }
+
+      if (timeOut > 0 ) label.setTimeOut(timeOut)
+      if (allSolutions) label.getSolutionListener.searchAll(true)
+
+      label.getSolutionListener.recordSolutions(recordSolutions)
+
+      label
+    }
 
     _printFunctions = printSolutions.toIndexedSeq
     if (_printFunctions.nonEmpty) {
       lastLabel.setPrintInfo(false)
-      lastLabel.setSolutionListener(new ScalaSolutionListener[T])
+      lastLabel.setSolutionListener(new ScalaSolutionListener[A])
 
       if (maxNumSolutions > 0)
         lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
@@ -852,74 +827,66 @@ package object jacop {
 
     lastLabel.getSolutionListener.recordSolutions(recordSolutions)
 
-    masterLabel.labeling(model, select(0))
+    masterLabel.labeling(model, select.head)
   }
 
-  /**
-   * Search method for finding all solutions using a sequence of search methods (specified by list of select methods).
-   *
-   * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-   * @return true if solution found and false otherwise.
-   */
-  def satisfyAllSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
-                                        (implicit m: ClassTag[T], model: Model): Boolean = {
+  /** Search method for finding all solutions using a sequence of search methods (specified by list of select methods).
+    *  
+    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
+    * @return true if solution found and false otherwise.
+    */
+  def satisfyAllSeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], printSolutions: (() => Unit)*)
+                                        (implicit m: ClassTag[A], model: Model): Boolean = {
 
     allSolutions = true
 
     satisfySeq(select, printSolutions: _*)
   }
 
-  /**
-   * Depth first search method.
-   *
-   * @return standard depth first search.
-   */
-  def dfs[T <: JaCoP.core.Var]()(implicit m: ClassTag[T]): DepthFirstSearch[T] = {
-    val label = new DepthFirstSearch[T]
+  /** Depth first search method.
+    *
+    * @return standard depth first search.
+    */
+  def dfs[A <: JaCoP.core.Var]()(implicit m: ClassTag[A]): DepthFirstSearch[A] = {
+    val label = new DepthFirstSearch[A]
 
     label.setAssignSolution(true)
-    label.setSolutionListener(new PrintOutListener[T]())
+    label.setSolutionListener(new PrintOutListener[A]())
     if (allSolutions)
       label.getSolutionListener.searchAll(true)
 
     label
-
   }
 
   /** Defines list of variables, their selection method for search and value selection
     *  
     * @return select method for search.
     */
-  def search[T <: JaCoP.core.Var](vars: List[T], heuristic: ComparatorVariable[T], indom: Indomain[T])
-                                 (implicit m: ClassTag[T]): SelectChoicePoint[T] = {
-    new SimpleSelect[T](vars.toArray, heuristic, indom)
-  }
+  def search[A <: JaCoP.core.Var](vars: IIterable[A], heuristic: ComparatorVariable[A], indom: Indomain[A])
+                                 (implicit m: ClassTag[A]): SelectChoicePoint[A] =
+    new SimpleSelect[A](vars.toArray, heuristic, indom)
 
   /**
    * Defines list of variables, their selection method for sequential search and value selection
    *
    * @return select method for search.
    */
-  def searchVector[T <: JaCoP.core.Var](vars: List[List[T]], heuristic: ComparatorVariable[T], 
-                                        indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
-    val varsArray = new Array[Array[T]](vars.length)
-    for (i <- 0 until vars.length)
-      varsArray(i) = vars(i).toArray
+  def searchVector[A <: JaCoP.core.Var](vars: Vec[Vec[A]], heuristic: ComparatorVariable[A],
+                                        indom: Indomain[A])(implicit m: ClassTag[A]): SelectChoicePoint[A] = {
+    val varsArray: Array[Array[A]] = vars.map(_.toArray)(breakOut)
 
-    new SimpleMatrixSelect[T](varsArray, heuristic, indom)
+    new SimpleMatrixSelect[A](varsArray, heuristic, indom)
   }
 
   /** Defines list of variables, their selection method for split search and value selection
     *
     * @return select method for search.
     */
-  def searchSplit[T <: JaCoP.core.IntVar](vars: List[T], heuristic: ComparatorVariable[T])(implicit m: ClassTag[T]) = {
-    new SplitSelect[T](vars.toArray, heuristic, new IndomainMiddle[T]())
-  }
+  def searchSplit[A <: JaCoP.core.IntVar](vars: IIterable[A], heuristic: ComparatorVariable[A])
+                                         (implicit m: ClassTag[A]): SelectChoicePoint[A] =
+    new SplitSelect[A](vars.toArray, heuristic, new IndomainMiddle[A]())
 
-
-  /** Defines functions that prints search statistics. */
-  def statistics() = {
+  def statistics(): String = {
     var nodes       = 0
     var decisions   = 0
     var wrong       = 0
@@ -935,21 +902,25 @@ package object jacop {
       depth       += label.getMaximumDepth
       solutions    = label.getSolutionListener.solutionsNo()
     }
-    println("\nSearch statistics:\n==================" +
-      "\nSearch nodes           : " + nodes +
-      "\nSearch decisions       : " + decisions +
-      "\nWrong search decisions : " + wrong +
-      "\nSearch backtracks      : " + backtracks +
-      "\nMax search depth       : " + depth +
-      "\nNumber solutions       : " + solutions
-    )
+    
+    "Search statistics:\n==================" +
+      "\n Search nodes           : " + nodes +
+      "\n Search decisions       : " + decisions +
+      "\n Wrong search decisions : " + wrong +
+      "\n Search backtracks      : " + backtracks +
+      "\n Max search depth       : " + depth +
+      "\n Number solutions       : " + solutions
+  }
+  
+  def printStatistics(): Unit = {
+    println()
+    println(statistics())
   }
 
-  /**
-   * Defines null variable selection method that is interpreted by JaCoP as input order.
-   *
-   * @return related variable selection method.
-   */
+  /** Defines null variable selection method that is interpreted by JaCoP as input order.
+    *
+    * @return related variable selection method.
+    */
   def inputOrder = null
 
   // ---- Generic (IntVar and BooleanVar) ----
