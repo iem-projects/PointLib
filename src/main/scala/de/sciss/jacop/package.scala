@@ -46,7 +46,7 @@ package object jacop {
     *
     * @param xs array of variables to be different.
     */
-  def alldifferent(xs: IIterable[IntVar])(implicit model: Model): Unit = {
+  def allDifferent(xs: IIterable[IntVar])(implicit model: Model): Unit = {
     val c = new Alldiff(xs.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
@@ -54,44 +54,44 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Alldistinct]].
     *
-    * @param x array of variables to be different.
+    * @param xs array of variables to be different.
     */
-  def alldistinct(x: Array[IntVar])(implicit model: Model): Unit = {
-    val c = new Alldistinct(x.asInstanceOf[Array[JaCoP.core.IntVar]])
+  def allDistinct(xs: IIterable[IntVar])(implicit model: Model): Unit = {
+    val c = new Alldistinct(xs.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.GCC]].
     *
-    * @param x array of variables.
-    * @param y array of counters of differnet values from array x.
+    * @param xs array of tuples of variables and their counters
     */
-  def gcc(x: Array[IntVar], y: Array[IntVar])(implicit model: Model): Unit = {
-    val c = new GCC(x.asInstanceOf[Array[JaCoP.core.IntVar]], y.asInstanceOf[Array[JaCoP.core.IntVar]])
+  def gcc(xs: IIterable[(IntVar, IntVar)])(implicit model: Model): Unit = {
+    val (vars, counters) = xs.unzip
+    val c = new GCC(vars.toArray[JaCoP.core.IntVar], counters.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Sum]].
     *
-    * @param res array of variables to be summed up.
+    * @param xs array of variables to be summed up.
     * @param result summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](res: IIterable[A], result: IntVar)(implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Sum(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+  def sum[A <: JaCoP.core.IntVar](xs: IIterable[A], result: IntVar)(implicit m: ClassTag[A], model: Model): Unit = {
+    val c = new Sum(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Sum]].
     *
-    * @param res array of variables to be summed up.
+    * @param xs variables to be summed up.
     * @return summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](res: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
+  def sum[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
-    val c = new Sum(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+    val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
@@ -139,73 +139,73 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Max]].
     *
-    * @param x array of variables where maximum values is to be found.
-    * @param mx maxumum value.
+    * @param xs variables where maximum values is to be found.
+    * @param mx maximum value.
     */
-  def max[A <: JaCoP.core.IntVar](x: IIterable[A], mx: JaCoP.core.IntVar)
+  def max[A <: JaCoP.core.IntVar](xs: IIterable[A], mx: JaCoP.core.IntVar)
                                  (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Max(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mx)
+    val c = new Max(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mx)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Min]].
     *
-    * @param x array of variables where mnimimum values is to be found.
+    * @param xs array of variables where mnimimum values is to be found.
     * @param mn minimum value.
     */
-  def min[A <: JaCoP.core.IntVar](x: IIterable[A], mn: JaCoP.core.IntVar)
+  def min[A <: JaCoP.core.IntVar](xs: IIterable[A], mn: JaCoP.core.IntVar)
                                  (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Min(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mn)
+    val c = new Min(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mn)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Max]].
     *
-    * @param x array of variables where maximum values is to be found.
+    * @param xs variables where maximum values is to be found.
     * @return max value.
     */
-  def max[A <: JaCoP.core.IntVar](x: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
+  def max[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
-    val c = new Max(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+    val c = new Max(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
 
   /** Wrapper for [[JaCoP.constraints.Min]].
     *
-    * @param x array of variables where minimum values is to be found.
+    * @param xs variables where minimum values is to be found.
     * @return minimum value.
     */
-  def min[A <: JaCoP.core.IntVar](x: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
+  def min[A <: JaCoP.core.IntVar](xs: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
-    val c = new Min(x.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+    val c = new Min(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
 
   /** Wrapper for [[JaCoP.constraints.Count]].
     *
-    * @param list list of variables to count number of values value.
+    * @param xs variables to count number of values value.
     * @param count of values value.
     */
-  def count[A <: JaCoP.core.IntVar](list: IIterable[A], count: A, value: Int)
+  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], count: A, value: Int)
                                    (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Count(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], count, value)
+    val c = new Count(xs.toArray[JaCoP.core.IntVar], count, value)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Count]].
     *
-    * @param list list of variables to count number of values value.
+    * @param xs variables to count number of values value.
     * @return number of values value.
     */
-  def count[A <: JaCoP.core.IntVar](list: IIterable[A], value: Int)
+  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], value: Int)
                                    (implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
-    val c = new Count(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result, value)
+    val c = new Count(xs.toArray[JaCoP.core.IntVar], result, value)
     model.constr += c
     println(result)
     result
@@ -213,24 +213,24 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Values]].
     *
-    * @param list list of variables to count number of different values.
+    * @param xs variables to count number of different values.
     * @param count of different values.
     */
-  def values[A <: JaCoP.core.IntVar](list: IIterable[A], count: IntVar)
+  def values[A <: JaCoP.core.IntVar](xs: IIterable[A], count: IntVar)
                                     (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Values(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], count)
+    val c = new Values(xs.toArray[JaCoP.core.IntVar], count)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Values]].
     *
-    * @param list list of variables to count number of different values.
+    * @param xs variables to count number of different values.
     * @return number of different values.
     */
-  def values[A <: JaCoP.core.IntVar](list: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
+  def values[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
     val result = new IntVar()
-    val c = new Values(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+    val c = new Values(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
     result
   }
@@ -264,7 +264,7 @@ package object jacop {
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
     * @param index index to select element from list of elements.
-    * @param elements array of varibales that can be assigned to values.
+    * @param elements array of variables that can be assigned to values.
     * @param value value selected from list of elements.
     */
   def element[A <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: IIterable[A], value: JaCoP.core.IntVar)
@@ -277,7 +277,7 @@ package object jacop {
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
     * @param index index to select element from list of elements.
-    * @param elements array of varibales that can be assigned to values.
+    * @param elements array of variables that can be assigned to values.
     * @param value value selected from list of elements.
     * @param offset value of index offset (shift).
     */
@@ -329,7 +329,7 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Circuit]].
     *
-    * @param n array of varibales, which domains define next nodes in the graph.
+    * @param n array of variables, which domains define next nodes in the graph.
     */
   def circuit(n: Array[IntVar])(implicit model: Model): Unit = {
     val c = new Circuit(n.asInstanceOf[Array[JaCoP.core.IntVar]])
@@ -339,7 +339,7 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Assignment]].
     *
-    * @param x array of varibales.
+    * @param x array of variables.
     * @param y array variables that values are permutation of x.
     */
   def assignment(x: Array[IntVar], y: Array[IntVar])(implicit model: Model): Unit = {
@@ -350,7 +350,7 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Among]].
     *
-    * @param list array of varibales.
+    * @param list array of variables.
     * @param kSet values to be checked.
     * @param n number of values found.
     */
@@ -362,8 +362,8 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.AmongVar]].
     *
-    * @param listX array of varibales.
-    * @param listY array of varibales to be checked if their values .
+    * @param listX array of variables.
+    * @param listY array of variables to be checked if their values .
     * @param n number of values found.
     */
   def among(listX: Array[IntVar], listY: Array[IntVar], n: IntVar)(implicit model: Model): Unit = {
@@ -453,7 +453,7 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Lex]].
     *
-    * @param x array of vectors of varibales to be lexicographically ordered.
+    * @param x array of vectors of variables to be lexicographically ordered.
     */
   def lex(x: Array[Array[IntVar]])(implicit model: Model): Unit = {
     val c = new JaCoP.constraints.Lex(x.asInstanceOf[Array[Array[JaCoP.core.IntVar]]])
@@ -603,7 +603,7 @@ package object jacop {
   /** Wrapper for [[JaCoP.set.constraints.Match]].
     *
     * @param a  a set variable to be matched against list of IntVar.
-    * @param list varibales that get values from the set.
+    * @param list variables that get values from the set.
     */
   def matching[A <: JaCoP.core.IntVar](a: SetVar, list: IIterable[A])
                                       (implicit m: ClassTag[A], model: Model) {
