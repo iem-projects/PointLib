@@ -235,7 +235,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for the addition constraint.
     * @return IntVar variable being the result of the addition constraint.
     */
-  def +(that: JaCoP.core.IntVar) = {
+  def + (that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XplusYeqZ(this, that, result)
     model.constr += c
@@ -247,7 +247,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second integer parameter for the addition constraint.
     * @return IntVar variable being the result of the addition constraint.
     */
-  def +(that: Int) = {
+  def + (that: Int): IntVar = {
     val result = new IntVar()
     val c = new XplusCeqZ(this, that, result)
     model.constr += c
@@ -259,7 +259,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for the subtraction constraint.
     * @return IntVar variable being the result of the subtraction constraint.
     */
-  def -(that: JaCoP.core.IntVar) = {
+  def - (that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XplusYeqZ(result, that, this)
     model.constr += c
@@ -271,7 +271,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second integer parameter for the subtraction constraint.
     * @return IntVar variable being the result of the subtraction constraint.
     */
-  def -(that: Int) = {
+  def - (that: Int): IntVar = {
     val result = new IntVar()
     val c = new XplusCeqZ(result, that, this)
     model.constr += c
@@ -283,7 +283,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for the multiplication constraint.
     * @return IntVar variable being the result of the multiplication constraint.
     */
-  def *(that: JaCoP.core.IntVar) = {
+  def * (that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XmulYeqZ(this, that, result)
     model.constr += c
@@ -295,7 +295,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second integer parameter for the multiplication constraint.
     * @return IntVar variable being the result of the multiplication constraint.
     */
-  def *(that: Int) = {
+  def * (that: Int): IntVar = {
     val result = new IntVar()
     val c = new XmulCeqZ(this, that, result)
     model.constr += c
@@ -307,7 +307,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for the integer division constraint.
     * @return IntVar variable being the result of the integer division constraint.
     */
-  def div(that: JaCoP.core.IntVar) = {
+  def / (that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XdivYeqZ(this, that, result)
     model.constr += c
@@ -319,7 +319,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for integer reminder from division constraint.
     * @return IntVar variable being the result of the integer reminder from division constraint.
     */
-  def mod(that: JaCoP.core.IntVar) = {
+  def % (that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XmodYeqZ(this, that, result)
     model.constr += c
@@ -331,7 +331,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that exponent for the exponentiation constraint.
     * @return IntVar variable being the result of the exponentiation constraint.
     */
-  def ^(that: JaCoP.core.IntVar) = {
+  def pow(that: JaCoP.core.IntVar): IntVar = {
     val result = new IntVar()
     val c = new XexpYeqZ(this, that, result)
     model.constr += c
@@ -342,7 +342,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     *
     * @return the defined constraint.
     */
-  def unary_- = {
+  def unary_- : IntVar = {
     val result = new IntVar()
     val c = new XplusYeqC(this, result, 0)
     model.constr += c
@@ -354,19 +354,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for equation constraint.
     * @return the defined constraint.
     */
-  @deprecated("use #= instead", "1.0")
-  def ==(that: JaCoP.core.IntVar) = {
-    val c = new XeqY(this, that)
-    model.constr += c
-    c
-  }
-
-  /** Defines equation constraint between two IntVar.
-    *
-    * @param that a second parameter for equation constraint.
-    * @return the defined constraint.
-    */
-  def #=(that: JaCoP.core.IntVar) = {
+  def #= (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XeqY(this, that)
     model.constr += c
     c
@@ -377,19 +365,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for equation constraint.
     * @return the defined constraint.
     */
-  @deprecated("use #= instead", "1.0")
-  def ==(that: Int) = {
-    val c = new XeqC(this, that)
-    model.constr += c
-    c
-  }
-
-  /** Defines equation constraint between IntVar and a integer constant.
-    *
-    * @param that a second parameter for equation constraint.
-    * @return the defined constraint.
-    */
-  def #= (that: Int) = {
+  def #= (that: Int): PrimitiveConstraint = {
     val c = new XeqC(this, that)
     model.constr += c
     c
@@ -400,7 +376,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for inequality constraint.
     * @return the defined constraint.
     */
-  def #\= (that: JaCoP.core.IntVar) = {
+  def #!= (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XneqY(this, that)
     model.constr += c
     c
@@ -411,7 +387,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for inequality constraint.
     * @return the defined constraint.
     */
-  def #\= (that: Int) = {
+  def #!= (that: Int): PrimitiveConstraint = {
     val c = new XneqC(this, that)
     model.constr += c
     c
@@ -422,7 +398,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "less than" constraint.
     * @return the defined constraint.
     */
-  def #< (that: JaCoP.core.IntVar) = {
+  def #< (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XltY(this, that)
     model.constr += c
     c
@@ -433,7 +409,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "less than" constraint.
     * @return the equation constraint.
     */
-  def #< (that: Int) = {
+  def #< (that: Int): PrimitiveConstraint = {
     val c = new XltC(this, that)
     model.constr += c
     c
@@ -444,7 +420,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "less than or equal" constraint.
     * @return the defined constraint.
     */
-  def #<= (that: JaCoP.core.IntVar) = {
+  def #<= (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XlteqY(this, that)
     model.constr += c
     c
@@ -455,7 +431,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "less than or equal" constraint.
     * @return the equation constraint.
     */
-  def #<= (that: Int) = {
+  def #<= (that: Int): PrimitiveConstraint = {
     val c = new XlteqC(this, that)
     model.constr += c
     c
@@ -466,7 +442,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "greater than" constraint.
     * @return the defined constraint.
     */
-  def #> (that: JaCoP.core.IntVar) = {
+  def #> (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XgtY(this, that)
     model.constr += c
     c
@@ -477,7 +453,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "greater than" constraint.
     * @return the equation constraint.
     */
-  def #> (that: Int) = {
+  def #> (that: Int): PrimitiveConstraint = {
     val c = new XgtC(this, that)
     model.constr += c
     c
@@ -488,7 +464,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "greater than or equal" constraint.
     * @return the defined constraint.
     */
-  def #>= (that: JaCoP.core.IntVar) = {
+  def #>= (that: JaCoP.core.IntVar): PrimitiveConstraint = {
     val c = new XgteqY(this, that)
     model.constr += c
     c
@@ -499,7 +475,7 @@ class IntVar(name: String, min: Int, max: Int)(implicit model: Model)
     * @param that a second parameter for "greater than or equal" constraint.
     * @return the equation constraint.
     */
-  def #>= (that: Int) = {
+  def #>= (that: Int): PrimitiveConstraint = {
     val c = new XgteqC(this, that)
     model.constr += c
     c

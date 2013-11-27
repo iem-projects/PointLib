@@ -266,7 +266,7 @@ case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint {
     import Implicits._
     chord.combinations(2).foreach { case Vec(hi, lo) =>
       // note: we assume hi > lo, so unison cannot be mixed up with octave
-      (hi - lo).mod(steps) #\= 0
+      (hi - lo) % steps #!= 0
     }
   }
 }
@@ -290,10 +290,10 @@ case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
     val modB = new jacop.IntVar()
 
     chord.combinations(2).foreach { case Vec(hi, lo) =>
-      (hi - lo).mod(a.steps) #\= modA
+      (hi - lo) % a.steps #!= modA
     }
     chord.combinations(2).foreach { case Vec(hi, lo) =>
-      (hi - lo).mod(b.steps) #\= modB
+      (hi - lo) % b.steps #!= modB
     }
 
     // modA #= 0 <=> bA
