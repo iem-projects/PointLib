@@ -72,12 +72,9 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
       (Chord(notes), ChordNeutral)
     }
 
-    val select        = new SimpleSelect[IntVar](vars.flatten.toArray,
-      new SmallestDomain[IntVar](),
-      new IndomainRandom2(r) // new IndomainMin[IntVar]()
-    )
+    val select        = new SimpleSelect[IntVar](vars.flatten.toArray, new SmallestDomain, new IndomainRandom2(r))
     val solutionsB    = Vec.newBuilder[GeneticSystem.Chromosome]
-    limitOnSolutions  = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
+    maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
     timeOut           = 30    // seconds
     val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
     val solutions     = solutionsB.result()
@@ -244,12 +241,9 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       Chord(notes)
     }
 
-    val select        = new SimpleSelect[IntVar](vars.toArray,
-      new SmallestDomain[IntVar](),
-      new IndomainRandom2(r) // new IndomainMin[IntVar]()
-    )
+    val select        = new SimpleSelect[IntVar](vars.toArray, new SmallestDomain, new IndomainRandom2(r))
     val solutionsB    = Vec.newBuilder[Chord]
-    limitOnSolutions  = 256
+    maxNumSolutions   = 256
     timeOut           = 10    // seconds
     val result        = satisfyAll[IntVar](select, () => solutionsB += mkChord())
     val solutions     = solutionsB.result()
@@ -490,9 +484,8 @@ object GeneticSystem extends muta.System {
     vars.foreachPair(constrainHoriz(_, _, global.voices))
 
     // val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
-    // satisfy()
-
-    ???
+    val select = new SimpleSelect[IntVar](vars.flatten.toArray, smallest, indomainMin)
+    satisfy(select)
   }
 
   def constrainVert(cv: Vec[jacop.IntVar], voices: Vec[Voice],

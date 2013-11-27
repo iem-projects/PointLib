@@ -30,11 +30,14 @@ package object jacop {
 
   private var labels: Array[DepthFirstSearch[_ <: JaCoP.core.Var]] = null
 
-  private var _limitOnSolutions: Int = -1
+  /** The maximum number of solutions to be explored.
+    * `-1` indicates that there is no limit. */
+  var maxNumSolutions: Int = -1
 
-  private var _timeOut: Int = -1
+  /** The search time out in seconds. `-1` indicates that there is no time out. */
+  var timeOut: Int = -1
 
-  private val /* var */ recordSolutions = false
+  var recordSolutions = false
 
   // =============== Global constraints ===============
 
@@ -632,8 +635,8 @@ package object jacop {
       label.setSolutionListener(new ScalaSolutionListener[T])
     }
 
-    if (_limitOnSolutions > 0) {
-      label.getSolutionListener.setSolutionLimit(_limitOnSolutions)
+    if (maxNumSolutions > 0) {
+      label.getSolutionListener.setSolutionLimit(maxNumSolutions)
       label.respectSolutionLimitInOptimization = true
     }
 
@@ -676,14 +679,14 @@ package object jacop {
       label.setSolutionListener(new ScalaSolutionListener[T])
     }
 
-    if (_timeOut > 0)
-      label.setTimeOut(_timeOut)
+    if (timeOut > 0)
+      label.setTimeOut(timeOut)
 
     if (allSolutions)
       label.getSolutionListener.searchAll(true)
 
-    if (_limitOnSolutions > 0)
-      label.getSolutionListener.setSolutionLimit(_limitOnSolutions)
+    if (maxNumSolutions > 0)
+      label.getSolutionListener.setSolutionLimit(maxNumSolutions)
 
     label.getSolutionListener.recordSolutions(recordSolutions)
 
@@ -725,11 +728,11 @@ package object jacop {
       masterLabel.setPrintInfo(false)
     }
 
-    if (_limitOnSolutions > 0)
+    if (maxNumSolutions > 0)
       masterLabel.respectSolutionLimitInOptimization = true
 
-    if (_timeOut > 0)
-      masterLabel.setTimeOut(_timeOut)
+    if (timeOut > 0)
+      masterLabel.setTimeOut(timeOut)
 
     var previousSearch = masterLabel
     var lastLabel = masterLabel
@@ -747,11 +750,11 @@ package object jacop {
           label.setPrintInfo(false)
         }
 
-        if (_limitOnSolutions > 0)
+        if (maxNumSolutions > 0)
           label.respectSolutionLimitInOptimization = true
 
-        if (_timeOut > 0)
-          label.setTimeOut(_timeOut)
+        if (timeOut > 0)
+          label.setTimeOut(timeOut)
       }
 
     _printFunctions = printSolutions.toIndexedSeq
@@ -759,8 +762,8 @@ package object jacop {
       lastLabel.setPrintInfo(false)
       lastLabel.setSolutionListener(new ScalaSolutionListener[T])
 
-      if (_limitOnSolutions > 0) {
-        lastLabel.getSolutionListener.setSolutionLimit(_limitOnSolutions)
+      if (maxNumSolutions > 0) {
+        lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
         lastLabel.respectSolutionLimitInOptimization = true
       }
     }
@@ -805,8 +808,8 @@ package object jacop {
       masterLabel.setPrintInfo(false)
     }
 
-    if (_timeOut > 0)
-      masterLabel.setTimeOut(_timeOut)
+    if (timeOut > 0)
+      masterLabel.setTimeOut(timeOut)
 
     if (allSolutions)
       masterLabel.getSolutionListener.searchAll(true)
@@ -829,8 +832,8 @@ package object jacop {
           label.setPrintInfo(false)
         }
 
-        if (_timeOut > 0)
-          label.setTimeOut(_timeOut)
+        if (timeOut > 0)
+          label.setTimeOut(timeOut)
 
         if (allSolutions)
           label.getSolutionListener.searchAll(true)
@@ -843,8 +846,8 @@ package object jacop {
       lastLabel.setPrintInfo(false)
       lastLabel.setSolutionListener(new ScalaSolutionListener[T])
 
-      if (_limitOnSolutions > 0)
-        lastLabel.getSolutionListener.setSolutionLimit(_limitOnSolutions)
+      if (maxNumSolutions > 0)
+        lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
     }
 
     lastLabel.getSolutionListener.recordSolutions(recordSolutions)
@@ -883,12 +886,12 @@ package object jacop {
 
   }
 
-  /**
-   * Defines list of variables, their selection method for search and value selection
-   *
-   * @return select method for search.
-   */
-  def search[T <: JaCoP.core.Var](vars: List[T], heuristic: ComparatorVariable[T], indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
+  /** Defines list of variables, their selection method for search and value selection
+    *  
+    * @return select method for search.
+    */
+  def search[T <: JaCoP.core.Var](vars: List[T], heuristic: ComparatorVariable[T], indom: Indomain[T])
+                                 (implicit m: ClassTag[T]): SelectChoicePoint[T] = {
     new SimpleSelect[T](vars.toArray, heuristic, indom)
   }
 
@@ -897,8 +900,8 @@ package object jacop {
    *
    * @return select method for search.
    */
-  def searchVector[T <: JaCoP.core.Var](vars: List[List[T]], heuristic: ComparatorVariable[T], indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
-
+  def searchVector[T <: JaCoP.core.Var](vars: List[List[T]], heuristic: ComparatorVariable[T], 
+                                        indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
     val varsArray = new Array[Array[T]](vars.length)
     for (i <- 0 until vars.length)
       varsArray(i) = vars(i).toArray
@@ -906,64 +909,41 @@ package object jacop {
     new SimpleMatrixSelect[T](varsArray, heuristic, indom)
   }
 
-  /**
-   * Defines list of variables, their selection method for split search and value selection
-   *
-   * @return select method for search.
-   */
+  /** Defines list of variables, their selection method for split search and value selection
+    *
+    * @return select method for search.
+    */
   def searchSplit[T <: JaCoP.core.IntVar](vars: List[T], heuristic: ComparatorVariable[T])(implicit m: ClassTag[T]) = {
     new SplitSelect[T](vars.toArray, heuristic, new IndomainMiddle[T]())
   }
 
 
-  /**
-   * Defines functions that prints search statistics
-   *
-   */
+  /** Defines functions that prints search statistics. */
   def statistics() = {
-    var nodes = 0
-    var decisions = 0
-    var wrong = 0
-    var backtracks = 0
-    var depth = 0
-    var solutions = 0
+    var nodes       = 0
+    var decisions   = 0
+    var wrong       = 0
+    var backtracks  = 0
+    var depth       = 0
+    var solutions   = 0
 
     for (label <- labels) {
-      nodes += label.getNodes
-      decisions += label.getDecisions
-      wrong += label.getWrongDecisions
-      backtracks += label.getBacktracks
-      depth += label.getMaximumDepth
-      solutions = label.getSolutionListener.solutionsNo()
+      nodes       += label.getNodes
+      decisions   += label.getDecisions
+      wrong       += label.getWrongDecisions
+      backtracks  += label.getBacktracks
+      depth       += label.getMaximumDepth
+      solutions    = label.getSolutionListener.solutionsNo()
     }
     println("\nSearch statistics:\n==================" +
-      "\nSearch nodes : " + nodes +
-      "\nSearch decisions : " + decisions +
+      "\nSearch nodes           : " + nodes +
+      "\nSearch decisions       : " + decisions +
       "\nWrong search decisions : " + wrong +
-      "\nSearch backtracks : " + backtracks +
-      "\nMax search depth : " + depth +
-      "\nNumber solutions : " + solutions
+      "\nSearch backtracks      : " + backtracks +
+      "\nMax search depth       : " + depth +
+      "\nNumber solutions       : " + solutions
     )
   }
-
-
-  /**
-   * Defines functions that prints search statistics
-   *
-   * @param n number of solutions to be explored.
-   */
-  def numberSolutions(n: Int) = _limitOnSolutions = n
-
-  def timeOut: Int = _timeOut
-  
-  /** Defines functions that prints search statistics
-    *
-    * @param seconds value of time-out in seconds.
-    */
-  def timeOut_=(seconds: Int): Unit = _timeOut = seconds
-
-  def limitOnSolutions      : Int         = _limitOnSolutions
-  def limitOnSolutions_=(num: Int): Unit  = _limitOnSolutions = num
 
   /**
    * Defines null variable selection method that is interpreted by JaCoP as input order.
@@ -972,156 +952,136 @@ package object jacop {
    */
   def inputOrder = null
 
-  // ===============  IntVar & BoolVar specific
+  // ---- Generic (IntVar and BooleanVar) ----
 
-  /**
-   * Wrapper for [[JaCoP.search.SmallestDomain]].
-   *
-   * @return related variable selection method.
-   */
-  def firstFail = new SmallestDomain[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.SmallestDomain]].
+    *
+    * @return related variable selection method.
+    */
+  def firstFail[A <: JaCoP.core.Var] = new SmallestDomain[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.MostConstrainedStatic]].
-   *
-   * @return related variable selection method.
-   */
-  def mostConstrained = new MostConstrainedStatic[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.MostConstrainedStatic]].
+    *
+    * @return related variable selection method.
+    */
+  def mostConstrained[A <: JaCoP.core.Var] = new MostConstrainedStatic[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.SmallestMin]].
-   *
-   * @return related variable selection method.
-   */
-  def smallestMin = new SmallestMin[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.LargestDomain]].
+    *
+    * @return related variable selection method.
+    */
+  def antiFirstFail[A <: JaCoP.core.Var] = new LargestDomain[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.LargestDomain]].
-   *
-   * @return related variable selection method.
-   */
-  def antiFirstFail = new LargestDomain[JaCoP.core.IntVar]
+  // ---- IntVar specific ----
 
-  /**
-   * Wrapper for [[JaCoP.search.SmallestMin]].
-   *
-   * @return related variable selection method.
-   */
-  def smallest = new SmallestMin[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.SmallestMin]].
+    *
+    * @return related variable selection method.
+    */
+  def smallestMin[A <: JaCoP.core.IntVar] = new SmallestMin[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.LargestMax]].
-   *
-   * @return related variable selection method.
-   */
-  def largest = new LargestMax[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.SmallestMin]].
+    *
+    * @return related variable selection method.
+    */
+  def smallest[A <: JaCoP.core.IntVar] = new SmallestMin[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.MaxRegret]].
-   *
-   * @return related variable selection method.
-   */
-  def maxRegret = new MaxRegret[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.LargestMax]].
+    *
+    * @return related variable selection method.
+    */
+  def largest[A <: JaCoP.core.IntVar] = new LargestMax[A]
 
+  /** Wrapper for [[JaCoP.search.MaxRegret]].
+    *
+    * @return related variable selection method.
+    */
+  def maxRegret[A <: JaCoP.core.IntVar] = new MaxRegret[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.IndomainMin]].
-   *
-   * @return related variable selection method.
-   */
-  def indomainMin = new IndomainMin[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.IndomainMin]].
+    *
+    * @return related variable selection method.
+    */
+  def indomainMin[A <: JaCoP.core.IntVar] = new IndomainMin[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.IndomainMax]].
-   *
-   * @return related variable selection method.
-   */
-  def indomainMax = new IndomainMax[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.IndomainMax]].
+    *
+    * @return related variable selection method.
+    */
+  def indomainMax[A <: JaCoP.core.IntVar] = new IndomainMax[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.IndomainMiddle]].
-   *
-   * @return related variable selection method.
-   */
-  def indomainMiddle = new IndomainMiddle[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.IndomainMiddle]].
+    *
+    * @return related variable selection method.
+    */
+  def indomainMiddle[A <: JaCoP.core.IntVar] = new IndomainMiddle[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.IndomainMedian]].
-   *
-   * @return related variable selection method.
-   */
-  def indomainMedian = new IndomainMedian[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.IndomainMedian]].
+    *
+    * @return related variable selection method.
+    */
+  def indomainMedian[A <: JaCoP.core.IntVar] = new IndomainMedian[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.IndomainRandom]].
-   *
-   * @return related variable selection method.
-   */
-  def indomainRandom = new IndomainRandom[JaCoP.core.IntVar]
+  /** Wrapper for [[JaCoP.search.IndomainRandom]].
+    *
+    * @return related variable selection method.
+    */
+  def indomainRandom[A <: JaCoP.core.IntVar] = new IndomainRandom[A]
 
-  // ============= Set specific
+  // ---- Set specific ----
 
-  /**
-   * Wrapper for [[JaCoP.set.search.MinCardDiff]].
-   *
-   * @return related variable selection method.
-   */
-  def firstFailSet = new MinCardDiff[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.MinCardDiff]].
+    *
+    * @return related variable selection method.
+    */
+  def firstFailSet[A <: JaCoP.set.core.SetVar] = new MinCardDiff[A]
 
-  /**
-   * Wrapper for [[JaCoP.search.MostConstrainedStatic]].
-   *
-   * @return related variable selection method.
-   */
-  def mostConstrainedSet = new MostConstrainedStatic[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.search.MostConstrainedStatic]].
+    *
+    * @return related variable selection method.
+    */
+  def mostConstrainedSet[A <: JaCoP.set.core.SetVar] = new MostConstrainedStatic[A]
 
-  /**
-   * Currently equivalent to min_glb_card.
-   *
-   * @return related variable selection method.
-   */
-  def smallestSet = minGLBCard
+  /** Currently equivalent to `minGLBCard`.
+    *
+    * @return related variable selection method.
+    */
+  def smallestSet[A <: JaCoP.set.core.SetVar] = minGLBCard[A]
 
-  /**
-   * Wrapper for [[JaCoP.set.search.MinGlbCard]].
-   *
-   * @return related variable selection method.
-   */
-  def minGLBCard = new MinGlbCard[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.MinGlbCard]].
+    *
+    * @return related variable selection method.
+    */
+  def minGLBCard[A <: JaCoP.set.core.SetVar] = new MinGlbCard[A]
 
-  /**
-   * Wrapper for [[JaCoP.set.search.MinLubCard]].
-   *
-   * @return related variable selection method.
-   */
-  def minLUBCard = new MinLubCard[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.MinLubCard]].
+    *
+    * @return related variable selection method.
+    */
+  def minLUBCard[A <: JaCoP.set.core.SetVar] = new MinLubCard[A]
 
-  /**
-   * Wrapper for [[JaCoP.set.search.MaxCardDiff]].
-   *
-   * @return related variable selection method.
-   */
-  def antiFirstFailSet = new MaxCardDiff[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.MaxCardDiff]].
+    *
+    * @return related variable selection method.
+    */
+  def antiFirstFailSet[A <: JaCoP.set.core.SetVar] = new MaxCardDiff[A]
 
 
-  /**
-   * Wrapper for [[JaCoP.set.search.IndomainSetMin]].
-   *
-   * @return related indomain method.
-   */
-  def indomainMinSet = new IndomainSetMin[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.IndomainSetMin]].
+    *
+    * @return related indomain method.
+    */
+  def indomainMinSet[A <: JaCoP.set.core.SetVar] = new IndomainSetMin[A]
 
-  /**
-   * Wrapper for [[JaCoP.set.search.IndomainSetMax]].
-   *
-   * @return related indomain method.
-   */
-  def indomainMaxSet = new IndomainSetMax[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.IndomainSetMax]].
+    *
+    * @return related indomain method.
+    */
+  def indomainMaxSet[A <: JaCoP.set.core.SetVar] = new IndomainSetMax[A]
 
-  /**
-   * Wrapper for [[JaCoP.set.search.IndomainSetRandom]].
-   *
-   * @return related indomain method.
-   */
-  def indomainRandomSet = new IndomainSetRandom[JaCoP.set.core.SetVar]
+  /** Wrapper for [[JaCoP.set.search.IndomainSetRandom]].
+    *
+    * @return related indomain method.
+    */
+  def indomainRandomSet[A <: JaCoP.set.core.SetVar] = new IndomainSetRandom[A]
 }
