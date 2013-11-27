@@ -14,7 +14,7 @@ import JaCoP.set.constraints._
 import JaCoP.set.search._
 import scala.reflect.ClassTag
 import collection.immutable.{IndexedSeq => Vec, Iterable => IIterable}
-import collection.breakOut
+import scala.collection.{mutable, breakOut}
 
 /** Package for defining variables, constraints, global constraints and search
   * methods for [[JaCoP]] constraint solver in Scala.
@@ -23,7 +23,12 @@ package object jacop {
 
   var trace = false
 
-  private var labels = Vec.empty[DepthFirstSearch[_ <: JaCoP.core.Var]]
+  private val addLabelFun = new ThreadLocal[mutable.Buffer[DepthFirstSearch[_ <: JaCoP.core.Var]]]
+
+  private def addLabel(label: DepthFirstSearch[_ <: JaCoP.core.Var]): Unit = {
+    val b = addLabelFun.get()
+    if (b != null) b += label
+  }
 
   /** The maximum number of solutions to be explored.
     * `-1` indicates that there is no limit. */
@@ -588,7 +593,7 @@ package object jacop {
     model.imposeAllConstraints()
 
     val label = dfs[A](all = false)
-    labels = Vec(label)
+    addLabel(label)
 
     if (printSolutions.nonEmpty) {
       label.setSolutionListener(new EmptyListener[A])
@@ -636,10 +641,9 @@ package object jacop {
     model.imposeAllConstraints()
 
     val label = dfs[A](all = all)
-    labels = Vec(label)
+    addLabel(label)
 
     if (printSolutions.nonEmpty) {
-      // label.setSolutionListener(new EmptyListener[T]);
       label.setPrintInfo(false)
       label.setSolutionListener(new ScalaSolutionListener[A](printSolutions))
     }
@@ -820,11 +824,10 @@ package object jacop {
                                  (implicit m: ClassTag[A]): SelectChoicePoint[A] =
     new SimpleSelect[A](vars.toArray, heuristic, indom)
 
-  /**
-   * Defines list of variables, their selection method for sequential search and value selection
-   *
-   * @return select method for search.
-   */
+  /** Defines list of variables, their selection method for sequential search and value selection
+    *
+    * @return select method for search.
+    */
   def searchVector[A <: JaCoP.core.Var](vars: Vec[Vec[A]], heuristic: ComparatorVariable[A],
                                         indom: Indomain[A])(implicit m: ClassTag[A]): SelectChoicePoint[A] = {
     val varsArray: Array[Array[A]] = vars.map(_.toArray)(breakOut)
@@ -840,36 +843,42 @@ package object jacop {
                                          (implicit m: ClassTag[A]): SelectChoicePoint[A] =
     new SplitSelect[A](vars.toArray, heuristic, new IndomainMiddle[A]())
 
-  def statistics(): String = {
-    var nodes       = 0
-    var decisions   = 0
-    var wrong       = 0
-    var backtracks  = 0
-    var depth       = 0
-    var solutions   = 0
+  def withStatistics[Z](block: => Z): (Stats, Z) = {
+    val old = addLabelFun.get()
+    val b   = mutable.Buffer.empty[DepthFirstSearch[_ <: JaCoP.core.Var]]
+    addLabelFun.set(b)
+    try {
+      var nodes       = 0
+      var decisions   = 0
+      var wrong       = 0
+      var backtracks  = 0
+      var depth       = 0
+      var solutions   = 0
 
-    for (label <- labels) {
-      nodes       += label.getNodes
-      decisions   += label.getDecisions
-      wrong       += label.getWrongDecisions
-      backtracks  += label.getBacktracks
-      depth       += label.getMaximumDepth
-      solutions    = label.getSolutionListener.solutionsNo()
+      val res = block
+
+      b.foreach { label =>
+        nodes       += label.getNodes
+        decisions   += label.getDecisions
+        wrong       += label.getWrongDecisions
+        backtracks  += label.getBacktracks
+        depth       += label.getMaximumDepth
+        solutions    = label.getSolutionListener.solutionsNo()
+      }
+      val stats = Stats(nodes = nodes, decisions = decisions, wrong = wrong, backtracks = backtracks, depth = depth,
+        solutions = solutions)
+
+      (stats, res)
+
+    } finally {
+      addLabelFun.set(old)
     }
-    
-    "Search statistics:\n==================" +
-      "\n Search nodes           : " + nodes +
-      "\n Search decisions       : " + decisions +
-      "\n Wrong search decisions : " + wrong +
-      "\n Search backtracks      : " + backtracks +
-      "\n Max search depth       : " + depth +
-      "\n Number solutions       : " + solutions
   }
-  
-  def printStatistics(): Unit = {
-    println()
-    println(statistics())
-  }
+
+  //  def printStatistics(): Unit = {
+  //    println()
+  //    println(statistics())
+  //  }
 
   //  /** Defines null variable selection method that is interpreted by JaCoP as input order.
   //    *
