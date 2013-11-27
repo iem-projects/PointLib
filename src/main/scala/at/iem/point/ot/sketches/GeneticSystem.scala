@@ -78,7 +78,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     )
     val solutionsB    = Vec.newBuilder[GeneticSystem.Chromosome]
     limitOnSolutions  = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
-    timeOutValue      = 30    // seconds
+    timeOut           = 30    // seconds
     val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
     val solutions     = solutionsB.result()
 
@@ -250,7 +250,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     )
     val solutionsB    = Vec.newBuilder[Chord]
     limitOnSolutions  = 256
-    timeOutValue      = 10    // seconds
+    timeOut           = 10    // seconds
     val result        = satisfyAll[IntVar](select, () => solutionsB += mkChord())
     val solutions     = solutionsB.result()
 
