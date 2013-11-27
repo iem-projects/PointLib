@@ -13,7 +13,7 @@ import JaCoP.search._
 import JaCoP.set.constraints._
 import JaCoP.set.search._
 import scala.reflect.ClassTag
-import collection.immutable.{IndexedSeq => Vec, Iterable => IIterable, Seq => ISeq}
+import collection.immutable.{IndexedSeq => Vec, Iterable => IIterable}
 import collection.breakOut
 
 /** Package for defining variables, constraints, global constraints and search
@@ -21,13 +21,7 @@ import collection.breakOut
   */
 package object jacop {
 
-  val trace = false
-
-  private var allSolutions  = false
-
-  private var _printFunctions = Vec.empty[() => Unit]
-
-  def printFunctions: Vec[() => Unit] = _printFunctions
+  var trace = false
 
   private var labels = Vec.empty[DepthFirstSearch[_ <: JaCoP.core.Var]]
 
@@ -593,14 +587,13 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val label = dfs[A]()
+    val label = dfs[A](all = false)
     labels = Vec(label)
 
-    _printFunctions = printSolutions.toIndexedSeq
-    if (_printFunctions.nonEmpty) {
+    if (printSolutions.nonEmpty) {
       label.setSolutionListener(new EmptyListener[A])
       label.setPrintInfo(false)
-      label.setSolutionListener(new ScalaSolutionListener[A])
+      label.setSolutionListener(new ScalaSolutionListener[A](printSolutions))
     }
 
     if (maxNumSolutions > 0) {
@@ -633,33 +626,32 @@ package object jacop {
     * @return true if solution found and false otherwise.
     */
   def satisfy[A <: JaCoP.core.Var](select: SelectChoicePoint[A], printSolutions: (() => Unit)*)
-                                  (implicit m: ClassTag[A], model: Model): Boolean = {
+                                  (implicit m: ClassTag[A], model: Model): Boolean =
+    satisfyImpl(select, printSolutions, all = false)
+
+  private def satisfyImpl[A <: JaCoP.core.Var](select: SelectChoicePoint[A], printSolutions: Seq[() => Unit],
+                                               all: Boolean)
+                                              (implicit m: ClassTag[A], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
-    val label = dfs[A]()
+    val label = dfs[A](all = all)
     labels = Vec(label)
 
-    _printFunctions = printSolutions.toIndexedSeq
-    if (_printFunctions.nonEmpty) {
+    if (printSolutions.nonEmpty) {
       // label.setSolutionListener(new EmptyListener[T]);
       label.setPrintInfo(false)
-      label.setSolutionListener(new ScalaSolutionListener[A])
+      label.setSolutionListener(new ScalaSolutionListener[A](printSolutions))
     }
 
-    if (timeOut > 0)
-      label.setTimeOut(timeOut)
+    val lbList = label.getSolutionListener
 
-    if (allSolutions)
-      label.getSolutionListener.searchAll(true)
-
-    if (maxNumSolutions > 0)
-      label.getSolutionListener.setSolutionLimit(maxNumSolutions)
-
-    label.getSolutionListener.recordSolutions(recordSolutions)
+    if (timeOut > 0)          label.setTimeOut(timeOut)
+    if (all)                  lbList.searchAll(true)
+    if (maxNumSolutions > 0)  lbList.setSolutionLimit(maxNumSolutions)
+    if (recordSolutions)      lbList.recordSolutions(recordSolutions)
 
     label.labeling(model, select)
-
   }
 
   /** Search method that finds all solutions.
@@ -668,13 +660,8 @@ package object jacop {
     * @return true if solution found and false otherwise.
     */
   def satisfyAll[A <: JaCoP.core.Var](select: SelectChoicePoint[A], printSolutions: (() => Unit)*)
-                                     (implicit m: ClassTag[A], model: Model): Boolean = {
-
-    allSolutions = true
-
-    satisfy(select, printSolutions: _*)
-  }
-
+                                     (implicit m: ClassTag[A], model: Model): Boolean =
+    satisfyImpl(select, printSolutions, all = true)
 
   /** Minimization method for sequence of search methods (specified by list of select methods).
     *
@@ -688,7 +675,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val masterLabel = dfs[A]()
+    val masterLabel = dfs[A](all = false)
 
     if (printSolutions.size > 0) {
       masterLabel.setSolutionListener(new EmptyListener[A])
@@ -699,7 +686,7 @@ package object jacop {
     if (timeOut         > 0) masterLabel.setTimeOut(timeOut)
 
     val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
-      val label = dfs[A]()
+      val label = dfs[A](all = false)
       previousSearch.addChildSearch(label)
       label.setSelectChoicePoint(sel)
 
@@ -714,10 +701,9 @@ package object jacop {
       label
     }
 
-    _printFunctions = printSolutions.toIndexedSeq
-    if (_printFunctions.nonEmpty) {
+    if (printSolutions.nonEmpty) {
       lastLabel.setPrintInfo(false)
-      lastLabel.setSolutionListener(new ScalaSolutionListener[A])
+      lastLabel.setSolutionListener(new ScalaSolutionListener[A](printSolutions))
 
       if (maxNumSolutions > 0) {
         lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
@@ -750,11 +736,15 @@ package object jacop {
     * @return true if solution found and false otherwise.
     */
   def satisfySeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], printSolutions: (() => Unit)*)
-                                     (implicit m: ClassTag[A], model: Model): Boolean = {
+                                     (implicit m: ClassTag[A], model: Model): Boolean =
+    satisfySeqImpl(select, printSolutions, all = false)
 
+  private def satisfySeqImpl[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]],
+                                                  printSolutions: Seq[() => Unit], all: Boolean)
+                                                 (implicit m: ClassTag[A], model: Model): Boolean = {
     model.imposeAllConstraints()
 
-    val masterLabel = dfs[A]()
+    val masterLabel = dfs[A](all = all)
 
     if (printSolutions.size > 0) {
       masterLabel.setSolutionListener(new EmptyListener[A])
@@ -762,12 +752,12 @@ package object jacop {
     }
 
     if (timeOut > 0 ) masterLabel.setTimeOut(timeOut)
-    if (allSolutions) masterLabel.getSolutionListener.searchAll(true)
+    if (all)          masterLabel.getSolutionListener.searchAll(true)
 
     masterLabel.getSolutionListener.recordSolutions(recordSolutions)
 
     val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
-      val label = dfs[A]()
+      val label = dfs[A](all = all)
       previousSearch.addChildSearch(label)
       label.setSelectChoicePoint(sel)
 
@@ -776,18 +766,18 @@ package object jacop {
         label.setPrintInfo(false)
       }
 
+      val lbList = label.getSolutionListener
       if (timeOut > 0 ) label.setTimeOut(timeOut)
-      if (allSolutions) label.getSolutionListener.searchAll(true)
+      if (all)          lbList.searchAll(true)
 
-      label.getSolutionListener.recordSolutions(recordSolutions)
+      lbList.recordSolutions(recordSolutions)
 
       label
     }
 
-    _printFunctions = printSolutions.toIndexedSeq
-    if (_printFunctions.nonEmpty) {
+    if (printSolutions.nonEmpty) {
       lastLabel.setPrintInfo(false)
-      lastLabel.setSolutionListener(new ScalaSolutionListener[A])
+      lastLabel.setSolutionListener(new ScalaSolutionListener[A](printSolutions))
 
       if (maxNumSolutions > 0)
         lastLabel.getSolutionListener.setSolutionLimit(maxNumSolutions)
@@ -804,23 +794,19 @@ package object jacop {
     * @return true if solution found and false otherwise.
     */
   def satisfyAllSeq[A <: JaCoP.core.Var](select: IIterable[SelectChoicePoint[A]], printSolutions: (() => Unit)*)
-                                        (implicit m: ClassTag[A], model: Model): Boolean = {
-
-    allSolutions = true
-
-    satisfySeq(select, printSolutions: _*)
-  }
+                                        (implicit m: ClassTag[A], model: Model): Boolean =
+    satisfySeqImpl(select, printSolutions, all = true)
 
   /** Depth first search method.
     *
     * @return standard depth first search.
     */
-  def dfs[A <: JaCoP.core.Var](): DepthFirstSearch[A] = {
+  def dfs[A <: JaCoP.core.Var](all: Boolean): DepthFirstSearch[A] = {
     val label = new DepthFirstSearch[A]
 
     label.setAssignSolution(true)
     label.setSolutionListener(new PrintOutListener[A]())
-    if (allSolutions)
+    if (all)
       label.getSolutionListener.searchAll(true)
 
     label

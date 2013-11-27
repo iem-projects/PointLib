@@ -21,9 +21,11 @@ class EmptyListener[T <: JaCoP.core.Var] extends JaCoP.search.SimpleSolutionList
 /** Solution listener that prints solutions of search
   * using user specified functions.
   */
-class ScalaSolutionListener[T <: JaCoP.core.Var] extends JaCoP.search.SimpleSolutionListener[T] {
+class ScalaSolutionListener[T <: JaCoP.core.Var](printFunctions: Seq[() => Unit])
+  extends JaCoP.search.SimpleSolutionListener[T] {
 
-  override def executeAfterSolution(search: JaCoP.search.Search[T], select: JaCoP.search.SelectChoicePoint[T]): Boolean = {
+  override def executeAfterSolution(search: JaCoP.search.Search[T],
+                                    select: JaCoP.search.SelectChoicePoint[T]): Boolean = {
     val res = super.executeAfterSolution(search, select)
     printFunctions.foreach(_.apply())
     res

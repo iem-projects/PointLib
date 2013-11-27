@@ -72,11 +72,14 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
       (Chord(notes), ChordNeutral)
     }
 
-    val select        = new SimpleSelect[IntVar](vars.flatten.toArray, new SmallestDomain, new IndomainRandom2(r))
+    val select        = search(vars.flatten, firstFail, new IndomainRandom2(r))
     val solutionsB    = Vec.newBuilder[GeneticSystem.Chromosome]
     maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
     timeOut           = 30    // seconds
-    val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
+
+    def addSolution(): Unit = solutionsB += mkChromo()
+
+    val result        = satisfyAll(select, addSolution)
     val solutions     = solutionsB.result()
 
     require(result, s"Constraints could not be satisfied")
@@ -103,7 +106,7 @@ case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(5),
   extends muta.impl.BreedingImpl[GeneticSystem.Chromosome, GlobalImpl]
 
 object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, GlobalImpl] with */ BreedingFunctionImpl {
-  import GeneticSystem.{Gene, Chromosome, Genome, Global}
+  import GeneticSystem.{Chromosome, Genome, Global}
 
   private final val NUM_TRIES = 32
 
@@ -138,7 +141,8 @@ object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, Globa
     outerLoop(num)
     val found = res.result()
     if (found.size > num) found.take(num) else if (found.size == num) found else {
-      ???
+      val pad = Vec.fill(num - found.size)(gen(r.nextInt(gen.size)))
+      found ++ pad
     }
   }
 }
@@ -241,11 +245,14 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       Chord(notes)
     }
 
-    val select        = new SimpleSelect[IntVar](vars.toArray, new SmallestDomain, new IndomainRandom2(r))
+    val select        = search(vars, firstFail, new IndomainRandom2(r))
     val solutionsB    = Vec.newBuilder[Chord]
     maxNumSolutions   = 256
     timeOut           = 10    // seconds
-    val result        = satisfyAll[IntVar](select, () => solutionsB += mkChord())
+
+    def addSolution(): Unit = solutionsB += mkChord()
+
+    val result        = satisfyAll(select, addSolution)
     val solutions     = solutionsB.result()
 
     if (!result) {
@@ -477,14 +484,13 @@ object GeneticSystem extends muta.System {
     import Implicits._
 
     val vars = c.map { case (chord, _) =>
-      chord.pitches.map(_.midi: IntVar)
+      chord.pitches.map(p => p.midi: IntVar)
     }
     val varsf = vars.flatten
     vars.foreach    (constrainVert (_   , global.voices, global.vertical))
     vars.foreachPair(constrainHoriz(_, _, global.voices))
 
-    // val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
-    val select = new SimpleSelect[IntVar](vars.flatten.toArray, smallest, indomainMin)
+    val select = search(vars.flatten, smallest, indomainMin)
     satisfy(select)
   }
 
