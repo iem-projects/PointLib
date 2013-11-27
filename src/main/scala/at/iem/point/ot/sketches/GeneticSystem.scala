@@ -9,11 +9,10 @@ import de.sciss.muta.{SelectionNumber, SelectionPercent, SelectionSize}
 import scala.swing.{Component, Label}
 import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsValue, Format}
 import de.sciss.jacop
-import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
 import collection.breakOut
-import scala.annotation.tailrec
+import language.implicitConversions
 
 sealed trait FiniteConstraintType
 case object Allow  extends FiniteConstraintType
@@ -45,8 +44,10 @@ case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
 
 case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
   extends muta.Generation[GeneticSystem.Chromosome, GlobalImpl] {
+  
+  import GeneticSystem.{Chromosome, constrainHoriz, constrainVert, pitchesToChord, varToPitch}
 
-  def apply(r: Random): GeneticSystem.Chromosome = {
+  def apply(r: Random): Chromosome = {
     val voices    = global.voices
     val numVoices = voices.size
     val num       = global.length
@@ -57,23 +58,22 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
 
     val vars = Vec.fill(num) {
       val ch = Vec.fill(numVoices)(new IntVar())
-      GeneticSystem.constrainVert(ch, voices, global.vertical)
+      constrainVert(ch, voices, global.vertical)
       ch
     }
     vars.foreachPair { (c1, c2) =>
-      GeneticSystem.constrainHoriz(c1, c2, voices)
+      constrainHoriz(c1, c2, voices)
     }
 
     require(model.consistency(), s"Constraints model is not consistent")
 
-    def mkChromo(): GeneticSystem.Chromosome = vars.map { vc =>
-      val pitches = vc.map(v => v.value().asPitch).reverse
-      val notes   = pitches.map(pitch => OffsetNote(offset = 0, pitch = pitch, duration = 1, velocity = 80))
-      (Chord(notes), ChordNeutral)
+    def mkChromo(): Chromosome = vars.map { vc =>
+      val chord = pitchesToChord(vc)
+      (chord, ChordNeutral)
     }
 
     val select        = search(vars.flatten, firstFail, new IndomainRandom2(r))
-    val solutionsB    = Vec.newBuilder[GeneticSystem.Chromosome]
+    val solutionsB    = Vec.newBuilder[Chromosome]
     maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
     timeOut           = 30    // seconds
 
@@ -111,28 +111,36 @@ object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, Globa
   private final val NUM_TRIES = 32
 
   def apply(gen: Genome, num: Int, glob: Global, r: Random): Genome = {
+    val gsz = gen.size
+    if (gsz < 2) return Vec.fill(num)(gen.head)
+
     val res = Vec.newBuilder[Chromosome]
     res.sizeHint(num)
 
     /* @tailrec */ def outerLoop(rem: Int): Unit = if (rem > 0) {
-      /* @tailrec */ def innerLoop(tries: Int): Unit = if (tries > 0) {
-        val i   = r.nextInt(gen.size)
-        val j   = r.nextInt(gen.size)
-        val gi  = gen(i)
-        val gj  = gen(j)
-        val szi = gi.size
-        val szj = gj.size
-        val len = (szi + szj) / 2
-        val li  = r.nextInt(math.min(len, szi))
-        val lj  = math.min(szj, len - li)
-        val c   = gi.take(li) ++ gj.drop(szj - lj)
+      /* @tailrec */ def innerLoop(tries: Int): Unit =
+        if (tries == 0) {
+          println(s"Crossover: Giving up...")
 
-        if (GeneticSystem.accept(c, glob)) {
-          res += c
         } else {
-          innerLoop(tries - 1)
+          val i   = r.nextInt(gen.size)
+          val j0  = r.nextInt(gen.size - 1)
+          val j   = if (j0 < i) j0 else j0 + 1    // thus, j != i
+          val gi  = gen(i)
+          val gj  = gen(j)
+          val szi = gi.size
+          val szj = gj.size
+          val len = (szi + szj) / 2
+          val li  = r.nextInt(math.min(len, szi))
+          val lj  = math.min(szj, len - li)
+          val c   = gi.take(li) ++ gj.drop(szj - lj)
+
+          if (GeneticSystem.accept(c, glob)) {
+            res += c
+          } else {
+            innerLoop(tries - 1)
+          }
         }
-      }
 
       innerLoop(NUM_TRIES)
       outerLoop(rem - 1)
@@ -153,7 +161,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 
   def numGenesSize = chords
 
-  import GeneticSystem.{Gene, Chromosome, Genome, Global}
+  import GeneticSystem.{Gene, Chromosome, Genome, Global, chordToPitches, pitchesToChord, varToPitch, pitchToVar}
 
   def apply(gen: Genome, num: Int, glob: Global, r: util.Random): Genome = Vec.fill(num) {
     val i   = r.nextInt(gen.size)
@@ -185,7 +193,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     */
   protected def numGenes(chromosome: Chromosome)(implicit random: util.Random): Int =
     random.nextInt(numGenesSize(chromosome.size))
-
+  
   def mutate(global: Global, gene: Gene, pred: Option[Gene], succ: Option[Gene])(implicit r: util.Random): Gene = {
     val (chord, _) = gene
     val csz   = chord.size
@@ -200,7 +208,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 
     if (DEBUG_MUTA) println()
 
-    val pitchesSel = chord.pitches.reverse.zip(sel)
+    val pitchesSel = chordToPitches[Pitch](chord).zip(sel)
     val vars = pitchesSel.map { case (p, psel) =>
       val midi = p.midi
       if (psel) {
@@ -210,47 +218,25 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       } else new IntVar(midi, midi)
     }
     GeneticSystem.constrainVert(vars, global.voices, global.vertical)
-    //    vars.foreachPair { case (hi, lo) =>
-    //      if (DEBUG_MUTA) println(s"{${hi.min()}...${hi.max()}} #> {${lo.min()}...${lo.max()}}")
-    //      hi #> lo
-    //    }
 
     pred.foreach { case (predC, _) =>
-      val pred: Vec[IntVar] = predC.pitches.reverse.map(_.midi: IntVar)
+      val pred = chordToPitches[IntVar](predC)
       GeneticSystem.constrainHoriz(pred, vars, global.voices)
-      //      vars.zip(predC.pitches.reverse).zip(glob.voices).foreach { case ((iv, predP), vc) =>
-      //        val pp = predP.midi
-      //        if (DEBUG_MUTA) println(s"Pred: ${pp - vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${pp + vc.maxUp}")
-      //        iv #<= (pp + vc.maxUp  )
-      //        iv #>= (pp - vc.maxDown)
-      //      }
     }
     // something with the following is wrong probably:
     succ.foreach { case (succC, _) =>
-      val succ: Vec[IntVar] = succC.pitches.reverse.map(_.midi: IntVar)
+      val succ = chordToPitches[IntVar](succC)
       GeneticSystem.constrainHoriz(vars, succ, global.voices)
-      //      vars.zip(succC.pitches.reverse).zip(global.voices).foreach { case ((iv, succP), vc) =>
-      //        val sp = succP.midi
-      //        if (DEBUG_MUTA) println(s"Succ: ${sp + vc.maxDown} #<= {${iv.min()}...${iv.max()}} #<= ${sp - vc.maxUp}")
-      //        iv #>= (sp - vc.maxUp  )
-      //        iv #<= (sp + vc.maxDown)
-      //      }
     }
 
     require(model.consistency(), s"Constraints model is not consistent")
-
-    def mkChord(): Chord = {
-      val pitches = vars.map(v => v.value().asPitch).reverse
-      val notes   = pitches.map(pitch => OffsetNote(offset = 0, pitch = pitch, duration = 1, velocity = 80))
-      Chord(notes)
-    }
 
     val select        = search(vars, firstFail, new IndomainRandom2(r))
     val solutionsB    = Vec.newBuilder[Chord]
     maxNumSolutions   = 256
     timeOut           = 10    // seconds
 
-    def addSolution(): Unit = solutionsB += mkChord()
+    def addSolution(): Unit = solutionsB += pitchesToChord(vars)
 
     val result        = satisfyAll(select, addSolution)
     val solutions     = solutionsB.result()
@@ -374,9 +360,11 @@ case class FrameIntervalEval(reduce: ReduceFunction =
 case class VoiceEval(voice: Int = 1, reduce: ReduceFunction =
                     Match(gen = ConstantEnv(60), AbsDif, ComposeReduceUnary(Mean, LinLin(0, 10, 1, 0))))
   extends EvaluationImpl {
+  
+  import GeneticSystem.{Chromosome, chordToPitches}
 
-  override def apply(c: GeneticSystem.Chromosome): Double = {
-    val seq = c.map(_._1.pitches.reverse(voice).midi.toDouble)
+  override def apply(c: Chromosome): Double = {
+    val seq = c.map { case (chord, _) => chordToPitches[Double](chord)(_.midi.toDouble)(voice) }
     reduce(seq)
   }
 }
@@ -464,6 +452,15 @@ object GeneticSystem extends muta.System {
   //    Voice(lowest = 24, highest = 72, maxUp = 6, maxDown = 6)
   //  )
 
+  def chordToPitches[A](chord: Chord)(implicit view: Pitch => A): Vec[A] = chord.pitches.reverse.map(view)
+  def pitchesToChord[A](pitches: Vec[A])(implicit view: A => Pitch): Chord = {
+    val notes = pitches.reverse.map(pitch => OffsetNote(offset = 0, pitch = view(pitch), duration = 1, velocity = 80))
+    Chord(notes)
+  }
+  
+  implicit def varToPitch(vr: jacop.IntVar): Pitch = vr.value().asPitch
+  implicit def pitchToVar(pitch: Pitch)(implicit model: jacop.Model): jacop.IntVar = new jacop.IntVar(pitch.midi, pitch.midi)
+  
   val DefaultVoices = Vec(
     Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
     Voice(down = VoiceDirection(limit = 36, step = 6), up = VoiceDirection(limit = 84, step = 6)),
@@ -483,10 +480,7 @@ object GeneticSystem extends muta.System {
     implicit val model = new Model
     import Implicits._
 
-    val vars = c.map { case (chord, _) =>
-      chord.pitches.map(p => p.midi: IntVar)
-    }
-    val varsf = vars.flatten
+    val vars = c.map { case (chord, _) => chordToPitches[IntVar](chord) }
     vars.foreach    (constrainVert (_   , global.voices, global.vertical))
     vars.foreachPair(constrainHoriz(_, _, global.voices))
 
