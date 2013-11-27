@@ -29,7 +29,7 @@ package object jacop {
 
   def printFunctions: Vec[() => Unit] = _printFunctions
 
-  private var labels: Array[DepthFirstSearch[_ <: JaCoP.core.Var]] = null
+  private var labels = Vec.empty[DepthFirstSearch[_ <: JaCoP.core.Var]]
 
   /** The maximum number of solutions to be explored.
     * `-1` indicates that there is no limit. */
@@ -46,7 +46,7 @@ package object jacop {
     *
     * @param xs array of variables to be different.
     */
-  def allDifferent(xs: IIterable[IntVar])(implicit model: Model): Unit = {
+  def allDifferent(xs: IntVar*)(implicit model: Model): Unit = {
     val c = new Alldiff(xs.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
@@ -56,7 +56,7 @@ package object jacop {
     *
     * @param xs array of variables to be different.
     */
-  def allDistinct(xs: IIterable[IntVar])(implicit model: Model): Unit = {
+  def allDistinct(xs: IntVar*)(implicit model: Model): Unit = {
     val c = new Alldistinct(xs.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
@@ -66,7 +66,7 @@ package object jacop {
     *
     * @param xs array of tuples of variables and their counters
     */
-  def gcc(xs: IIterable[(IntVar, IntVar)])(implicit model: Model): Unit = {
+  def gcc(xs: (IntVar, IntVar)*)(implicit model: Model): Unit = {
     val (vars, counters) = xs.unzip
     val c = new GCC(vars.toArray[JaCoP.core.IntVar], counters.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
@@ -78,8 +78,8 @@ package object jacop {
     * @param xs array of variables to be summed up.
     * @param result summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](xs: IIterable[A], result: IntVar)(implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Sum(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], result)
+  def sum[A <: JaCoP.core.IntVar](xs: IIterable[A], result: IntVar)(implicit model: Model): Unit = {
+    val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
     if (trace) println(c)
     model.impose(c)
   }
@@ -89,7 +89,7 @@ package object jacop {
     * @param xs variables to be summed up.
     * @return summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
+  def sum[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Sum(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
@@ -98,27 +98,25 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.SumWeight]].
     *
-    * @param res array of variables to be summed up.
-    * @param w array of weights.
+    * @param xs tuples consisting of variables and their corresponding weights
     * @param result summation result.
     */
-  def weightedSum[A <: JaCoP.core.IntVar](res: IIterable[A], w: Array[Int], result: IntVar)
-                                         (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new SumWeight(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w, result)
+  def weightedSum[A <: JaCoP.core.IntVar](xs: IIterable[(A, Int)], result: IntVar)(implicit model: Model): Unit = {
+    val (vars, weights) = xs.unzip
+    val c = new SumWeight(vars.toArray[JaCoP.core.IntVar], weights.toArray[Int], result)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.SumWeight]].
     *
-    * @param res array of variables to be summed up.
-    * @param w array of weights.
+    * @param xs tuples consisting of variables and their respective weights
     * @return summation result.
     */
-  def sum[A <: JaCoP.core.IntVar](res: IIterable[A], w: Array[Int])
-                                 (implicit m: ClassTag[A], model: Model): IntVar = {
+  def weightedSum[A <: JaCoP.core.IntVar](xs: (A, Int)*)(implicit model: Model): IntVar = {
     val result = new IntVar()
-    val c = new SumWeight(res.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w, result)
+    val (vars, weights) = xs.unzip
+    val c = new SumWeight(vars.toArray[JaCoP.core.IntVar], weights.toArray[Int], result)
     if (trace) println(c)
     model.impose(c)
     result
@@ -142,9 +140,8 @@ package object jacop {
     * @param xs variables where maximum values is to be found.
     * @param mx maximum value.
     */
-  def max[A <: JaCoP.core.IntVar](xs: IIterable[A], mx: JaCoP.core.IntVar)
-                                 (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Max(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mx)
+  def max[A <: JaCoP.core.IntVar](xs: IIterable[A], mx: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+    val c = new Max(xs.toArray[JaCoP.core.IntVar], mx)
     if (trace) println(c)
     model.impose(c)
   }
@@ -155,8 +152,8 @@ package object jacop {
     * @param mn minimum value.
     */
   def min[A <: JaCoP.core.IntVar](xs: IIterable[A], mn: JaCoP.core.IntVar)
-                                 (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Min(xs.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], mn)
+                                 (implicit model: Model): Unit = {
+    val c = new Min(xs.toArray[JaCoP.core.IntVar], mn)
     if (trace) println(c)
     model.impose(c)
   }
@@ -166,7 +163,7 @@ package object jacop {
     * @param xs variables where maximum values is to be found.
     * @return max value.
     */
-  def max[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
+  def max[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Max(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
@@ -178,7 +175,7 @@ package object jacop {
     * @param xs variables where minimum values is to be found.
     * @return minimum value.
     */
-  def min[A <: JaCoP.core.IntVar](xs: IIterable[A])(implicit m: ClassTag[A], model: Model): IntVar = {
+  def min[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Min(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
@@ -190,8 +187,7 @@ package object jacop {
     * @param xs variables to count number of values value.
     * @param count of values value.
     */
-  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], count: A, value: Int)
-                                   (implicit m: ClassTag[A], model: Model): Unit = {
+  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], count: A, value: Int)(implicit model: Model): Unit = {
     val c = new Count(xs.toArray[JaCoP.core.IntVar], count, value)
     if (trace) println(c)
     model.impose(c)
@@ -202,8 +198,7 @@ package object jacop {
     * @param xs variables to count number of values value.
     * @return number of values value.
     */
-  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], value: Int)
-                                   (implicit m: ClassTag[A], model: Model): IntVar = {
+  def count[A <: JaCoP.core.IntVar](xs: IIterable[A], value: Int)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Count(xs.toArray[JaCoP.core.IntVar], result, value)
     model.constr += c
@@ -216,8 +211,7 @@ package object jacop {
     * @param xs variables to count number of different values.
     * @param count of different values.
     */
-  def values[A <: JaCoP.core.IntVar](xs: IIterable[A], count: IntVar)
-                                    (implicit m: ClassTag[A], model: Model): Unit = {
+  def values[A <: JaCoP.core.IntVar](xs: IIterable[A], count: IntVar)(implicit model: Model): Unit = {
     val c = new Values(xs.toArray[JaCoP.core.IntVar], count)
     if (trace) println(c)
     model.impose(c)
@@ -228,7 +222,7 @@ package object jacop {
     * @param xs variables to count number of different values.
     * @return number of different values.
     */
-  def values[A <: JaCoP.core.IntVar](xs: A*)(implicit m: ClassTag[A], model: Model): IntVar = {
+  def values[A <: JaCoP.core.IntVar](xs: A*)(implicit model: Model): IntVar = {
     val result = new IntVar()
     val c = new Values(xs.toArray[JaCoP.core.IntVar], result)
     model.constr += c
@@ -237,53 +231,26 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
-    * @param index index to select element from list of elements.
-    * @param elements array of integers that can be assigned to values.
-    * @param value value selected from list of elements.
+    * @param index    index to select element from list of elements.
+    * @param xs       sequence of integers that can be assigned to values.
+    * @param value    value selected from list of elements.
     */
-  def element(index: JaCoP.core.IntVar, elements: Array[Int], value: JaCoP.core.IntVar)(implicit model: Model): Unit = {
-    val c = new Element(index, elements, value)
+  def element(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar)(implicit model: Model): Unit = {
+    val c = new Element(index, xs.toArray, value)
     if (trace) println(c)
     model.impose(c)
   }
 
   /** Wrapper for [[JaCoP.constraints.Element]].
     *
-    * @param index index to select element from list of elements.
-    * @param elements array of integers that can be assigned to values.
-    * @param value value selected from list of elements.
-    * @param offset value of index offset (shift).
+    * @param index    index to select element from list of elements.
+    * @param xs       sequence of integers that can be assigned to values.
+    * @param value    value selected from list of elements.
+    * @param offset   value of index offset (shift).
     */
-  def element(index: JaCoP.core.IntVar, elements: Array[Int], value: JaCoP.core.IntVar, offset: Int)
+  def element(index: JaCoP.core.IntVar, xs: Vec[Int], value: JaCoP.core.IntVar, offset: Int)
              (implicit model: Model): Unit = {
-    val c = new Element(index, elements, value, offset)
-    if (trace) println(c)
-    model.impose(c)
-  }
-
-  /** Wrapper for [[JaCoP.constraints.Element]].
-    *
-    * @param index index to select element from list of elements.
-    * @param elements array of variables that can be assigned to values.
-    * @param value value selected from list of elements.
-    */
-  def element[A <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: IIterable[A], value: JaCoP.core.IntVar)
-                                     (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Element(index, elements.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], value)
-    if (trace) println(c)
-    model.impose(c)
-  }
-
-  /** Wrapper for [[JaCoP.constraints.Element]].
-    *
-    * @param index index to select element from list of elements.
-    * @param elements array of variables that can be assigned to values.
-    * @param value value selected from list of elements.
-    * @param offset value of index offset (shift).
-    */
-  def element[A <: JaCoP.core.IntVar](index: JaCoP.core.IntVar, elements: IIterable[A], value: JaCoP.core.IntVar,
-                                      offset: Int)(implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new Element(index, elements.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], value, offset)
+    val c = new Element(index, xs.toArray, value, offset)
     if (trace) println(c)
     model.impose(c)
   }
@@ -329,10 +296,10 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.Circuit]].
     *
-    * @param n array of variables, which domains define next nodes in the graph.
+    * @param nodes variables, which domains define next nodes in the graph.
     */
-  def circuit(n: Array[IntVar])(implicit model: Model): Unit = {
-    val c = new Circuit(n.asInstanceOf[Array[JaCoP.core.IntVar]])
+  def circuit(nodes: IIterable[IntVar])(implicit model: Model): Unit = {
+    val c = new Circuit(nodes.toArray[JaCoP.core.IntVar])
     if (trace) println(c)
     model.impose(c)
   }
@@ -374,12 +341,12 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.ExtensionalSupportVA]].
     *
-    * @param list array of variables.
+    * @param list   array of variables.
     * @param tuples array of tuples allowed to be assigned to variables.
     */
   def table[A <: JaCoP.core.IntVar](list: IIterable[A], tuples: Array[Array[Int]])
-                                   (implicit m: ClassTag[A], model: Model): Unit = {
-    val c = new ExtensionalSupportVA(list.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], tuples)
+                                   (implicit model: Model): Unit = {
+    val c = new ExtensionalSupportVA(list.toArray[JaCoP.core.IntVar], tuples)
     if (trace) println(c)
     model.impose(c)
   }
@@ -401,11 +368,11 @@ package object jacop {
 
   /** Wrapper for JaCoP.constraints.binpack.Binpack (?).
     *
-    * @param bin list containing which bin is assigned to an item.
+    * @param bin  list containing which bin is assigned to an item.
     * @param load list of loads for bins.
-    * @param w array of weights for items.
+    * @param w    array of weights for items.
     */
-  def binpacking(bin: List[IntVar], load: List[IntVar], w: Array[Int])(implicit model: Model): Unit = {
+  def binPacking(bin: List[IntVar], load: List[IntVar], w: Array[Int])(implicit model: Model): Unit = {
     val c = new Binpacking(bin.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], load.toArray.asInstanceOf[Array[JaCoP.core.IntVar]], w)
     if (trace) println(c)
     model.impose(c)
@@ -413,7 +380,7 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.regular.Regular]].
     *
-    * @param dfa specification of finite state machine using class fsm.
+    * @param dfa  specification of finite state machine using class fsm.
     * @param vars list of variables assigned to fsm nodes.
     */
   def regular(dfa: fsm, vars: IIterable[IntVar])(implicit model: Model): Unit = {
@@ -463,8 +430,8 @@ package object jacop {
 
   /** Wrapper for [[JaCoP.constraints.SoftAlldifferent]].
     *
-    * @param xVars array of variables to be constrained to be different.
-    * @param costVar measures degree of violation (uses value based violation).
+    * @param xVars    array of variables to be constrained to be different.
+    * @param costVar  measures degree of violation (uses value based violation).
     */
   def softAlldifferent(xVars: Array[IntVar], costVar: IntVar)(implicit model: Model): Unit = {
     val violationMeasure = ViolationMeasure.VALUE_BASED
@@ -494,7 +461,7 @@ package object jacop {
     model.imposeDecomposition(c)
   }
 
-  def network_flow(net: JaCoP.constraints.netflow.NetworkBuilder)(implicit model: Model): Unit = {
+  def networkFlow(net: JaCoP.constraints.netflow.NetworkBuilder)(implicit model: Model): Unit = {
     val c = new NetworkFlow(net)
     if (trace) println(c)
     model.impose(c)
@@ -515,38 +482,14 @@ package object jacop {
     c
   }
 
-  /** Wrapper for [[JaCoP.constraints.Or]].
-    *
-    * @param list constraints to be disjunction.
-    * @return the constraint that is a a disjunction of constraints.
-    */
-  def OR(list: IIterable[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
-    val c = new Or(list.toArray)
-    list.foreach(e => model.constr.remove(model.constr.indexOf(e)))
-    model.constr += c
-    c
-  }
-
   /** Wrapper for [[JaCoP.constraints.And]].
     *
-    * @param list constraints to be conjunction.
+    * @param xs constraints to be conjunction.
     * @return the constraint that is a a conjunction of constraints.
     */
-  def AND(list: PrimitiveConstraint*)(implicit model: Model): PrimitiveConstraint = {
-    val c = new And(list.toArray)
-    list.foreach(e => model.constr.remove(model.constr.indexOf(e)))
-    model.constr += c
-    c
-  }
-
-  /** Wrapper for [[JaCoP.constraints.And]].
-    *
-    * @param list constraints to be conjunction.
-    * @return the constraint that is a a conjunction of constraints.
-    */
-  def AND(list: IIterable[PrimitiveConstraint])(implicit model: Model): PrimitiveConstraint = {
-    val c = new And(list.toArray)
-    list.foreach(e => model.constr.remove(model.constr.indexOf(e)))
+  def AND(xs: PrimitiveConstraint*)(implicit model: Model): PrimitiveConstraint = {
+    val c = new And(xs.toArray)
+    xs.foreach(e => model.constr.remove(model.constr.indexOf(e)))
     model.constr += c
     c
   }
@@ -605,8 +548,7 @@ package object jacop {
     * @param a  a set variable to be matched against list of IntVar.
     * @param list variables that get values from the set.
     */
-  def matching[A <: JaCoP.core.IntVar](a: SetVar, list: IIterable[A])
-                                      (implicit m: ClassTag[A], model: Model) {
+  def matching[A <: JaCoP.core.IntVar](a: SetVar, list: IIterable[A])(implicit model: Model) {
     val c = new Match(a, list.toArray)
     if (trace) println(c)
     model.impose(c)
@@ -625,8 +567,8 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val label = dfs()
-    labels = Array(label)
+    val label = dfs[A]()
+    labels = Vec(label)
 
     _printFunctions = printSolutions.toIndexedSeq
     if (_printFunctions.nonEmpty) {
@@ -669,8 +611,8 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val label = dfs()
-    labels = Array(label)
+    val label = dfs[A]()
+    labels = Vec(label)
 
     _printFunctions = printSolutions.toIndexedSeq
     if (_printFunctions.nonEmpty) {
@@ -720,7 +662,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val masterLabel = dfs()
+    val masterLabel = dfs[A]()
 
     if (printSolutions.size > 0) {
       masterLabel.setSolutionListener(new EmptyListener[A])
@@ -731,7 +673,7 @@ package object jacop {
     if (timeOut         > 0) masterLabel.setTimeOut(timeOut)
 
     val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
-      val label = dfs()
+      val label = dfs[A]()
       previousSearch.addChildSearch(label)
       label.setSelectChoicePoint(sel)
 
@@ -786,7 +728,7 @@ package object jacop {
 
     model.imposeAllConstraints()
 
-    val masterLabel = dfs()
+    val masterLabel = dfs[A]()
 
     if (printSolutions.size > 0) {
       masterLabel.setSolutionListener(new EmptyListener[A])
@@ -799,7 +741,7 @@ package object jacop {
     masterLabel.getSolutionListener.recordSolutions(recordSolutions)
 
     val lastLabel = (masterLabel /: select) { (previousSearch, sel) =>
-      val label = dfs()
+      val label = dfs[A]()
       previousSearch.addChildSearch(label)
       label.setSelectChoicePoint(sel)
 
@@ -847,7 +789,7 @@ package object jacop {
     *
     * @return standard depth first search.
     */
-  def dfs[A <: JaCoP.core.Var]()(implicit m: ClassTag[A]): DepthFirstSearch[A] = {
+  def dfs[A <: JaCoP.core.Var](): DepthFirstSearch[A] = {
     val label = new DepthFirstSearch[A]
 
     label.setAssignSolution(true)
@@ -917,11 +859,11 @@ package object jacop {
     println(statistics())
   }
 
-  /** Defines null variable selection method that is interpreted by JaCoP as input order.
-    *
-    * @return related variable selection method.
-    */
-  def inputOrder = null
+  //  /** Defines null variable selection method that is interpreted by JaCoP as input order.
+  //    *
+  //    * @return related variable selection method.
+  //    */
+  //  def inputOrder = null
 
   // ---- Generic (IntVar and BooleanVar) ----
 
