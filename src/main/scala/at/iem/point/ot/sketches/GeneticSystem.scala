@@ -253,22 +253,39 @@ sealed trait VerticalConstraint {
 
   def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit
 }
+
+sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
+  protected def intervals: Vec[Int]
+
+  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
+    import jacop.Implicits._
+
+    val ivalsForbidden  = intervals
+    val sz              = ivalsForbidden.size
+    chord.combinations(sz + 1).foreach { case sub =>
+      // sub is the filtered chord, having `sz + 1` pitches from hi to lo.
+      // we calculate the `sz` relative intervals of these pitches.
+      // then the modulus of these intervals with the forbidden intervals.
+      // we forbid that all modulus are zero, which is written as
+      // the sum of the modulus not being zero. (see `TwoIntervalTest.scala`).
+
+      val ivalsFound  = sub.mapPairs(_ - _)
+      val mod         = (ivalsFound zip ivalsForbidden).map { case (a, b) => a % b }
+      val sum         = mod.reduce(_ + _)
+      sum #!= 0
+    }
+  }
+}
+
 /** Constraint which forbids to occurrence of a particular interval */
-case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint {
+case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint with ForbiddenIntervalLike {
   //  def apply(chord: Chord): Boolean = chord.allIntervals.forall { ival =>
   //    val i0  = ival.semitones
   //    val i   = if (i0 <= 12) i0 else (i0 - 12) % 12 + 12 // preserve octave!!
   //    i != steps
   //  }
 
-  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
-    import jacop._
-    import Implicits._
-    chord.combinations(2).foreach { case Vec(hi, lo) =>
-      // note: we assume hi > lo, so unison cannot be mixed up with octave
-      (hi - lo) % steps #!= 0
-    }
-  }
+  protected val intervals = Vec(steps)
 }
 
 /** Constraint which forbids to co-presence of two given intervals.
@@ -278,29 +295,13 @@ case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint {
   * @param neighbor   if `true`, intervals `a` and `b` may not occur as neighboring intervals, if `false`
   *                   then `a` and `b` may not occur anywhere in the chord.
   */
-case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(6),
-                                 b: ForbiddenInterval = ForbiddenInterval(6), neighbor: Boolean = false)
-  extends VerticalConstraint {
+case class ForbiddenIntervalPair(a: ForbiddenInterval = ForbiddenInterval(2),
+                                 b: ForbiddenInterval = ForbiddenInterval(3), neighbor: Boolean = false)
+  extends VerticalConstraint with ForbiddenIntervalLike {
 
-  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
-    import jacop._
-    import Implicits._
+  require(!neighbor, s"Neighbor constraint not yet supported")
 
-    val modA = new jacop.IntVar()
-    val modB = new jacop.IntVar()
-
-    chord.combinations(2).foreach { case Vec(hi, lo) =>
-      (hi - lo) % a.steps #!= modA
-    }
-    chord.combinations(2).foreach { case Vec(hi, lo) =>
-      (hi - lo) % b.steps #!= modB
-    }
-
-    // modA #= 0 <=> bA
-    // modB #= 0 <=> bB
-
-    ???
-  }
+  protected val intervals = Vec(a.steps, b.steps)
 }
 
 sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
