@@ -1,6 +1,6 @@
 name         := "ot-sketches"
 
-version      := "0.1.0-SNAPSHOT"
+version      := "0.2.0-SNAPSHOT"
 
 organization := "at.iem.point"
 

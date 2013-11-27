@@ -751,12 +751,11 @@ package object jacop {
 
   }
 
-  /**
-   * Search method that finds all solutions.
-   *
-   * @param select select method defining variable selection and value assignment methods.
-   * @return true if solution found and false otherwise.
-   */
+  /** Search method that finds all solutions.
+    *
+    * @param select select method defining variable selection and value assignment methods.
+    * @return true if solution found and false otherwise.
+    */
   def satisfyAll[T <: JaCoP.core.Var](select: SelectChoicePoint[T], printSolutions: (() => Unit)*)
                                      (implicit m: ClassTag[T], model: Model): Boolean = {
 
@@ -766,15 +765,14 @@ package object jacop {
   }
 
 
-  /**
-   * Minimization method for sequence of search methods (specified by list of select methods).
-   *
-   * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
-   * @param cost Cost variable
-   * @return true if solution found and false otherwise.
-   */
-  def minimize_seq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
-                                       (implicit m: ClassTag[T], model: Model): Boolean = {
+  /** Minimization method for sequence of search methods (specified by list of select methods).
+    *
+    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
+    * @param cost Cost variable
+    * @return true if solution found and false otherwise.
+    */
+  def minimizeSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
+                                      (implicit m: ClassTag[T], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
@@ -843,13 +841,13 @@ package object jacop {
    * @param cost Cost variable
    * @return true if solution found and false otherwise.
    */
-  def maximize_seq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
+  def maximizeSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], cost: IntVar, printSolutions: (() => Unit)*)
                                        (implicit m: ClassTag[T], model: Model): Boolean = {
 
     val costN = new IntVar("newCost", JaCoP.core.IntDomain.MinInt, JaCoP.core.IntDomain.MaxInt)
     costN #= -cost
 
-    minimize_seq(select, costN, printSolutions: _*)
+    minimizeSeq(select, costN, printSolutions: _*)
   }
 
 
@@ -859,8 +857,8 @@ package object jacop {
    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
    * @return true if solution found and false otherwise.
    */
-  def satisfy_seq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
-                                      (implicit m: ClassTag[T], model: Model): Boolean = {
+  def satisfySeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
+                                     (implicit m: ClassTag[T], model: Model): Boolean = {
 
     model.imposeAllConstraints()
 
@@ -932,13 +930,12 @@ package object jacop {
    * @param select list of select methods defining variable selection and value assignment methods for sequence of searchs.
    * @return true if solution found and false otherwise.
    */
-  def satisfyAll_seq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
-                                         (implicit m: ClassTag[T], model: Model): Boolean = {
+  def satisfyAllSeq[T <: JaCoP.core.Var](select: List[SelectChoicePoint[T]], printSolutions: (() => Unit)*)
+                                        (implicit m: ClassTag[T], model: Model): Boolean = {
 
     allSolutions = true
 
-    satisfy_seq(select, printSolutions: _*)
-
+    satisfySeq(select, printSolutions: _*)
   }
 
   /**
@@ -972,7 +969,7 @@ package object jacop {
    *
    * @return select method for search.
    */
-  def search_vector[T <: JaCoP.core.Var](vars: List[List[T]], heuristic: ComparatorVariable[T], indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
+  def searchVector[T <: JaCoP.core.Var](vars: List[List[T]], heuristic: ComparatorVariable[T], indom: Indomain[T])(implicit m: ClassTag[T]): SelectChoicePoint[T] = {
 
     val varsArray = new Array[Array[T]](vars.length)
     for (i <- 0 until vars.length)
@@ -986,7 +983,7 @@ package object jacop {
    *
    * @return select method for search.
    */
-  def search_split[T <: JaCoP.core.IntVar](vars: List[T], heuristic: ComparatorVariable[T])(implicit m: ClassTag[T]) = {
+  def searchSplit[T <: JaCoP.core.IntVar](vars: List[T], heuristic: ComparatorVariable[T])(implicit m: ClassTag[T]) = {
     new SplitSelect[T](vars.toArray, heuristic, new IndomainMiddle[T]())
   }
 
@@ -1042,7 +1039,7 @@ package object jacop {
    *
    * @return related variable selection method.
    */
-  def input_order = null
+  def inputOrder = null
 
   // ===============  IntVar & BoolVar specific
 
@@ -1051,28 +1048,28 @@ package object jacop {
    *
    * @return related variable selection method.
    */
-  def first_fail = new SmallestDomain[JaCoP.core.IntVar]
+  def firstFail = new SmallestDomain[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.MostConstrainedStatic]].
    *
    * @return related variable selection method.
    */
-  def most_constrained = new MostConstrainedStatic[JaCoP.core.IntVar]
+  def mostConstrained = new MostConstrainedStatic[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.SmallestMin]].
    *
    * @return related variable selection method.
    */
-  def smallest_min = new SmallestMin[JaCoP.core.IntVar]
+  def smallestMin = new SmallestMin[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.LargestDomain]].
    *
    * @return related variable selection method.
    */
-  def anti_first_fail = new LargestDomain[JaCoP.core.IntVar]
+  def antiFirstFail = new LargestDomain[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.SmallestMin]].
@@ -1093,7 +1090,7 @@ package object jacop {
    *
    * @return related variable selection method.
    */
-  def max_regret = new MaxRegret[JaCoP.core.IntVar]
+  def maxRegret = new MaxRegret[JaCoP.core.IntVar]
 
 
   /**
@@ -1101,35 +1098,35 @@ package object jacop {
    *
    * @return related variable selection method.
    */
-  def indomain_min = new IndomainMin[JaCoP.core.IntVar]
+  def indomainMin = new IndomainMin[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.IndomainMax]].
    *
    * @return related variable selection method.
    */
-  def indomain_max = new IndomainMax[JaCoP.core.IntVar]
+  def indomainMax = new IndomainMax[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.IndomainMiddle]].
    *
    * @return related variable selection method.
    */
-  def indomain_middle = new IndomainMiddle[JaCoP.core.IntVar]
+  def indomainMiddle = new IndomainMiddle[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.IndomainMedian]].
    *
    * @return related variable selection method.
    */
-  def indomain_median = new IndomainMedian[JaCoP.core.IntVar]
+  def indomainMedian = new IndomainMedian[JaCoP.core.IntVar]
 
   /**
    * Wrapper for [[JaCoP.search.IndomainRandom]].
    *
    * @return related variable selection method.
    */
-  def indomain_random = new IndomainRandom[JaCoP.core.IntVar]
+  def indomainRandom = new IndomainRandom[JaCoP.core.IntVar]
 
   // ============= Set specific
 
@@ -1138,42 +1135,42 @@ package object jacop {
    *
    * @return related variable selection method.
    */
-  def first_fail_set = new MinCardDiff[JaCoP.set.core.SetVar]
+  def firstFailSet = new MinCardDiff[JaCoP.set.core.SetVar]
 
   /**
    * Wrapper for [[JaCoP.search.MostConstrainedStatic]].
    *
    * @return related variable selection method.
    */
-  def most_constrained_set = new MostConstrainedStatic[JaCoP.set.core.SetVar]
+  def mostConstrainedSet = new MostConstrainedStatic[JaCoP.set.core.SetVar]
 
   /**
    * Currently equivalent to min_glb_card.
    *
    * @return related variable selection method.
    */
-  def smallest_set = min_glb_card
+  def smallestSet = minGLBCard
 
   /**
    * Wrapper for [[JaCoP.set.search.MinGlbCard]].
    *
    * @return related variable selection method.
    */
-  def min_glb_card = new MinGlbCard[JaCoP.set.core.SetVar]
+  def minGLBCard = new MinGlbCard[JaCoP.set.core.SetVar]
 
   /**
    * Wrapper for [[JaCoP.set.search.MinLubCard]].
    *
    * @return related variable selection method.
    */
-  def min_lub_card = new MinLubCard[JaCoP.set.core.SetVar]
+  def minLUBCard = new MinLubCard[JaCoP.set.core.SetVar]
 
   /**
    * Wrapper for [[JaCoP.set.search.MaxCardDiff]].
    *
    * @return related variable selection method.
    */
-  def anti_first_fail_set = new MaxCardDiff[JaCoP.set.core.SetVar]
+  def antiFirstFailSet = new MaxCardDiff[JaCoP.set.core.SetVar]
 
 
   /**
@@ -1181,19 +1178,19 @@ package object jacop {
    *
    * @return related indomain method.
    */
-  def indomain_min_set = new IndomainSetMin[JaCoP.set.core.SetVar]
+  def indomainMinSet = new IndomainSetMin[JaCoP.set.core.SetVar]
 
   /**
    * Wrapper for [[JaCoP.set.search.IndomainSetMax]].
    *
    * @return related indomain method.
    */
-  def indomain_max_set = new IndomainSetMax[JaCoP.set.core.SetVar]
+  def indomainMaxSet = new IndomainSetMax[JaCoP.set.core.SetVar]
 
   /**
    * Wrapper for [[JaCoP.set.search.IndomainSetRandom]].
    *
    * @return related indomain method.
    */
-  def indomain_random_set = new IndomainSetRandom[JaCoP.set.core.SetVar]
+  def indomainRandomSet = new IndomainSetRandom[JaCoP.set.core.SetVar]
 }

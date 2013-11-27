@@ -13,6 +13,7 @@ import JaCoP.search.{SmallestDomain, SimpleSelect}
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
 import collection.breakOut
+import scala.annotation.tailrec
 
 sealed trait FiniteConstraintType
 case object Allow  extends FiniteConstraintType
@@ -104,7 +105,46 @@ case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(5),
                         mutation       : BreedingFunctionImpl  = Mutation())
   extends muta.impl.BreedingImpl[GeneticSystem.Chromosome, GlobalImpl]
 
-object Crossover extends muta.impl.CrossoverVecImpl[GeneticSystem.Gene, GlobalImpl] with BreedingFunctionImpl
+object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, GlobalImpl] with */ BreedingFunctionImpl {
+  import GeneticSystem.{Gene, Chromosome, Genome, Global}
+
+  private final val NUM_TRIES = 32
+
+  def apply(gen: Genome, num: Int, glob: Global, r: Random): Genome = {
+    val res = Vec.newBuilder[Chromosome]
+    res.sizeHint(num)
+
+    /* @tailrec */ def outerLoop(rem: Int): Unit = if (rem > 0) {
+      /* @tailrec */ def innerLoop(tries: Int): Unit = if (tries > 0) {
+        val i   = r.nextInt(gen.size)
+        val j   = r.nextInt(gen.size)
+        val gi  = gen(i)
+        val gj  = gen(j)
+        val szi = gi.size
+        val szj = gj.size
+        val len = (szi + szj) / 2
+        val li  = r.nextInt(math.min(len, szi))
+        val lj  = math.min(szj, len - li)
+        val c   = gi.take(li) ++ gj.drop(szj - lj)
+
+        if (GeneticSystem.accept(c, glob)) {
+          res += c
+        } else {
+          innerLoop(tries - 1)
+        }
+      }
+
+      innerLoop(NUM_TRIES)
+      outerLoop(rem - 1)
+    }
+
+    outerLoop(num)
+    val found = res.result()
+    if (found.size > num) found.take(num) else if (found.size == num) found else {
+      ???
+    }
+  }
+}
 
 case class Mutation(chords: SelectionSize = SelectionPercent(20),
                     voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
@@ -436,6 +476,24 @@ object GeneticSystem extends muta.System {
   type Evaluation = EvaluationImpl
   type Selection  = SelectionImpl
   type Breeding   = BreedingImpl
+
+  def accept(c: Chromosome, global: Global): Boolean = {
+    import jacop._
+    implicit val model = new Model
+    import Implicits._
+
+    val vars = c.map { case (chord, _) =>
+      chord.pitches.map(_.midi: IntVar)
+    }
+    val varsf = vars.flatten
+    vars.foreach    (constrainVert (_   , global.voices, global.vertical))
+    vars.foreachPair(constrainHoriz(_, _, global.voices))
+
+    // val result        = satisfyAll[IntVar](select, () => solutionsB += mkChromo())
+    // satisfy()
+
+    ???
+  }
 
   def constrainVert(cv: Vec[jacop.IntVar], voices: Vec[Voice],
                      vertical: Vec[VerticalConstraint])
