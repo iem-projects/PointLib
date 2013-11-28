@@ -1,18 +1,17 @@
     package at.iem.point.ot.sketches
 
-    import de.sciss.jacop._
-    import JaCoP.search.{IndomainMin, SimpleSelect, SmallestDomain}
+    import de.sciss.poirot._
     import Implicits._
 
     /** This test verifies the approach of forbidding the appearance of two successive intervals in a chord. */
     object TwoIntervalTest extends App {
-      implicit val m = new Model()
+      implicit val m = Model()
 
       type Chord          = Vec[IntVar]
       type ChordSolution  = Vec[Int]
 
       def mkChord(vc: Int = 3, lo: Int = 0, hi: Int = 4): Chord = {
-        val c = Vec.fill(vc)(new IntVar(lo, hi))
+        val c = Vec.fill(vc)(IntVar(lo, hi))
         c.foreachPair((h, l) => l #< h)
         c
       }
@@ -41,8 +40,8 @@
 
       def addSolution(): Unit = solutionsB += c.map(_.value())
 
-      val select    = new SimpleSelect[IntVar](c.toArray, new SmallestDomain, new IndomainMin)
-      val result    = satisfyAll[IntVar](select, addSolution)
+      val select    = search(c, firstFail, indomainMin)
+      val result    = satisfyAll(select, addSolution)
       val solutions = solutionsB.result()
 
       println(s"Found ${solutions.size} solutions:")              // should be 7 solutions

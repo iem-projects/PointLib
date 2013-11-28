@@ -1,6 +1,6 @@
 name         := "ot-sketches"
 
-version      := "0.2.0-SNAPSHOT"
+version      := "0.2.0"
 
 organization := "at.iem.point"
 
@@ -21,7 +21,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "audiowidgets-swing"  % "1.3.1+",
   "de.sciss" %% "numbers"             % "0.1.+",
   "de.sciss" %  "abc4j"               % "0.6.+",
-  "de.sciss" %% "guiflitz"            % "0.1.1+"
+  "de.sciss" %% "guiflitz"            % "0.1.1+",
+  "de.sciss" %% "poirot"              % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")

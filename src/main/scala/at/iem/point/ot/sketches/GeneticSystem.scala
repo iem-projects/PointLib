@@ -8,11 +8,12 @@ import scala.util.Random
 import de.sciss.muta.{SelectionNumber, SelectionPercent, SelectionSize}
 import scala.swing.{Component, Label}
 import play.api.libs.json.{JsSuccess, JsError, JsString, JsObject, JsResult, JsValue, Format}
-import de.sciss.jacop
+import de.sciss.poirot
 import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
 import collection.breakOut
 import language.implicitConversions
+import de.sciss.poirot.IntVar
 
 sealed trait FiniteConstraintType
 case object Allow  extends FiniteConstraintType
@@ -52,12 +53,12 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     val numVoices = voices.size
     val num       = global.length
 
-    import jacop._
-    implicit val model = new Model
+    import poirot._
+    implicit val model = Model()
     import Implicits._
 
     val vars = Vec.fill(num) {
-      val ch = Vec.fill(numVoices)(new IntVar())
+      val ch = Vec.fill(numVoices)(IntVar())
       constrainVert(ch, voices, global.vertical)
       ch
     }
@@ -72,7 +73,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
       (chord, ChordNeutral)
     }
 
-    val select        = search(vars.flatten, firstFail, new IndomainRandom2(r))
+    val select        = search(vars.flatten, firstFail, indomainRandom(r))
     val solutionsB    = Vec.newBuilder[Chromosome]
     maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
     timeOut           = 30    // seconds
@@ -202,8 +203,8 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     val num   = voices(csz)
     val sel   = Vec.tabulate(csz)(_ < num).scramble
 
-    import jacop._
-    implicit val model = new Model
+    import poirot._
+    implicit val model = Model()
     import Implicits._
 
     if (DEBUG_MUTA) println()
@@ -214,8 +215,9 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       if (psel) {
         val lo = midi - interval
         val hi = midi + interval
-        new IntVar(lo, hi)
-      } else new IntVar(midi, midi)
+        IntVar(lo, hi)
+      } else
+        IntVar(midi, midi)
     }
     GeneticSystem.constrainVert(vars, global.voices, global.vertical)
 
@@ -231,7 +233,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 
     require(model.consistency(), s"Constraints model is not consistent")
 
-    val select        = search(vars, firstFail, new IndomainRandom2(r))
+    val select        = search(vars, firstFail, indomainRandom(r))
     val solutionsB    = Vec.newBuilder[Chord]
     maxNumSolutions   = 256
     timeOut           = 10    // seconds
@@ -292,15 +294,15 @@ sealed trait VerticalConstraint {
   // /** Verifies whether the contraint is satisfied (`true`) or not (`false`). */
   // def apply(chord: Chord): Boolean
 
-  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit
+  def apply(chord: Vec[IntVar])(implicit m: poirot.Model): Unit
 }
 
 sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
   /** Forbidden intervals sorted top to bottom */
   protected def intervals: Vec[Int]
 
-  def apply(chord: Vec[jacop.IntVar])(implicit m: jacop.Model): Unit = {
-    import jacop.Implicits._
+  def apply(chord: Vec[IntVar])(implicit m: poirot.Model): Unit = {
+    import poirot.Implicits._
 
     val ivalsForbidden  = intervals
     val sz              = ivalsForbidden.size
@@ -458,8 +460,8 @@ object GeneticSystem extends muta.System {
     Chord(notes)
   }
   
-  implicit def varToPitch(vr: jacop.IntVar): Pitch = vr.value().asPitch
-  implicit def pitchToVar(pitch: Pitch)(implicit model: jacop.Model): jacop.IntVar = new jacop.IntVar(pitch.midi, pitch.midi)
+  implicit def varToPitch(vr: IntVar): Pitch = vr.value().asPitch
+  implicit def pitchToVar(pitch: Pitch)(implicit model: poirot.Model): IntVar = IntVar(pitch.midi, pitch.midi)
   
   val DefaultVoices = Vec(
     Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
@@ -476,9 +478,9 @@ object GeneticSystem extends muta.System {
   type Breeding   = BreedingImpl
 
   def accept(c: Chromosome, global: Global): Boolean = {
-    import jacop._
-    implicit val model = new Model
-    import Implicits._
+    import poirot._
+    implicit val model = Model()
+    // import Implicits._
 
     val vars = c.map { case (chord, _) => chordToPitches[IntVar](chord) }
     vars.foreach    (constrainVert (_   , global.voices, global.vertical))
@@ -488,10 +490,10 @@ object GeneticSystem extends muta.System {
     satisfy(select)
   }
 
-  def constrainVert(cv: Vec[jacop.IntVar], voices: Vec[Voice],
+  def constrainVert(cv: Vec[IntVar], voices: Vec[Voice],
                      vertical: Vec[VerticalConstraint])
-                    (implicit m: jacop.Model): Unit = {
-    import jacop._
+                    (implicit m: poirot.Model): Unit = {
+    import poirot._
     // voice registers
     (cv zip voices).foreach { case (v, vc) =>
       v #>= vc.down.limit
@@ -513,8 +515,8 @@ object GeneticSystem extends muta.System {
     } (breakOut)
   }
 
-  def constrainHoriz(pred: Vec[jacop.IntVar], succ: Vec[jacop.IntVar],
-                     voices: Vec[Voice])(implicit m: jacop.Model): Unit = {
+  def constrainHoriz(pred: Vec[IntVar], succ: Vec[IntVar],
+                     voices: Vec[Voice])(implicit m: poirot.Model): Unit = {
     voices.zipWithIndex.foreach { case (vc, vci) =>
       val p1 = pred(vci)
       val p2 = succ(vci)

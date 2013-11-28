@@ -1,12 +1,11 @@
 package at.iem.point.ot.sketches
 
-import de.sciss.jacop._
-import JaCoP.search.{SimpleSelect, SmallestDomain}
-import JaCoP.set.search.IndomainSetRandom
+import de.sciss.poirot._
+import org.jacop.set.search.IndomainSetRandom
 
 /** This test doesn't work. I haven't fully understood how to handle set variables. */
 object TwoIntervalTestOLD extends App {
-    implicit val m  = new Model()
+    implicit val m  = Model()
     val s1          = new SetVar(0, 3)
     val s2          = new SetVar(0, 3)
     val union       = s1 * s2
@@ -14,7 +13,7 @@ object TwoIntervalTestOLD extends App {
     union <> zero
     val solutionsB  = Vec.newBuilder[(Int, Int)]
 
-    def mkSolution(): (Int, Int) = {
+    def mkSolution(): Unit = {
       assert(s1.singleton() && s2.singleton())
       // val v1 = s1.domain.lub().min()
       // val v2 = s2.domain.lub().min() // .valueEnumeration.nextElement()
@@ -24,11 +23,11 @@ object TwoIntervalTestOLD extends App {
       println(s"---- s2: $s2")
       val v1 = s1.domain.lub().min()
       val v2 = s1.domain.lub().min()
-      (v1, v2)
+      solutionsB += ((v1, v2))
     }
 
-    val select      = new SimpleSelect[SetVar](Array(s1, s2), new SmallestDomain[SetVar](), new IndomainSetRandom)
-    val result      = satisfyAll[SetVar](select, () => solutionsB += mkSolution())
+    val select      = search(List(s1, s2), firstFail, new IndomainSetRandom)
+    val result      = satisfyAll[SetVar](select, mkSolution)
     val solutions   = solutionsB.result()
 
     require(result, s"Constraints could not be satisfied")
