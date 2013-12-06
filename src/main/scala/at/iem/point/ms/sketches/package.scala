@@ -6,6 +6,7 @@ import java.math.RoundingMode
 import de.sciss.midi
 import language.higherKinds
 import de.sciss.file._
+import scala.util.control.NonFatal
 
 package object sketches {
   val  Vec    = collection.immutable.IndexedSeq
@@ -55,15 +56,26 @@ package object sketches {
     def isBoring: Boolean
   }
 
-  def load(study: Study = Study.Edited(0)): midi.Sequence = {
+  def load(study: Study = Study.Edited(0)): midi.Sequence = try {
     midi.Sequence.readFile(study.file)
+  } catch {
+    case NonFatal(e) =>
+      Console.err.println(s"In '${study.file}':")
+      throw e
   }
 
-  def newBoring     = (Vec(35, 37, 38) ++ (40 to 47) ++ Vec(50, 51)).map(Study.Boring)
-  def newPromising  = Vec(33, 34, 39, 52, 53).map(Study.Promising)
+  def newBoring     = allBoring   .filterNot(s => Vec(26, 29, 31).contains(s.idx))
+  def newPromising  = allPromising.filterNot(s => Vec( 5, 10    ).contains(s.idx))
 
-  def allBoring     = Vec(26, 29, 31).map(Study.Boring) ++ newBoring
-  def allPromising  = Vec(5, 10).map(Study.Promising) ++ newPromising
+  private def studyIndices(name: String, delim: Char): Vec[Int] = (recPath / name).children(_.ext == "mid").map { f =>
+    val b  = f.base
+    val i  = b.indexOf('#') + 1
+    val j  = b.indexOf(delim, i)
+    b.substring(i, j).toInt
+  }
+
+  def allBoring     = studyIndices("boring"   , 'u').map(Study.Boring   )
+  def allPromising  = studyIndices("promising", '!').map(Study.Promising)
 
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})

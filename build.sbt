@@ -26,5 +26,6 @@ initialCommands in console :=
   """import at.iem.point.ms.sketches._
     |import scalax.chart._
     |import scalax.chart.Charting._
+    |import de.sciss.midi
     |import de.sciss.file._
   """.stripMargin
