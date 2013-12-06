@@ -9,7 +9,7 @@ object SVM extends App {
   def svmTrain    = svmDir / "svm-train"
   def svmPredict  = svmDir / "svm-predict"
   def svmScale    = svmDir / "svm-scale"
-  def scale       = false   // doesn't improve, basically we're already scaled
+  def scale       = true   // doesn't improve, basically we're already scaled
 
   object SvmType {
     case object C_SVC    extends SvmType { def optionID = 0 }
@@ -36,10 +36,10 @@ object SVM extends App {
   }
 
   object TrainOptions {
-    var tpe   : SvmType = SvmType.C_SVC   // default: C_SVC
-    var kernel: Kernel  = Kernel.Radial   // default: Radial
-    var cCost : Double  = 1.0             // default: 1
-    var shrinking: Boolean = true         // default: true
+    var tpe       : SvmType = SvmType.C_SVC   // default: C_SVC
+    var kernel    : Kernel  = Kernel.Radial   // default: Radial
+    var cCost     : Double  = 1.0             // default: 1
+    var shrinking : Boolean = true            // default: true
 
     def toOptions: List[String] = tpe.toOptions ++ kernel.toOptions ++ List("-c", cCost.toString) ++
       List("-h", (if (shrinking) 1 else 0).toString)
@@ -59,14 +59,38 @@ object SVM extends App {
     vec.zipWithIndex.map { case (num, fi) => s"${fi + 1}:$num" } .mkString(s"$categ ", " ", "")
   }
 
-  def splitHalf[A](vec: Vec[A]): (Vec[A], Vec[A]) = vec.splitAt(vec.size/2)
+  def splitHalf[A](vec: Vec[A]): (Vec[A], Vec[A]) = {
+    // vec.splitAt(vec.size/2)
+    val (a, b) = vec.zipWithIndex.partition(_._2 % 2 == 0)   // abwechselnd in zwei teile
+    a.map(_._1) -> b.map(_._1)
+  }
 
   def process(study: Study): String = {
+    import MathUtil.stat
+    import Boring.Measure._
     println(s"Processing '$study'...")
-    val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true)
-    val no  = norm(kreuzVec(an).flatten)
-    svmString(boring = study.isBoring, vec = no)
+    lazy val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true)
+    lazy val no  = norm(kreuzVec(an).flatten)
+    lazy val (noM, noS) = stat(no)
+
+    lazy val ha  = Boring.process(study, measure = HorizAmbi)
+    lazy val (haM, haS) = stat(ha)
+
+    lazy val hv  = Boring.process(study, measure = HorizVar)
+    lazy val (hvM, hvS) = stat(hv)
+
+    lazy val cv  = Boring.process(study, measure = ChordVar)
+    lazy val (cvM, cvS) = stat(cv)
+
+    // val features = no :+ mean :+ std
+    // val features = Vec(haM, haS, hvM, hvS, cvM, cvS)
+    // val features = no ++ Vec(haM, hvM, cvM)
+    val features = Vec(noS, haM, hvM, cvM)
+
+    svmString(boring = study.isBoring, vec = features)
   }
+
+  // javax.sound.midi.MidiSystem.getMidiFileTypes
 
   val (bTrain, bTest) = splitHalf(allBoring   .map(process))
   val (pTrain, pTest) = splitHalf(allPromising.map(process))
