@@ -3,6 +3,7 @@ package at.iem.point.ms.sketches
 import de.sciss.file._
 import java.io.PrintStream
 import sys.process._
+import de.sciss.{numbers, kollflitz}
 
 object SVM extends App {
   def svmDir      = userHome / "Documents" / "devel" / "libsvm"
@@ -66,21 +67,26 @@ object SVM extends App {
   }
 
   def process(study: Study): String = {
-    import MathUtil.stat
     import Boring.Measure._
+    import numbers.Implicits._
+    import kollflitz.Ops._
     println(s"Processing '$study'...")
     lazy val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true)
     lazy val no  = norm(kreuzVec(an).flatten)
-    lazy val (noM, noS) = stat(no)
+    lazy val (noM, noV) = no.meanVariance
+    lazy val noS = noV.sqrt
 
     lazy val ha  = Boring.process(study, measure = HorizAmbi)
-    lazy val (haM, haS) = stat(ha)
+    lazy val (haM, haV) = ha.meanVariance
+    lazy val haS = haV.sqrt
 
     lazy val hv  = Boring.process(study, measure = HorizVar)
-    lazy val (hvM, hvS) = stat(hv)
+    lazy val (hvM, hvV) = hv.meanVariance
+    lazy val hvS = hvV.sqrt
 
     lazy val cv  = Boring.process(study, measure = ChordVar)
-    lazy val (cvM, cvS) = stat(cv)
+    lazy val (cvM, cvV) = cv.meanVariance
+    lazy val cvS = cvV.sqrt
 
     // val features = no :+ mean :+ std
     // val features = Vec(haM, haS, hvM, hvS, cvM, cvS)

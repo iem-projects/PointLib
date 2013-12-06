@@ -15,7 +15,9 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "fingertree"    % "1.5.+",
   "de.sciss" %% "pointillism"   % "0.2.+",
   "de.sciss" %% "pdflitz"       % "1.0.1+",
-  "de.sciss" %% "fileutil"      % "1.1.+"
+  "de.sciss" %% "fileutil"      % "1.1.+",
+  "de.sciss" %% "kollflitz"     % "0.1.+",
+  "de.sciss" %% "numbers"       % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-language:implicitConversions")
