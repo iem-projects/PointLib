@@ -14,6 +14,8 @@ import de.sciss.play.json.AutoFormat
 import collection.breakOut
 import language.implicitConversions
 import de.sciss.poirot.IntVar
+import de.sciss.kollflitz.Ops._
+import de.sciss.kollflitz.RandomOps._
 
 sealed trait FiniteConstraintType
 case object Allow  extends FiniteConstraintType
@@ -62,7 +64,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
       constrainVert(ch, voices, global.vertical)
       ch
     }
-    vars.foreachPair { (c1, c2) =>
+    vars.pairMap { (c1, c2) =>
       constrainHoriz(c1, c2, voices)
     }
 
@@ -86,7 +88,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     require(result, s"Constraints could not be satisfied")
     // println(s"num-solutions ${solutions.size}")
 
-    solutions.choose(r)
+    solutions.choose()(r)
   }
 }
 
@@ -100,10 +102,10 @@ case class SelectionTruncation(size: SelectionSize = SelectionPercent(20))
 
 sealed trait BreedingFunctionImpl extends muta.BreedingFunction[GeneticSystem.Chromosome, GlobalImpl]
 
-case class BreedingImpl(elitism       : SelectionSize     = SelectionNumber(5),
-                        crossoverWeight: SelectionPercent  = SelectionPercent(0 /* 50 */),  // crossover doesn't honor constraints yet
-                        crossover      : BreedingFunctionImpl  = Crossover,
-                        mutation       : BreedingFunctionImpl  = Mutation())
+case class BreedingImpl(elitism         : SelectionSize         = SelectionNumber(5),
+                        crossoverWeight : SelectionPercent      = SelectionPercent(0 /* 50 */),  // crossover doesn't honor constraints yet
+                        crossover       : BreedingFunctionImpl  = Crossover,
+                        mutation        : BreedingFunctionImpl  = Mutation())
   extends muta.impl.BreedingImpl[GeneticSystem.Chromosome, GlobalImpl]
 
 object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, GlobalImpl] with */ BreedingFunctionImpl {
@@ -156,11 +158,14 @@ object Crossover extends /* muta.impl.CrossoverVecImpl[GeneticSystem.Gene, Globa
   }
 }
 
-case class Mutation(chords: SelectionSize = SelectionPercent(20),
-                    voices: SelectionSize = SelectionNumber(3), interval: Int = 7)
+case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: SelectionSize = SelectionNumber(5),
+                    voiceMin: SelectionSize = SelectionNumber(1), voiceMax: SelectionSize = SelectionNumber(3),
+                    excludeVoices: String = "", interval: Int = 7)
   extends BreedingFunctionImpl {
 
-  def numGenesSize = chords
+  val excludeVoiceNums: Vec[Int] = excludeVoices.split(' ').filter(_.nonEmpty).map(_.toInt - 1)(breakOut)
+
+  // def numGenesSize = chords
 
   import GeneticSystem.{Gene, Chromosome, Genome, Global, chordToPitches, pitchesToChord, varToPitch, pitchToVar}
 
@@ -190,18 +195,29 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
   }
 
   /** The number of genes to mutate, given a particular chromosome. Defaults to
-    * applying `numGenesSize` with the chromosome size.
+    * random number between `chordMin` and `chordMax` applied with the chromosome size.
     */
-  protected def numGenes(chromosome: Chromosome)(implicit random: util.Random): Int =
-    random.nextInt(numGenesSize(chromosome.size))
-  
+  protected def numGenes(chromosome: Chromosome)(implicit random: util.Random): Int = {
+    val sz  = chromosome.size
+    val min = chordMin(sz)
+    val max = chordMax(sz)
+    rangeRand(min, max)
+  }
+
+  protected def numVoices(global: Global)(implicit random: util.Random): Int = {
+    val sz  = global.voices.size
+    val min = voiceMin(sz)
+    val max = voiceMax(sz)
+    rangeRand(min, max)
+  }
+
   def mutate(global: Global, gene: Gene, pred: Option[Gene], succ: Option[Gene])(implicit r: util.Random): Gene = {
     val (chord, _) = gene
     val csz   = chord.size
     require(csz == global.voices.size)
 
-    val num   = voices(csz)
-    val sel   = Vec.tabulate(csz)(_ < num).scramble
+    val num   = numVoices(global)
+    val sel   = ((0 until csz) diff excludeVoiceNums).scramble().take(num).toSet
 
     import poirot._
     implicit val model = Model()
@@ -209,10 +225,10 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
 
     if (DEBUG_MUTA) println()
 
-    val pitchesSel = chordToPitches[Pitch](chord).zip(sel)
+    val pitchesSel = chordToPitches[Pitch](chord).zipWithIndex // .zip(sel)
     val vars = pitchesSel.map { case (p, psel) =>
       val midi = p.midi
-      if (psel) {
+      if (sel contains psel) {
         val lo = midi - interval
         val hi = midi + interval
         IntVar(lo, hi)
@@ -244,7 +260,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
     val solutions     = solutionsB.result()
 
     if (!result) {
-      val thisInfo = pitchesSel.reverse.map { case (p, s) => s"$p${if (s) "!" else ""}" } .mkString(", ")
+      val thisInfo = pitchesSel.reverse.map { case (p, s) => s"$p${if (sel contains s) "!" else ""}" } .mkString(", ")
       val predInfo = pred.fold("") { case (c, _) =>
         c.pitches.mkString("; pred = ", ", ", "")
       }
@@ -255,7 +271,7 @@ case class Mutation(chords: SelectionSize = SelectionPercent(20),
       return gene
     }
 
-    val chordOut = solutions.choose(r)
+    val chordOut = solutions.choose()
     if (DEBUG_MUTA) println(s"Mutated: ${chordOut.pitches.mkString(", ")}")
     chordOut -> ChordNeutral
   }
@@ -313,7 +329,7 @@ sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
       // we forbid that all modulus are zero, which is written as
       // the sum of the modulus not being zero. (see `TwoIntervalTest.scala`).
 
-      val ivalsFound  = sub.mapPairs(_ - _)
+      val ivalsFound  = sub.pairMap(_ - _)
       val mod         = (ivalsFound zip ivalsForbidden).map { case (a, b) => a % b }
       val sum         = mod.reduce(_ + _)
       sum #!= 0
@@ -483,8 +499,8 @@ object GeneticSystem extends muta.System {
     // import Implicits._
 
     val vars = c.map { case (chord, _) => chordToPitches[IntVar](chord) }
-    vars.foreach    (constrainVert (_   , global.voices, global.vertical))
-    vars.foreachPair(constrainHoriz(_, _, global.voices))
+    vars.foreach(constrainVert (_   , global.voices, global.vertical))
+    vars.pairMap(constrainHoriz(_, _, global.voices))
 
     val select = search(vars.flatten, smallest, indomainMin)
     satisfy(select)
@@ -500,7 +516,7 @@ object GeneticSystem extends muta.System {
       v #<= vc.up  .limit
     }
     // no voices crossing
-    cv.foreachPair { case (hi, lo) =>
+    cv.pairMap { case (hi, lo) =>
       hi #> lo
     }
     // custom vertical constraints

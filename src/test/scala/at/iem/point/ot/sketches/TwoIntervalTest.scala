@@ -2,6 +2,7 @@
 
     import de.sciss.poirot._
     import Implicits._
+    import de.sciss.kollflitz.Ops._
 
     /** This test verifies the approach of forbidding the appearance of two successive intervals in a chord. */
     object TwoIntervalTest extends App {
@@ -12,7 +13,7 @@
 
       def mkChord(vc: Int = 3, lo: Int = 0, hi: Int = 4): Chord = {
         val c = Vec.fill(vc)(IntVar(lo, hi))
-        c.foreachPair((h, l) => l #< h)
+        c.pairMap((h, l) => l #< h)
         c
       }
 

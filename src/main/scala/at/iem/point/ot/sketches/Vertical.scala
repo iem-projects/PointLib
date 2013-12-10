@@ -7,6 +7,7 @@ import scala.annotation.tailrec
 import de.sciss.midi
 import de.sciss.file._
 import java.io.{OutputStreamWriter, FileOutputStream}
+import de.sciss.kollflitz.RandomOps._
 
 object Vertical extends App {
   // - erlaubte intervalle
@@ -71,12 +72,12 @@ object Vertical extends App {
     } else {
       @tailrec def loopChord(n: Int, pred: Interval, res: Vec[Interval]): Vec[Interval] =
         if (n == 0) res else {
-          val succ = ivalMap(pred).choose
+          val succ = ivalMap(pred).choose()
           loopChord(n - 1, succ, res :+ succ)
         }
 
       @tailrec def loop(): Chord = {
-        val ival1   = ivalSeq.choose
+        val ival1   = ivalSeq.choose()
         val ivals   = loopChord(voices - 2, ival1, Vec(ival1))
         val c       = mkChord(ivals)
         val test    = c.allIntervals

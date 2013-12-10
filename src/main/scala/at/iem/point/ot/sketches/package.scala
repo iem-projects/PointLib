@@ -84,68 +84,12 @@ package object sketches {
       }
   }
 
-  implicit final class RichIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
-    def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
-    def scramble(implicit random: util.Random): Vec[A] = {
-      ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>
-        val idx = random.nextInt(in.size)
-        in.patch(idx, Vector.empty, 1) -> (out :+ in(idx))
-      } ._2
-    }
-
-    def mean(implicit num: Fractional[A], intView: Int => A): A = num.div(seq.sum, seq.size)
-
-    def integrate(implicit num: Numeric[A]): Vec[A] = {
-      (Vector.empty[A] /: seq) { (res, elem) =>
-        val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
-        res :+ agg
-      }
-    }
-  }
-
-  implicit final class RichIterableLike[A, CC[~] <: Iterable[~]](val it: CC[A]) extends AnyVal {
-    def foreachPair(fun: (A, A) => Unit): Unit = {
-      val iter  = it.iterator
-      if (iter.hasNext) {
-        var pred = iter.next()
-        while (iter.hasNext) {
-          val succ = iter.next()
-          fun(pred, succ)
-          pred = succ
-        }
-      }
-    }
-
-    def mapPairs[B, To](fun: (A, A) => B)(implicit cbf: CanBuildFrom[CC[A], B, To]): To = {
-      val b     = cbf(it)
-      val iter  = it.iterator
-      if (iter.hasNext) {
-        var pred = iter.next()
-        while (iter.hasNext) {
-          val succ = iter.next()
-          b += fun(pred, succ)
-          pred = succ
-        }
-      }
-      b.result()
-    }
-  }
-
-  // implicit val random = new util.Random(0L)
-
   def mkRandom(seed: Long = System.currentTimeMillis()) = new util.Random(seed)
 
-  //  implicit class OTRichSeq[A, C[~] <: Iterable[~]](val seq: C[A]) extends AnyVal {
-  //    def mapType[B](implicit view: A => B): C[B] = seq.map(view)
-  //  }
-  //
-  //  class FilterMapImpl[A, Repr](val r: GenTraversableLike[A, Repr]) {
-  //    def filterMap[B, That](f: A => Option[B])(implicit cbf : CanBuildFrom[Repr, B, That]): That =
-  //      r.flatMap(f(_).toSeq)
-  //  }
-  //
-  //  implicit def filterMap[A, Repr](r: Repr)(implicit fr: IsTraversableLike[Repr]): FilterMapImpl[fr.A, Repr] =
-  //    new FilterMapImpl(fr conversion r)
+  def rangeRand(min: Int, max: Int)(implicit random: util.Random): Int = {
+    require(min <= max)
+    random.nextInt(max - min + 1) + min
+  }
 
   private implicit object PitchFormat extends Format[OffsetNote] {
     def reads(json: JsValue): JsResult[OffsetNote] = json match {

@@ -1,6 +1,6 @@
 name         := "ot-sketches"
 
-version      := "0.2.0"
+version      := "0.3.0"
 
 organization := "at.iem.point"
 
@@ -14,6 +14,9 @@ resolvers ++= Seq(
   "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
 )
 
+// cf. http://stackoverflow.com/questions/20497271/sbt-does-not-resolve-typesafe-repository/20497429#20497429
+resolvers += "Typesafe Simple Repository" at "http://repo.typesafe.com/typesafe/simple/maven-releases/"
+
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.2.+",
   "de.sciss" %% "pdflitz"             % "1.0.+",
@@ -22,7 +25,8 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "numbers"             % "0.1.+",
   "de.sciss" %  "abc4j"               % "0.6.+",
   "de.sciss" %% "guiflitz"            % "0.1.1+",
-  "de.sciss" %% "poirot"              % "0.1.+"
+  "de.sciss" %% "poirot"              % "0.1.+",
+  "de.sciss" %% "kollflitz"           % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
