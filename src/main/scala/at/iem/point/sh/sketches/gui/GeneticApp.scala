@@ -30,6 +30,9 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
       ExportLilypond.dialog(info = frame.info, genome = genome, parent = Some(frame.window))
     })
 
-    // XXX TODO: bind PDF export
+    frame.bindMenu("file.export.table", Action("") {
+      val genome = frame.selectedNodes.map(n => n.chromosome -> n.fitness)
+      ExportTable.dialog(genome = genome, parent = Some(frame.window))
+    })
   }
 }

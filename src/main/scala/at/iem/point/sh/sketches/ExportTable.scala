@@ -1,13 +1,35 @@
 package at.iem.point.sh.sketches
 
 import Fitness._
-import java.io.File
 import at.iem.point.sh.sketches.gui.ChromosomeView
 import de.sciss.pdflitz.Generate
 import java.awt.Dimension
+import de.sciss.desktop.{FileDialog, Window}
+import de.sciss.file._
+import scala.annotation.tailrec
 
 object ExportTable {
-  def apply(f: File, genome: GenomeVal): Unit = {
+  private def defaultFile(): File = {
+    val desktop = userHome / "Desktop"
+    val dir     = if (desktop.canWrite) desktop else userHome
+
+    @tailrec def loop(i: Int): File = {
+      val test = dir / s"out${if (i == 0) "" else (i+1).toString}.pdf"
+      if (test.exists()) loop(i + 1) else test
+    }
+
+    loop(0)
+  }
+
+  def dialog(genome: GenomeVal, parent: Option[Window] = None) {
+    val dlg = FileDialog.save(init = Some(defaultFile()), title = "Export Selection As PDF Table")
+    val res = dlg.show(parent)
+    res.foreach { f =>
+      ExportTable(genome = genome, out = f)
+    }
+  }
+
+  def apply(genome: GenomeVal, out: File): Unit = {
     val num   = genome.size
     // val dur   = settings.generation.wholeDur.toDouble * 1.1
     val dur   = genome.map(_._1.dur).max.toDouble
@@ -29,6 +51,6 @@ object ExportTable {
       }
     }
 
-    Generate(f, view, overwrite = false)
+    Generate(out, view, overwrite = false)
   }
 }

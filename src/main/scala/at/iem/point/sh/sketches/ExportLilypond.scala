@@ -10,7 +10,7 @@ import at.iem.point.illism.rhythm.LilyTimeSignature
 import de.sciss.muta.HeaderInfo
 
 object ExportLilypond {
-  def dialog(info: HeaderInfo, genome: GenomeVal, parent: Option[Window] = None) {
+  def dialog(info: HeaderInfo, genome: GenomeVal, parent: Option[Window] = None): Unit = {
     import swing._
 
     //    val lbTitle = new Label("Title:"          , null, Alignment.Trailing)
