@@ -4,15 +4,15 @@ package impl
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.desktop.{FileDialog, Window}
 
-import de.sciss.synth.io.AudioFile
 import scala.swing.BorderPanel
 import de.sciss.synth
 import de.sciss.file._
-import play.api.libs.json.{JsError, JsSuccess, Format, Formats, SealedTraitFormat, Json}
+import play.api.libs.json.{JsError, JsSuccess, Format, Json}
 import java.io.{FileInputStream, FileOutputStream}
+import de.sciss.play.json.{Formats, AutoFormat}
 
 class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with WindowImpl {
-  import doc.{file => in, fileSpec}
+  import doc.{file => in}
 
   def handler = Main.windowHandler
   def style   = Window.Palette
@@ -42,10 +42,10 @@ class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with 
   }
 
   private lazy val jsonFormat: Format[Product] = {
-    import Formats.{FileFormat, Tuple2Format}
+    import Formats.{FileFormat, VecFormat, Tuple2Format}
     import OnsetsAnalysis.{Function, Config, ConfigAndProduct}
-    implicit val fmtFunc: Format[Function] = SealedTraitFormat[Function]
-    implicit val fmtCfg : Format[Config  ] = SealedTraitFormat[Config  ]
+    implicit val fmtFunc: Format[Function] = AutoFormat[Function]
+    implicit val fmtCfg : Format[Config  ] = AutoFormat[Config  ]
     Format.GenericFormat[Vec[ConfigAndProduct]]
   }
 

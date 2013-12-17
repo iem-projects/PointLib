@@ -34,6 +34,7 @@ import de.sciss.strugatzki.impl.NonRealtimeProcessor
 import language.implicitConversions
 import de.sciss.processor.{Processor, ProcessorFactory}
 import de.sciss.processor.impl.ProcessorImpl
+import de.sciss.numbers.Implicits._
 
 object PitchAnalysis extends ProcessorFactory.WithDefaults {
   var verbose = false

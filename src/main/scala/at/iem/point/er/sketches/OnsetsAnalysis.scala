@@ -36,6 +36,7 @@ import de.sciss.strugatzki.impl.NonRealtimeProcessor.BufferSpec
 import annotation.switch
 import de.sciss.processor.{Processor, ProcessorFactory}
 import de.sciss.processor.impl.ProcessorImpl
+import de.sciss.numbers.Implicits._
 
 object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
   var verbose = false
