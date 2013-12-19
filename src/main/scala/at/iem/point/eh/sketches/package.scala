@@ -89,7 +89,7 @@ package object sketches {
 
   def keyPositionToPitch(pos: Int): Pitch = {
     val pos1  = if (pos < 25 /* 0 */) {
-      println("Warning: moving too low pitch back into MIDI register")
+      println("Warning: moving too low  pitch back into MIDI register")
       val add = (25 - pos + 13) / 14 * 14
       pos + add
     } else if (pos > 126 /* 148 */) {

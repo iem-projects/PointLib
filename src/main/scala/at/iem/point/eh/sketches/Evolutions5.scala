@@ -12,8 +12,8 @@ object Evolutions5 extends App {
   val START       = 1       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
-  val ENTRY       = true    // model entry offsets
-  val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
+  val ENTRY       = false // true    // model entry offsets
+  val ENTRY_COARSE= 0.25     // entry offset rasterisation (relative, in percent 0...1)
   val ENTRY_SCALE = 2.0 // 1.5     // slow down factor if using entry modelling
 
   // val sq        = loadSnippet(improvSnippets.last)
@@ -34,9 +34,13 @@ object Evolutions5 extends App {
     res
   }
 
-  val pitchSq2  = notesIn.map(n => (n.pitch.keyColor, n.pitch.keyPosition))
+  val pitchSq2  = notesIn.map(n => (n.offset, n.pitch.keyColor, n.pitch.keyPosition))
   val ivalSq    = pitchSq2.pairMap {
-    case ((c1, p1), (c2, p2)) => (c1, c2, p2 - p1)
+    case ((o1, c1, p1), (o2, c2, p2)) =>
+      val fine    = ((o2 - o1) * 1000 + 0.5).toInt // millis
+      val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
+      val d       = if (coarse > 0) fine - fine % coarse else fine
+      (d, c1, c2, p2 - p1)
   }
 
   // val pitchSq   = notesIn.map(_.pitch.midi)
@@ -48,17 +52,17 @@ object Evolutions5 extends App {
 //  println(recPch.map(_.asPitch).mkString(", "))
 
   val startPitch: Pitch = recPch.head match {
-    case (c1, c2, dp) => (60 until 72).map(_.asPitch).filter { pch =>
+    case (dur, c1, c2, dp) => (60 until 72).map(_.asPitch).filter { pch =>
       Try(pch.keyColor == c1 && pch.moveBy(dp).keyColor == c2).getOrElse(false)
     } .head
   }
 
   def random1() = if (rnd.nextBoolean()) 1 else -1
 
-  val notesOut0 = ((startPitch, Vec.empty[OffsetNote]) /: recPch) { case ((pch, res), (c1, c2, dp)) =>
-    val idx   = res.size
-    val off   = idx * 0.25
-    val res1  = res :+ OffsetNote(off, pch, 0.125, 80)
+  val notesOut0 = ((startPitch, 0, Vec.empty[OffsetNote]) /: recPch) { case ((pch, off, res), (dur, c1, c2, dp)) =>
+    // val idx   = res.size
+    // val off   = idx * 0.25
+    val res1  = res :+ OffsetNote(off * 0.001, pch, 0.125, 80)
     val pch1  = Try(pch.moveBy(dp)).getOrElse(pch.moveBy(dp + random1()))
 
     val pch2 = if (pch1.keyColor != c2) {
@@ -76,8 +80,9 @@ object Evolutions5 extends App {
     }
 
     // assert(pch.keyColor == c1 && pch1.keyColor == c2)
-    (pch1, res1)
-  } ._2
+    val off1 = off + dur
+    (pch2, off1, res1)
+  } ._3
 
   val notesOut1 = if (VELO) {
     val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % VELO_COARSE) }

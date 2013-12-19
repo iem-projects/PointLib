@@ -7,6 +7,7 @@ import collection.breakOut
 
 object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(run())
+  // Swing.onEDT(test2())
 
   def test1(): Unit = {
     val sn          = loadSnippet(improvSnippets(1))
@@ -35,7 +36,7 @@ object ElisabethPartitioning extends App with ShowPartitioning {
   }
 
   def run(): Unit = {
-    val sn    = loadDisklavier(1) // 5  4  1  0
+    val sn    = loadDisklavier(0) // 5  4  1  0
     val notes = sn.notes
 
     val timeTol       = 0.3 // 5 // 0.3           // seconds
