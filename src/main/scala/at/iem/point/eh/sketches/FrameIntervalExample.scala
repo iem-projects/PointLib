@@ -1,8 +1,7 @@
 package at.iem.point.eh.sketches
 
 import scalax.chart.Charting._
-import swing.{Component, GridPanel, Frame}
-import java.awt.Color
+import scala.swing.{MainFrame, Component, GridPanel}
 import org.jfree.chart.{ChartPanel, ChartFactory, StandardChartTheme}
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
 import scalax.chart.XYChart
@@ -17,18 +16,17 @@ object FrameIntervalExample extends App {
   sealed trait Mode { def filter: Option[Int]; def isImprov: Boolean }
   case class StaticChords(sz: Int) extends Mode { def filter = Some(sz); def isImprov = false }
   case class Improvisation(filter: Option[Int]) extends Mode { def isImprov = true }
+  case class Static1(sz: Int, snippets: Int*) extends Mode { def filter = Some(sz); def isImprov = false }
 
-  /**
-   * Whether to look at one particular chord type snippet
-   * or a free improvisation. In the case of the improv,
-   * whether to filter particular chords or include all.
-   */
-  lazy val _mode: Mode    = StaticChords(5)
-  /**
-   * Whether to just look at the frame intervals (`false`) or to
-   * calculate the histogram of all internal intervals (`true`)
-   * (these are successive intervals, not all permutations!)
-   */
+  /** Whether to look at one particular chord type snippet
+    * or a free improvisation. In the case of the improv,
+    * whether to filter particular chords or include all.
+    */
+  lazy val _mode: Mode    = Improvisation(Some(4)) //  Static1(6, 23) // StaticChords(4)
+  /** Whether to just look at the frame intervals (`false`) or to
+    * calculate the histogram of all internal intervals (`true`)
+    * (these are successive intervals, not all permutations!)
+    */
   lazy val _allIntervals  = false
   
   lazy val _sumSnippets   = true
@@ -37,8 +35,9 @@ object FrameIntervalExample extends App {
     ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
 
     val snippetSet  = mode match {
-      case StaticChords(sz) => staticChords(sz)
-      case Improvisation(_) => improvSnippets.last :: Nil
+      case StaticChords (sz) => staticChords(sz)
+      case Improvisation(_)  => improvSnippets.last :: Nil
+      case Static1      (_, ids @ _*) => ids
     }
     val numSnippets = if (sumSnippets) 1 else snippetSet.size
     val infos0      = snippetSet.map(idx =>
@@ -67,9 +66,10 @@ object FrameIntervalExample extends App {
       case StaticChords(sz)         => s"static chords of size $sz"
       case Improvisation(None)      => s"all chords in an improvisation"
       case Improvisation(Some(sz))  => s"chords of size $sz in an improvisation"
+      case Static1(sz, _ids @ _*)   => s"static chords of size $sz"
     }
 
-    val frame = new Frame {
+    val frame = new MainFrame {
       title = s"$intervalTitle Histograms for $chordTitle"
       contents = panel
       new pdflitz.SaveAction(panel :: Nil).setupMenu(this)
@@ -91,13 +91,12 @@ object FrameIntervalExample extends App {
 
   final case class Info(snippets: List[Int], numChords: Int, histo: Map[Interval, Int], voices: List[Int], allIntervals: Boolean)
 
-  /**
-   * Calculates the histogram of the frame intervals in a chord snippet.
-   *
-   * @param snippetIdx      index of the snippet to load
-   * @param constrainSize   whether to filter chords which satisfy a given # of voices or not
-   * @return                the calculated information
-   */
+  /** Calculates the histogram of the frame intervals in a chord snippet.
+    *
+    * @param snippetIdx      index of the snippet to load
+    * @param constrainSize   whether to filter chords which satisfy a given # of voices or not
+    * @return                the calculated information
+    */
   def frameIntervalHisto(snippetIdx: Int, constrainSize: Option[Int], allIntervals: Boolean = false, lowTolerance: Boolean = false): Info = {
     val notes     = loadSnippet(snippetIdx).notes
     val chords0   = ChordUtil.findChords(notes, offsetTolerance = if (lowTolerance) 0.03 else 0.1,
@@ -107,11 +106,11 @@ object FrameIntervalExample extends App {
       case _ => chords0
     }
     val numChords = chords.size
-//    val fi        = chords.map(_.frameInterval)
+    //    val fi        = chords.map(_.frameInterval)
     val fi        = if (allIntervals) {
       chords.flatMap(_.layeredIntervals.map(_.modOctave))
     } else {
-      chords.map(_.frameInterval.modOctave)
+      chords.map(_.frameInterval /* .modOctave */)
     }
     val fih       = fi.histogram
     val voices = {
@@ -144,9 +143,10 @@ object FrameIntervalExample extends App {
       case more => more.mkString("snippets ", ",", "")
     }
     val chart   = XYBarChart(fihData, title = s"Histogram for $snippetsTxt - ${info.numChords} chords of $voicesTxt voices")
+    chart.printableLook()
     val plot    = chart.plot
     val rangeX  = plot.getDomainAxis.asInstanceOf[NumberAxis]
-    plot.getRenderer.setSeriesPaint(0, Color.darkGray)
+    // plot.getRenderer.setSeriesPaint(0, Color.darkGray)
     rangeX.setTickUnit(new NumberTickUnit(1))
     val rangeY  = plot.getRangeAxis.asInstanceOf[NumberAxis]
     rangeY.setTickUnit(new NumberTickUnit(1))

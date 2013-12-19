@@ -7,7 +7,7 @@ object ContextDance {
   var DEBUG2    = false
 
   def apply[A](corpus: Traversable[A])
-              (init: Traversable[A] = corpus.take(1))(implicit random: util.Random): ContextDance[A] = {
+              (init  : Traversable[A] = corpus.take(1))(implicit random: util.Random): ContextDance[A] = {
     val tree      = ContextTree(corpus.toSeq: _*)
     val snake     = tree.snake(init)
     if (DEBUG) println(s"Begin with $init")
@@ -15,7 +15,7 @@ object ContextDance {
   }
 
   def move[A](corpus: Traversable[A], num: Int = 100)
-             (init: Traversable[A] = corpus.take(1))(implicit random: util.Random): Vector[A] =
+             (init  : Traversable[A] = corpus.take(1))(implicit random: util.Random): Vector[A] =
     apply(corpus)(init).move(num)
 
   private final class Impl[A](tree: ContextTree[A], private var snake: ContextTree.Snake[A], rnd: util.Random)
@@ -47,12 +47,12 @@ object ContextDance {
         } else {  // back track (shrink tail)
           var foundAltern = false
           while (back.nonEmpty && !foundAltern) {
-  //          assert(snake.nonEmpty)
-    //        if (snake.size == 2) {
-    //          println("aqui")
-    //        }
-    //        snake.trimEnd(1)
-    snake = tree.snake(snake.to[Vector].init) // XXX TOOD: bug in ContextTree.Snake ?
+            //          assert(snake.nonEmpty)
+            //        if (snake.size == 2) {
+            //          println("aqui")
+            //        }
+            //        snake.trimEnd(1)
+            snake = tree.snake(snake.to[Vector].init) // XXX TOOD: bug in ContextTree.Snake ?
             if (DEBUG2) println(s"Snake trimmed to ${snake.to[Vector].mkString(", ")}")
             val succ    = back.last.to[Vector]
             if (DEBUG || DEBUG2) println(s"Trimming tail. Pop back tracking ${succ.mkString(", ")}")
@@ -88,8 +88,8 @@ object ContextDance {
         }
       }
 
-//      if (DEBUG) println(s"Append complete current snake ${snake.to[Vector].mkString(", ")}")
-//      res ++= snake.to[Vector]
+      //      if (DEBUG) println(s"Append complete current snake ${snake.to[Vector].mkString(", ")}")
+      //      res ++= snake.to[Vector]
       if (DEBUG) println(s"Take $num out of ${res.size}")
       res   = res.take(num)
       res

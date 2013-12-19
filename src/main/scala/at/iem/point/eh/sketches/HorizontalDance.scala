@@ -26,8 +26,8 @@ object HorizontalDance {
     private val entrySq   = notesIn.sliding(2, 1).to[Vector].map { case Seq(a, b) =>
       val fine    = ((b.offset - a.offset) * 1000 + 0.5).toInt // millis
       val coarse  = (fine * entryCoarse + 0.5).toInt
-      if (coarse > 0) (fine - fine % coarse) else fine
-//      millis * 1000
+      if (coarse > 0) fine - fine % coarse else fine
+      //      millis * 1000
     }
     private val recEntryF = ContextDance(entrySq :+ entrySq.head)(entrySq(startIdx) :: Nil)
 
@@ -42,7 +42,7 @@ object HorizontalDance {
       }
 
       val notesOut1 = if (modelVelo) {
-        val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
+        // val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
         val recVelo = recVeloF.move(num = num)
         (notesOut0 zip recVelo).map { case (n, v) => n.copy(velocity = v) }
 
@@ -50,14 +50,14 @@ object HorizontalDance {
 
       implicit val rate = TickRate.tempo(120, 1024)
 
-    //  val sorted = notesIn.sortBy(_.offset)
-    //  assert(notesIn == sorted)
+      //  val sorted = notesIn.sortBy(_.offset)
+      //  assert(notesIn == sorted)
 
       val notesOut  = if (modelEntry) {
-    //    println(entrySq.mkString(", "))
-    //    ContextDance.DEBUG = true
+        //    println(entrySq.mkString(", "))
+        //    ContextDance.DEBUG = true
         val recEntry = recEntryF.move(num = num)
-    //    println(recEntry.mkString(", "))
+        //    println(recEntry.mkString(", "))
         var off = 0.0
         (notesOut1 zip recEntry).map { case (n, e) =>
           val res = n.copy(offset = off)

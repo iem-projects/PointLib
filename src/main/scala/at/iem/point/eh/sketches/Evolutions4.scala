@@ -18,7 +18,7 @@ object Evolutions4 extends App {
   val INNER       = true    // model inner vertical structure of chords (`true`) or just frame intervals (`false`)
   val GRAINS      = true    // model inner horizontal structure of chords (`true`) or just produce monolithic blocks (`false`)
 
-//  val snippets  = improvSnippets.last :: staticChords(5).last :: Nil  // staticChords(5).head
+  //  val snippets  = improvSnippets.last :: staticChords(5).last :: Nil  // staticChords(5).head
   val snippets  = /* staticChords(5).last :: */ improvSnippets  // staticChords(5).head
   var notesIn0  = Vector.empty[OffsetNote]
   snippets.foreach { i =>
@@ -64,9 +64,9 @@ object Evolutions4 extends App {
   val track   = Track(events)
   val sqOut   = Sequence(Vector(track))
 
-//  sqOut.writeFile(outPath /
-//    (s"Snippet${snippet}_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}" +
-//     s"${if (GRAINS) "G" else ""}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid"))
+  //  sqOut.writeFile(outPath /
+  //    (s"Snippet${snippet}_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}" +
+  //     s"${if (GRAINS) "G" else ""}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid"))
 
   sqOut.writeFile(outPath /
     (s"Snippet${snippets.mkString("_")}_Resynth_${START}_${SEED}${if (INNER) "I" else ""}" +
