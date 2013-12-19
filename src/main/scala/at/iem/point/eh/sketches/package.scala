@@ -11,22 +11,6 @@ package object sketches {
   val  Vec    = collection.immutable.IndexedSeq
   type Vec[A] = collection.immutable.IndexedSeq[A]
 
-  implicit final class RichFloat(val f: Float) extends AnyVal {
-    def linlin(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
-      (f - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
-
-    def linexp(srcLo: Float, srcHi: Float, dstLo: Float, dstHi: Float): Float =
-      math.pow(dstHi / dstLo, (f - srcLo) / (srcHi - srcLo)).toFloat * dstLo
-  }
-
-  implicit final class RichDouble(val d: Double) extends AnyVal {
-    def linlin(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
-      (d - srcLo) / (srcHi - srcLo) * (dstHi - dstLo) + dstLo
-
-    def linexp(srcLo: Double, srcHi: Double, dstLo: Double, dstHi: Double): Double =
-      math.pow(dstHi / dstLo, (d - srcLo) / (srcHi - srcLo)).toFloat * dstLo
-  }
-
   var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
   def inPath    = basePath / "in"
   def outPath   = basePath / "rec"
@@ -132,39 +116,6 @@ package object sketches {
     def moveBy(distance: Int): Pitch = {
       val pos0  = this.keyPosition + distance
       keyPositionToPitch(pos0)
-    }
-  }
-
-  implicit final class RichEHIterableLike[A, CC[~] <: Iterable[~]](val it: CC[A]) extends AnyVal {
-    def pairMap[B, To](fun: (A, A) => B)(implicit cbf: CanBuildFrom[CC[A], B, To]): To = {
-      val b     = cbf(it)
-      val iter  = it.iterator
-      if (iter.hasNext) {
-        var pred = iter.next()
-        while (iter.hasNext) {
-          val succ = iter.next()
-          b   += fun(pred, succ)
-          pred = succ
-        }
-      }
-      b.result()
-    }
-  }
-
-  implicit final class RichEHIndexedSeq[A](val seq: IndexedSeq[A]) extends AnyVal {
-    def choose(implicit random: util.Random): A = seq(random.nextInt(seq.size))
-    def scramble(implicit random: util.Random): Vec[A] = {
-      ((seq, Vector.empty[A]) /: (0 until seq.size)) { case ((in, out), _) =>
-        val idx = random.nextInt(in.size)
-        in.patch(idx, Vector.empty, 1) -> (out :+ in(idx))
-      } ._2
-    }
-
-    def integrate(implicit num: Numeric[A]): Vec[A] = {
-      (Vector.empty[A] /: seq) { (res, elem) =>
-        val agg = num.plus(res.lastOption.getOrElse(num.zero), elem)
-        res :+ agg
-      }
     }
   }
 }

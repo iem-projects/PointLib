@@ -16,6 +16,7 @@ import at.iem.point.illism.gui.PianoRoll.NoteDecoration
 import collection.breakOut
 import de.sciss.pdflitz
 import de.sciss.swingplus.ScrollBar
+import de.sciss.numbers.Implicits._
 
 trait ShowPartitioning {
   def show(notes: Vec[Vec[OffsetNote]], chords: Vec[Vec[Chord]], numGroups: Int = -1)

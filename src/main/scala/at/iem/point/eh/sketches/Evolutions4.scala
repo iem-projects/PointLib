@@ -3,6 +3,7 @@ package at.iem.point.eh.sketches
 import at.iem.point.illism._
 import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 import de.sciss.file._
+import de.sciss.kollflitz.RandomOps._
 
 object Evolutions4 extends App {
   val NUM         = 200
@@ -45,10 +46,10 @@ object Evolutions4 extends App {
   var res       = Vector.empty[OffsetNote]
   while (produced < NUM) {
     val (notes, num) = if (tpe == 'h') {
-      val _num = mNum.choose
+      val _num = mNum.choose()
       genM.move(_num) -> _num
     } else {
-      val _num = hNum.choose
+      val _num = hNum.choose()
       genH.move(_num).flatMap(_.notes).sortBy(_.offset) -> _num
     }
     val off  = res.lastOption.map(n => n.stop + n.duration).getOrElse(0.0)

@@ -2,6 +2,8 @@ package at.iem.point.eh.sketches
 
 import at.iem.point.illism._
 import de.sciss.midi.TickRate
+import de.sciss.kollflitz.Ops._
+import de.sciss.kollflitz.RandomOps._
 
 object VerticalDance {
   def apply(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
@@ -108,8 +110,8 @@ object VerticalDance {
             vc += vcInc
           }
     //      println("---1")
-          val chord   = map(vc).choose
-          val ivals   = chord.layeredIntervals.map(_.semitones).scramble
+          val chord   = map(vc).choose()
+          val ivals   = chord.layeredIntervals.map(_.semitones).scramble()
           assert(ivals.sum == semi)
           val chords  = ivals.integrate.map { step =>
             OffsetNote(off, (pchLo + step).asPitch, 0.125, 80)
@@ -125,7 +127,7 @@ object VerticalDance {
       val chordsOut1 = if (modelVelo) {
         val recVelo = recVeloF.move(num)
         (chordsOut0 zip recVelo).map { case (c, v) =>
-          val vc  = veloOcc(c.size).choose
+          val vc  = veloOcc(c.size).choose()
           val va  = vc.avgVelocity
           val d   = v - va
           Chord((c.notes zip vc.notes).map { case (n, nv) => n.copy(velocity = math.max(1, math.min(127, (nv.velocity + d + 0.5f).toInt))) })
@@ -138,14 +140,14 @@ object VerticalDance {
 
       val chordsOut2 = if (modelGrains) {
         chordsOut1.map { c =>
-          val cg = grainOcc(c.size).choose
-          val ng = cg.notes.scramble
-          val oc = c.minOffset
+          val cg = grainOcc(c.size).choose()
+          val ng = cg.notes.scramble()
+          val oc = c .minOffset
           val og = cg.minOffset
           val d  = oc - og
           Chord((c.notes zip ng).map { case (na, nb) =>
-    //        val d = c.minOffset
-            na.copy(offset = nb.offset + d, duration = nb.duration)
+            //        val d = c.minOffset
+           na.copy(offset = nb.offset + d, duration = nb.duration)
           })
         }
 

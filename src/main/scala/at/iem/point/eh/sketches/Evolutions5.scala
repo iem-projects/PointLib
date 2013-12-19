@@ -4,6 +4,7 @@ import de.sciss.midi.{Sequencer, Sequence, Track, TickRate}
 import at.iem.point.illism._
 import de.sciss.file._
 import scala.util.Try
+import de.sciss.kollflitz.Ops._
 
 object Evolutions5 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
@@ -93,21 +94,21 @@ object Evolutions5 extends App {
 
   implicit val rate = TickRate.tempo(120, 1024)
 
-//  val sorted = notesIn.sortBy(_.offset)
-//  assert(notesIn == sorted)
+  //  val sorted = notesIn.sortBy(_.offset)
+  //  assert(notesIn == sorted)
 
   val notesOut  = if (ENTRY) {
     val entrySq = notesIn.sliding(2, 1).to[Vector].map { case Vec(a, b) =>
       val fine    = ((b.offset - a.offset) * 1000 + 0.5).toInt // millis
       val coarse  = (fine * ENTRY_COARSE + 0.5).toInt
       if (coarse > 0) fine - fine % coarse else fine
-//      millis * 1000
+      //      millis * 1000
     }
 
-//    println(entrySq.mkString(", "))
-//    ContextDance.DEBUG = true
+    //    println(entrySq.mkString(", "))
+    //    ContextDance.DEBUG = true
     val recEntry = ContextDance.move(entrySq :+ entrySq.head, num = NUM)(entrySq(START) :: Nil)
-//    println(recEntry.mkString(", "))
+    //    println(recEntry.mkString(", "))
     var off = 0.0
     (notesOut1 zip recEntry).map { case (n, e) =>
       val res = n.copy(offset = off)

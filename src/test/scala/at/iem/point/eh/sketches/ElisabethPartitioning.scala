@@ -4,6 +4,7 @@ import scala.swing.Swing
 import at.iem.point.illism._
 import scala.annotation.tailrec
 import collection.breakOut
+import de.sciss.numbers.Implicits._
 
 object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(run())
