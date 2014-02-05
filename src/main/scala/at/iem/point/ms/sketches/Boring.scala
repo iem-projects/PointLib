@@ -132,7 +132,7 @@ object Boring extends App {
     val winStep   = winSize / winOver
 
     measure match {
-      case mchord: Measure.Chord =>
+      case mChord: Measure.Chord =>
         val notes     = midi.notes
         val segm      = ChordUtil.findHarmonicFields(notes, minPoly = 1).sortBy(_.minOffset)
 
@@ -145,7 +145,7 @@ object Boring extends App {
                 steps.toDouble
               }
             }
-            mchord match {
+            mChord match {
               case Measure.ChordMean => chordM.meanVariance._1 / slice.size
               case Measure.ChordVar  => chordM.meanVariance._2 / slice.size
             }

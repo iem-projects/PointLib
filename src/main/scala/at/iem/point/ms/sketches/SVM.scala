@@ -10,7 +10,7 @@ object SVM extends App {
   def svmTrain    = svmDir / "svm-train"
   def svmPredict  = svmDir / "svm-predict"
   def svmScale    = svmDir / "svm-scale"
-  def scale       = true   // doesn't improve, basically we're already scaled
+  def scale       = false   // doesn't improve, basically we're already scaled
 
   object SvmType {
     case object C_SVC    extends SvmType { def optionID = 0 }
@@ -39,11 +39,12 @@ object SVM extends App {
   object TrainOptions {
     var tpe       : SvmType = SvmType.C_SVC   // default: C_SVC
     var kernel    : Kernel  = Kernel.Radial   // default: Radial
-    var cCost     : Double  = 1.0             // default: 1
+    var cCost     : Double  = 100 // 1.0             // default: 1      ; cost of constraints violation
     var shrinking : Boolean = true            // default: true
+    var eps       : Double  = 0.001           // default: 0.001         ; tolerance of termination criterion
 
     def toOptions: List[String] = tpe.toOptions ++ kernel.toOptions ++ List("-c", cCost.toString) ++
-      List("-h", (if (shrinking) 1 else 0).toString)
+      List("-h", (if (shrinking) 1 else 0).toString) ++ List("-e", eps.toString)
   }
 
   def kreuzVec(map: Map[Int, Map[Int, Int]]): Vec[Vec[Int]] =
@@ -55,8 +56,7 @@ object SVM extends App {
     vec.map(_ * f)
   }
 
-  def svmString(boring: Boolean, vec: Vec[Double]): String = {
-    val categ = if (boring) 0 else 1
+  def svmString(categ: Int, vec: Vec[Double]): String = {
     vec.zipWithIndex.map { case (num, fi) => s"${fi + 1}:$num" } .mkString(s"$categ ", " ", "")
   }
 
@@ -66,7 +66,11 @@ object SVM extends App {
     a.map(_._1) -> b.map(_._1)
   }
 
-  def process(study: Study): String = {
+  case class Problem(label: Int, features: Vec[Double]) {
+    override def toString = svmString(label, features)
+  }
+
+  def process(study: Study): Problem = {
     import Boring.Measure._
     import numbers.Implicits._
     import kollflitz.Ops._
@@ -88,21 +92,55 @@ object SVM extends App {
     lazy val (cvM, cvV) = cv.meanVariance
     lazy val cvS = cvV.sqrt
 
+    lazy val haM_mix_hvM = hvM / haM
+
     // val features = no :+ mean :+ std
     // val features = Vec(haM, haS, hvM, hvS, cvM, cvS)
     // val features = no ++ Vec(haM, hvM, cvM)
-    val features = Vec(noS, haM, hvM, cvM)
 
-    svmString(boring = study.isBoring, vec = features)
+    // val features = Vec(noS, haM, hvM, cvM)
+    // val features = Vec(noM, noV, noS, haM, haV, haS, hvM, hvV, hvS, cvM, cvV, cvS)
+    val features = Vec(haM, haS)
+
+    // val res = svmString(boring = study.isBoring, vec = features)
+    val res = Problem(label = if (study.isBoring) 0 else 1, features = features)
+    // println(res)
+    res
   }
 
   // javax.sound.midi.MidiSystem.getMidiFileTypes
 
-  val (bTrain, bTest) = splitHalf(allBoring   .map(process))
-  val (pTrain, pTest) = splitHalf(allPromising.map(process))
+  def allBoringProblems     = allBoring   .map(process)
+  def allPromisingProblems  = allPromising.map(process)
+  def allProblems           = allBoringProblems ++ allPromisingProblems
 
-  val allTrain = bTrain ++ pTrain
-  val allTest  = bTest  ++ pTest
+  def run(): Unit = {
+    val (bTrain, bTest) = splitHalf(allBoringProblems   )
+    val (pTrain, pTest) = splitHalf(allPromisingProblems)
+
+    val allTrain = bTrain ++ pTrain
+    val allTest  = bTest  ++ pTest
+
+    val fTrain    = tempFile("train")
+    val fModel    = tempFile("model")
+    val fTest     = tempFile("test")
+    val fPredict  = tempFile("predict")
+
+    svmWrite(fTrain, allTrain)
+    svmWrite(fTest , allTest )
+
+    println(s"\n\nRunning SVM Analysis... dataPath = ${dataPath(fTrain)}\n")
+
+    val cmdTrain  = Seq(svmTrain.path) ++ TrainOptions.toOptions ++ Seq(dataPath(fTrain), fModel.path)
+    println(cmdTrain.mkString(" "))
+    val resTrain  = cmdTrain.!
+    require(resTrain == 0, s"svm-train failed with code $resTrain")
+
+    val cmdPredict = Seq(svmPredict.path, dataPath(fTest), fModel.path, fPredict.path)
+    println(cmdPredict.mkString(" "))
+    val resPredict = cmdPredict.!
+    require(resPredict == 0, s"svm-predict failed with code $resTrain")
+  }
 
   def tempFile(name: String): File = {
     val dir = file("analysis") / "svm"
@@ -110,19 +148,17 @@ object SVM extends App {
     dir / name
   }
 
-  val fTrain    = tempFile("train")
-  val fModel    = tempFile("model")
-  val fTest     = tempFile("test")
-  val fPredict  = tempFile("predict")
-  
-  def svmWrite(file: File, lines: Vec[String]): Unit = {
+  def svmWrite(file: File, lines: Vec[Problem]): Unit = {
     val f1  = if (scale) File.createTemp() else file
     val out = new PrintStream(f1, "UTF-8")
     lines.foreach(out.println)
     out.close()
     if (scale) {
-      val scaled  = Seq(svmScale.path, file.path).!!
-      val out1    = new PrintStream(file, "UTF-8")
+      val scaleCmd  = Seq(svmScale.path, f1.path)
+      println(scaleCmd.mkString(" "))
+      val scaled    = scaleCmd.!!
+      // println(s"---scaled---:\n$scaled")
+      val out1      = new PrintStream(file, "UTF-8")
       out1.print(scaled)
       out1.close()
     }
@@ -131,16 +167,12 @@ object SVM extends App {
   def dataPath(f: File): String = f.path
     // (if (scale) f.parent / s"${f.base}.scale" else f).path
 
-  svmWrite(fTrain, allTrain)
-  svmWrite(fTest , allTest )
-
-  println("\n\nRunning SVM Analysis\n")
-  
-  val resTrain = (Seq(svmTrain.path) ++ TrainOptions.toOptions ++ Seq(dataPath(fTrain), fModel.path)).!
-  require(resTrain == 0, s"svm-train failed with code $resTrain")
-
-  val resPredict = Seq(svmPredict.path, dataPath(fTest), fModel.path, fPredict.path).!
-  require(resPredict == 0, s"svm-predict failed with code $resTrain")
-
-  // File.revealInFinder(svmIn)
+  def normalize(vec: Vec[Problem]): Vec[Problem] = {
+    val flat = vec.flatMap(_.features)
+    import de.sciss.kollflitz.Ops._
+    import de.sciss.numbers.Implicits._
+    val (mn, mx) = (flat.min, flat.max)
+    require (mn < mx)
+    vec.map(p => p.copy(features = p.features.map(_.linlin(mn, mx, 0.0, 1.0))))
+  }
 }
