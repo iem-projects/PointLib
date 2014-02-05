@@ -76,7 +76,8 @@ object SVM extends App {
     import kollflitz.Ops._
     println(s"Processing '$study'...")
     lazy val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true)
-    lazy val no  = norm(kreuzVec(an).flatten)
+    lazy val x   = kreuzVec(an)
+    lazy val no  = norm(x.flatten)
     lazy val (noM, noV) = no.meanVariance
     lazy val noS = noV.sqrt
 
@@ -99,8 +100,8 @@ object SVM extends App {
     // val features = no ++ Vec(haM, hvM, cvM)
 
     // val features = Vec(noS, haM, hvM, cvM)
-    // val features = Vec(noM, noV, noS, haM, haV, haS, hvM, hvV, hvS, cvM, cvV, cvS)
-    val features = Vec(haM, haS)
+    val features = Vec(noM, noV, noS, haM, haV, haS, hvM, hvV, hvS, cvM, cvV, cvS)
+    // val features = Vec(haM, haS)
 
     // val res = svmString(boring = study.isBoring, vec = features)
     val res = Problem(label = if (study.isBoring) 0 else 1, features = features)
@@ -167,12 +168,16 @@ object SVM extends App {
   def dataPath(f: File): String = f.path
     // (if (scale) f.parent / s"${f.base}.scale" else f).path
 
-  def normalize(vec: Vec[Problem]): Vec[Problem] = {
-    val flat = vec.flatMap(_.features)
+  def normalize(in: Vec[Problem]): Vec[Problem] = {
     import de.sciss.kollflitz.Ops._
     import de.sciss.numbers.Implicits._
-    val (mn, mx) = (flat.min, flat.max)
-    require (mn < mx)
-    vec.map(p => p.copy(features = p.features.map(_.linlin(mn, mx, 0.0, 1.0))))
+
+    val t = in.map(_.features).transpose
+    val n = t.map { col =>
+      val (mn, mx) = (col.min, col.max)
+      col.map(_.linlin(mn, mx, 0.0, 1.0))
+    }
+    val res = (in zip n.transpose).map { case (pOld, featNew) => pOld.copy(features = featNew) }
+    res
   }
 }

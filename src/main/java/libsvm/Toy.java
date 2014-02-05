@@ -84,6 +84,8 @@ public class Toy extends Applet {
     Vector<point> point_list = new Vector<point>();
     byte current_value = 1;
 
+    TextField input_line;
+
     public void init()
     {
         setSize(getSize());
@@ -93,7 +95,7 @@ public class Toy extends Applet {
         Button button_clear = new Button("Clear");
         Button button_save = new Button("Save");
         Button button_load = new Button("Load");
-        final TextField input_line = new TextField(DEFAULT_PARAM);
+        /* final TextField */ input_line = new TextField(DEFAULT_PARAM);
 
         BorderLayout layout = new BorderLayout();
         this.setLayout(layout);
@@ -498,13 +500,7 @@ public class Toy extends Applet {
 
     public void paint(Graphics g)
     {
-        // create buffer first time
-        if(buffer == null) {
-            buffer = this.createImage(XLEN,YLEN);
-            buffer_gc = buffer.getGraphics();
-            buffer_gc.setColor(colors[0]);
-            buffer_gc.fillRect(0,0,XLEN,YLEN);
-        }
+        ensureBufferExists();
         g.drawImage(buffer,0,0,this);
     }
 
@@ -523,8 +519,32 @@ public class Toy extends Applet {
         new AppletFrame("svm_toy",new Toy(),500,500+50);
     }
 
+    // ---- added ----
+
+    void ensureBufferExists() {
+        // create buffer first time
+        if(buffer == null) {
+            buffer = this.createImage(XLEN,YLEN);
+            buffer_gc = buffer.getGraphics();
+            buffer_gc.setColor(colors[0]);
+            buffer_gc.fillRect(0,0,XLEN,YLEN);
+        }
+    }
+
     public void addPoint(double x, double y, int label) {
-        point_list.add(new point(x, y, (byte) (label + 1)));
+        point p = new point(x, y, (byte) (label + 1));
+        point_list.add(p);
+        ensureBufferExists();
+        draw_point(p);
+    }
+
+    public void clearPoints() {
+        clear_all();
+    }
+
+    public void runAnalysis() {
+        ensureBufferExists();
+        // button_run_clicked(input_line.getText());
     }
 }
 
