@@ -1,7 +1,6 @@
 package at.iem.point.ms.sketches
 
 import scala.swing._
-import libsvm.Toy
 import de.sciss.numbers.Implicits._
 import java.awt.EventQueue
 
@@ -13,7 +12,7 @@ object SVMExplore extends SimpleSwingApplication {
 
   println(problems.mkString("\n"))
 
-  lazy val applet = new Toy()
+  lazy val applet = new SVMVis()
 
   def update(xi: Int, yi: Int): Unit = {
     val xi0 = xi.clip(0, numFeatures - 1)
@@ -64,22 +63,15 @@ object SVMExplore extends SimpleSwingApplication {
       add(ggUpdate, BorderPanel.Position.East  )
     }
 
-    val appletP = new javax.swing.JPanel(new java.awt.BorderLayout)
-    appletP.add(applet)
-    val appletW = Component.wrap(appletP)
-
     val f         = new MainFrame {
       title = "SVM Explore"
       // peer.getContentPane.add(applet)
       contents = new BorderPanel {
-        add(appletW, BorderPanel.Position.Center)
-        add(pFeat2 , BorderPanel.Position.South )
+        add(applet, BorderPanel.Position.Center)
+        add(pFeat2, BorderPanel.Position.South )
       }
       resizable = false
     }
-    applet.init()
-    applet.setSize(width, height)
-    applet.start()
     f.pack().centerOnScreen()
     f.open()
 

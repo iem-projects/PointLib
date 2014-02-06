@@ -401,6 +401,18 @@ public class Toy extends Applet {
                     buffer_gc.drawLine(i,j,i,j);
                     window_gc.drawLine(i,j,i,j);
                 }
+
+            // output success rate
+            int correct = 0;
+            for (point p : point_list) {
+                x[0].value = p.x;
+                x[1].value = p.y;
+                double d = svm.svm_predict(model, x);
+                int categ = (int) d;
+                if (categ == p.value) correct++;
+            }
+            System.out.println("" + correct + " out of " + point_list.size() + " predictions were correct (" +
+                    (correct * 100 / point_list.size()) + "%).");
         }
 
         draw_all_points();
