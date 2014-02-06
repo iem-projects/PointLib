@@ -28,8 +28,8 @@ object SVMExplore extends SimpleSwingApplication {
   }
 
   lazy val top: Frame = {
-    val width     = 400
-    val height    = width + 50
+    // val width     = 400
+    // val height    = width + 50
 
     def mkFeatureSel() = {
       val radios = Vector.fill(numFeatures)(new RadioButton)
@@ -64,7 +64,7 @@ object SVMExplore extends SimpleSwingApplication {
     }
 
     val f         = new MainFrame {
-      title = "SVM Explore"
+      title = "SVM Explore, Y = boring, B = promising"
       // peer.getContentPane.add(applet)
       contents = new BorderPanel {
         add(applet, BorderPanel.Position.Center)

@@ -46,8 +46,13 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
   private val ggInputLine: TextField = new TextField(DEFAULT_PARAM, 16) {
     listenTo(this)
+    var lastAna = text
     reactions += {
-      case EditDone(_) => analyze(text)
+      case EditDone(_) =>
+        if (lastAna != text) {
+          lastAna = text
+          analyze(text)
+        }
     }
   }
   private val butChange: Button = new Button("Change") {
@@ -94,9 +99,9 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
     res
   }
 
-  private def drawAllPoints(): Unit = withGraphics { g =>
-    points.foreach(drawPoint(g, _))
-  }
+  //  private def drawAllPoints(): Unit = withGraphics { g =>
+  //    points.foreach(drawPoint(g, _))
+  //  }
 
   private def buttonChangeClicked(): Unit =
     currentLabel = (currentLabel + 1) % 3
@@ -272,6 +277,16 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
       ggProg.value = 0
 
+      var correct: Int = 0
+      for (p <- points) {
+        x(0).value = p.x
+        x(1).value = p.y
+        val d: Double = svm.svm_predict(model, x)
+        val categ = d.toInt
+        if (categ == p.label) correct += 1
+      }
+      println(s"$correct out of ${points.size} predictions were correct (${correct * 100 / points.size}%).")
+
       val data = Future {
         blocking {
           (0 to columns).map { i =>
@@ -303,16 +318,6 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
           }
         }
       }
-
-      var correct: Int = 0
-      for (p <- points) {
-        x(0).value = p.x
-        x(1).value = p.y
-        val d: Double = svm.svm_predict(model, x)
-        val categ = d.toInt
-        if (categ == p.label) correct += 1
-      }
-      println(s"$correct out of ${points.size} predictions were correct (${correct * 100 / points.size}%).")
     }
   }
 
