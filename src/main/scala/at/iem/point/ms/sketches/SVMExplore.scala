@@ -107,11 +107,12 @@ object SVMExplore extends SimpleSwingApplication {
           (0 until numFeatures).combinations(num).foreach { indices =>
             Swing.onEDT(selectCombi(indices))
             val (abs, rel) = blocking(charlie(indices))
-            if (rel > best) {
+            if (rel >= best) {
               best      = rel
               bestAbs   = abs
-              bestCombi = indices
-              Swing.onEDT {
+              val pr    = rel > best || indices.size == bestCombi.size
+              if (rel > best) bestCombi = indices // since num grows, only replace if really better not equal
+              if (pr) Swing.onEDT {
                 setPercent(rel)
                 if (rel >= 0.9) printCombi(bestAbs, best, bestCombi)
               }
