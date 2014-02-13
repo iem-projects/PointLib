@@ -2,13 +2,14 @@ package at.iem.point.ms.sketches
 
 import scala.swing.event.{ButtonClicked, MousePressed, EditDone}
 import scala.swing.{ProgressBar, Graphics2D, Swing, Component, FlowPanel, BorderPanel, TextField, Button}
-import libsvm.{svm, svm_node, svm_problem, svm_parameter}
+import libsvm.{svm, svm_model, svm_node, svm_problem, svm_parameter}
 import Swing._
 import java.awt.image.BufferedImage
 import scala.concurrent.{ExecutionContext, Future, blocking}
 import java.awt.{Graphics, Color}
 import javax.swing.Icon
 import java.awt
+import scala.collection.breakOut
 
 /** Improved Scala version of the svm_toy */
 object SVMVis {
@@ -51,7 +52,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
       case EditDone(_) =>
         if (lastAna != text) {
           lastAna = text
-          analyze(text)
+          analyze()
         }
     }
   }
@@ -66,7 +67,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
   }
 
   private val butRun: Button = Button("Run") {
-    analyze(ggInputLine.text)
+    analyze()
   }
   private val butClear = Button("Clear") {
     buttonClearClicked()
@@ -106,9 +107,9 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
   private def buttonChangeClicked(): Unit =
     currentLabel = (currentLabel + 1) % 3
 
-  private def analyze(args: String): Unit = {
-    if (points.isEmpty) return
+  def paramText: String = ggInputLine.text
 
+  def parameters(args: String = paramText): svm_parameter = {
     val param         = new svm_parameter
     param.svm_type    = svm_parameter.C_SVC
     param.kernel_type = svm_parameter.RBF
@@ -180,22 +181,65 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
       }
     }
 
+    if (param.gamma == 0) {
+      if (param.kernel_type == svm_parameter.PRECOMPUTED) {
+        // nada
+      } else if (param.svm_type == svm_parameter.EPSILON_SVR || param.svm_type == svm_parameter.NU_SVR) {
+        param.gamma = 1
+      } else {
+        param.gamma = 0.5
+      }
+    }
+
+    param
+  }
+
+  def mkProblem[A](in: Vec[A])(label: A => Double)(features: A => Vec[Double]): svm_problem = {
     val prob  = new svm_problem
-    prob.l    = points.size
-    prob.y    = new Array[Double](prob.l)
+    val sz    = in.size
+    prob.l    = sz
+    prob.y    = in.map(label)(breakOut)
+    prob.x    = in.map { x =>
+      val vec = features(x)
+      vec.zipWithIndex.map { case (value, idx) =>
+        val n = new svm_node
+        n.index = idx + 1
+        n.value = value
+        n
+      } (breakOut) : Array[svm_node]
+    } (breakOut)
+    prob
+  }
+
+  def train(prob: svm_problem, param: svm_parameter): svm_model = svm.svm_train(prob, param)
+
+  def verify(model: svm_model, prob: svm_problem): (Vec[Boolean], Int, Double) = {
+    val pred: Vec[Boolean] = (prob.y zip prob.x).map { case (label, x) =>
+      val d: Double = svm.svm_predict(model, x)
+      val categ = d.toInt
+      categ == label
+    } (breakOut)
+    val abs = pred.count(identity)
+    val rel = abs.toDouble / pred.size
+    (pred, abs, rel)
+  }
+
+  private def analyze(): Unit = {
+    if (points.isEmpty) return
+
+    val param = parameters()
+
     if (param.kernel_type == svm_parameter.PRECOMPUTED) {
 
     } else if (param.svm_type == svm_parameter.EPSILON_SVR || param.svm_type == svm_parameter.NU_SVR) {
-
-      if (param.gamma == 0) param.gamma = 1
-
+      val prob: svm_problem = ???
       prob.x = Array.ofDim[svm_node](prob.l, 1)
 
-      points.zipWithIndex.foreach { case (_p, i) =>
+      points.zipWithIndex.foreach { case (pt, i) =>
         prob.x(i)(0)        = new svm_node
         prob.x(i)(0).index  = 1
-        prob.x(i)(0).value  = _p.x
-        prob.y(i)           = _p.y
+        prob.x(i)(0).value  = pt.x
+        prob.y(i)           = pt.y
       }
 
       val model     = svm.svm_train(prob, param)
@@ -253,20 +297,21 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 //      }
     }
     else {
-      if (param.gamma == 0) param.gamma = 0.5
-      prob.x = Array.ofDim[svm_node](prob.l, 2)
+      val prob    = mkProblem(points)(_.label)(p => Vec(p.x, p.y))
+      val model   = train(prob, param)
 
-      points.zipWithIndex.foreach { case (p, i) =>
-        prob.x(i)(0)        = new svm_node
-        prob.x(i)(0).index  = 1
-        prob.x(i)(0).value  = p.x
-        prob.x(i)(1)        = new svm_node
-        prob.x(i)(1).index  = 2
-        prob.x(i)(1).value  = p.y
-        prob.y(i)           = p.label
-      }
+      //      var correct: Int = 0
+      //      for (p <- points) {
+      //        x(0).value = p.x
+      //        x(1).value = p.y
+      //        val d: Double = svm.svm_predict(model, x)
+      //        val categ = d.toInt
+      //        if (categ == p.label) correct += 1
+      //      }
+      val (_, numCorrect, percentCorrect) = verify(model, prob)
 
-      val model   = svm.svm_train(prob, param)
+      println(s"$numCorrect out of ${points.size} predictions were correct (${(percentCorrect * 100).toInt}%).")
+
       val x       = new Array[svm_node](2)
       x(0)        = new svm_node
       x(1)        = new svm_node
@@ -274,18 +319,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
       x(1).index  = 2
 
       import ExecutionContext.Implicits.global
-
       ggProg.value = 0
-
-      var correct: Int = 0
-      for (p <- points) {
-        x(0).value = p.x
-        x(1).value = p.y
-        val d: Double = svm.svm_predict(model, x)
-        val categ = d.toInt
-        if (categ == p.label) correct += 1
-      }
-      println(s"$correct out of ${points.size} predictions were correct (${correct * 100 / points.size}%).")
 
       val data = Future {
         blocking {
