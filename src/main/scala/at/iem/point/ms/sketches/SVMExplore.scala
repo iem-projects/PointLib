@@ -3,12 +3,14 @@ package at.iem.point.ms.sketches
 import scala.swing._
 import de.sciss.numbers.Implicits._
 import java.awt.EventQueue
+import scala.swing.event.ButtonClicked
 
 object SVMExplore extends SimpleSwingApplication {
   val problems    = SVM.normalize(SVM.allProblems)
   require(problems.nonEmpty)
   val numFeatures = problems.head.features.size
   require(numFeatures >= 2)
+  val featureNames = problems.head.features.map(_.name)
 
   println(problems.mkString("\n"))
 
@@ -21,7 +23,7 @@ object SVMExplore extends SimpleSwingApplication {
     problems.foreach { p =>
       val x = p.features(xi0)
       val y = p.features(yi0)
-      applet.addPoint(x, y, p.label)
+      applet.addPoint(x.value, y.value, p.label)
     }
     applet.repaint()
     // applet.runAnalysis()
@@ -32,21 +34,27 @@ object SVMExplore extends SimpleSwingApplication {
     // val height    = width + 50
 
     def mkFeatureSel() = {
-      val radios = Vector.fill(numFeatures)(new RadioButton)
+      val radios = Vector.fill(numFeatures)(new RadioButton {
+        listenTo(this)
+        reactions += {
+          case ButtonClicked(_) => performUpdate()
+        }
+      })
       new ButtonGroup(radios: _*) -> radios
     }
 
-    val lb = (0 until numFeatures).map(i => new Label(i.toString))
-    val (gx, gxr) = mkFeatureSel()
-    val (gy, gyr) = mkFeatureSel()
+    lazy val lb = (0 until numFeatures).map(i => new Label(i.toString))
+    lazy val (gx, gxr) = mkFeatureSel()
+    lazy val (gy, gyr) = mkFeatureSel()
 
-    val pFeat = new GridPanel(3, numFeatures) {
+    lazy val pFeat = new GridPanel(4, numFeatures) {
+      contents ++= featureNames.map(new Label(_))
       contents ++= lb
       contents ++= gx.buttons
       contents ++= gy.buttons
     }
 
-    val ggUpdate = Button("Update") {
+    def performUpdate(): Unit = {
       for {
         bx <- gx.selected
         by <- gy.selected
@@ -60,7 +68,7 @@ object SVMExplore extends SimpleSwingApplication {
 
     val pFeat2 = new BorderPanel {
       add(pFeat   , BorderPanel.Position.Center)
-      add(ggUpdate, BorderPanel.Position.East  )
+      // add(ggUpdate, BorderPanel.Position.East  )
     }
 
     val f         = new MainFrame {

@@ -66,8 +66,12 @@ object SVM extends App {
     a.map(_._1) -> b.map(_._1)
   }
 
-  case class Problem(label: Int, features: Vec[Double]) {
-    override def toString = svmString(label, features)
+  case class Feature(name: String, value: Double)
+
+  type Features = Vec[Feature]
+
+  case class Problem(label: Int, features: Features) {
+    override def toString = svmString(label, features.map(_.value))
   }
 
   def process(study: Study): Problem = {
@@ -80,6 +84,12 @@ object SVM extends App {
     lazy val no  = norm(x.flatten)
     lazy val (noM, noV) = no.meanVariance
     lazy val noS = noV.sqrt
+
+    lazy val kreuz = {
+      val f   = x.flatten
+      val sum = f.sum
+      f.map(_.toDouble / sum)
+    }
 
     lazy val ha  = Boring.process(study, measure = HorizAmbi)
     lazy val (haM, haV) = ha.meanVariance
@@ -100,11 +110,26 @@ object SVM extends App {
     // val features = no ++ Vec(haM, hvM, cvM)
 
     // val features = Vec(noS, haM, hvM, cvM)
-    val features = Vec(noM, noV, noS, haM, haV, haS, hvM, hvV, hvS, cvM, cvV, cvS)
-    // val features = Vec(haM, haS)
+
+    lazy val feat1 = Vec(
+      Feature("noM", noM),
+      Feature("noV", noV),
+      Feature("noS", noS),
+      Feature("haM", haM),
+      Feature("haV", haV),
+      Feature("haS", haS),
+      Feature("hvM", hvM),
+      Feature("hvV", hvV),
+      Feature("hvS", hvS),
+      Feature("cvM", cvM),
+      Feature("cvV", cvV),
+      Feature("cvS", cvS)
+    )
+
+    lazy val feat2 = kreuz.zipWithIndex.map { case (v, i) => Feature(s"x$i", v) }
 
     // val res = svmString(boring = study.isBoring, vec = features)
-    val res = Problem(label = if (study.isBoring) 0 else 1, features = features)
+    val res = Problem(label = if (study.isBoring) 0 else 1, features = feat2)
     // println(res)
     res
   }
@@ -172,12 +197,16 @@ object SVM extends App {
     import de.sciss.kollflitz.Ops._
     import de.sciss.numbers.Implicits._
 
-    val t = in.map(_.features).transpose
+    val t = in.map(_.features.map(_.value)).transpose
     val n = t.map { col =>
       val (mn, mx) = (col.min, col.max)
       col.map(_.linlin(mn, mx, 0.0, 1.0))
     }
-    val res = (in zip n.transpose).map { case (pOld, featNew) => pOld.copy(features = featNew) }
+    val res = (in zip n.transpose).map { case (pOld, vecNew) =>
+      pOld.copy(features = (pOld.features zip vecNew).map { case (fOld, valNew) =>
+        fOld.copy(value = valNew)
+      })
+    }
     res
   }
 }
