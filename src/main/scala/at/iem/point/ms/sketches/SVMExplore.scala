@@ -108,13 +108,13 @@ object SVMExplore extends SimpleSwingApplication {
             Swing.onEDT(selectCombi(indices))
             val (abs, rel) = blocking(charlie(indices))
             if (rel >= best) {
-              best      = rel
-              bestAbs   = abs
               val pr    = rel > best || indices.size == bestCombi.size
               if (rel > best) bestCombi = indices // since num grows, only replace if really better not equal
+              best      = rel
+              bestAbs   = abs
               if (pr) Swing.onEDT {
                 setPercent(rel)
-                if (rel >= 0.9) printCombi(bestAbs, best, bestCombi)
+                if (rel >= 0.5) printCombi(bestAbs, best, indices)
               }
             }
           }
