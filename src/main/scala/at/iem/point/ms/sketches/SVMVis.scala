@@ -109,7 +109,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
   def paramText: String = ggInputLine.text
 
-  def parameters(args: String = paramText): svm_parameter = {
+  def parameters(numFeatures: Int, args: String = paramText): svm_parameter = {
     val param         = new svm_parameter
     param.svm_type    = svm_parameter.C_SVC
     param.kernel_type = svm_parameter.RBF
@@ -181,13 +181,14 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
       }
     }
 
-    if (param.gamma == 0) {
+    if (param.gamma <= 0) {
       if (param.kernel_type == svm_parameter.PRECOMPUTED) {
         // nada
       } else if (param.svm_type == svm_parameter.EPSILON_SVR || param.svm_type == svm_parameter.NU_SVR) {
         param.gamma = 1
       } else {
-        param.gamma = 0.5
+        val base = if (param.gamma == 0.0) 1.0 else -param.gamma
+        param.gamma = base / numFeatures    // e.g. -2 becomes 2 / numFeatures
       }
     }
 
@@ -227,7 +228,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
   private def analyze(): Unit = {
     if (points.isEmpty) return
 
-    val param = parameters()
+    val param = parameters(2)
 
     if (param.kernel_type == svm_parameter.PRECOMPUTED) {
 

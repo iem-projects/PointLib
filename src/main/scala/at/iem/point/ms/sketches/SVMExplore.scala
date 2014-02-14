@@ -31,18 +31,43 @@ object SVMExplore extends SimpleSwingApplication {
       applet.addPoint(x.value, y.value, p.label)
     }
     applet.repaint()
-    val (_, rel) = charlie(Vec(xi0, yi0))
+    val (_, rel) = charlie(Vec(xi0, yi0), split = false)
     setPercent(rel)
   }
 
   def setPercent(p: Double): Unit =
     ggPercent.text = (p * 100).toInt.toString
 
-  def charlie(indices: Vec[Int]): (Int, Double) = {
-    val param = applet.parameters()
-    val prob  = applet.mkProblem(problems)(_.label)(p => indices.map(p.features(_).value))
-    val model = applet.train(prob, param)
-    val (_, abs, rel) = applet.verify(model, prob)
+  /** Runs the whole circuit. It creates a model and predicts the success.
+    *
+    * @param indices  the indices into the feature vector to use in training and testing
+    * @param split    if `false`, uses all problems for training and testing, if `true` does
+    *                 `problems.size` iterations, in each of which one problem is excluded
+    *                 from the training set and used as sole candidate in the prediction round.
+    *                 In this case, the returned success is the cumulative success of these iterations.
+    * @return the absolute and relative success
+    */
+  def charlie(indices: Vec[Int], split: Boolean): (Int, Double) = {
+    val numFeat = indices.size
+    val param   = applet.parameters(numFeat)
+
+    def woopa(tr: Vec[SVM.Problem], ts: Vec[SVM.Problem]): Int = {
+      val trP         = applet.mkProblem(tr)(_.label)(p => indices.map(p.features(_).value))
+      val tsP         = applet.mkProblem(ts)(_.label)(p => indices.map(p.features(_).value))
+      val model       = applet.train(trP, param)
+      val (_, n, _)   = applet.verify(model, tsP)
+      n
+    }
+
+    val abs = if (split) {
+      problems.zipWithIndex.count { case (ts, idx) =>
+        woopa(tr = problems.patch(idx, Nil, 1), ts = Vec(ts)) == 1
+      }
+
+    } else {
+      woopa(problems, problems)
+    }
+    val rel = abs.toDouble / problems.size
     (abs, rel)
   }
 
@@ -64,16 +89,18 @@ object SVMExplore extends SimpleSwingApplication {
     lazy val (gx, gxr) = mkFeatureSel()
     lazy val (gy, gyr) = mkFeatureSel()
 
-    lazy val ggPermut: Vec[CheckBox] = Vec.fill(numFeatures)(new CheckBox)
+    lazy val ggPermutSel: Vec[CheckBox] = Vec.fill(numFeatures)(new CheckBox)
 
-    lazy val ggPermutProg: ProgressBar = new ProgressBar
+    lazy val ggPermutProg: ProgressBar = new ProgressBar {
+      labelPainted = true
+    }
 
     lazy val pFeat: GridPanel = new GridPanel(5, numFeatures) {
       contents ++= featureNames.map(new Label(_))
       contents ++= lb
       contents ++= gx.buttons
       contents ++= gy.buttons
-      contents ++= ggPermut
+      contents ++= ggPermutSel
     }
 
     def performUpdate(): Unit = {
@@ -88,52 +115,63 @@ object SVMExplore extends SimpleSwingApplication {
       }
     }
 
-    def selectCombi(indices: Vec[Int]): Unit =
-      ggPermut.zipWithIndex.foreach { case (gg, i) => gg.selected = indices.contains(i) }
+    def selectCombination(indices: Vec[Int]): Unit =
+      ggPermutSel.zipWithIndex.foreach { case (gg, i) => gg.selected = indices.contains(i) }
+
+    val ggExcludeTest: CheckBox = new CheckBox("Split-Test")
 
     lazy val ggRunPermut: Button = Button("Permut") {
       import ExecutionContext.Implicits.global
       libsvm.svm.svm_set_print_string_function(new libsvm.svm_print_interface {
         def print(s: String) = () // shut up
       })
+      ggRunPermut.enabled = false
+      val excl = ggExcludeTest.selected
       val res = Future {
         var best      = 0.0
         var bestAbs   = 0
-        var bestCombi = Vec.empty[Int]
-        for (num <- 2 to numFeatures) {
+        var bestComb  = Vec.empty[Int]
+        var num       = 2
+        while (num <= numFeatures && best < 1.0) {
           Swing.onEDT {
-            ggPermutProg.value = num * 100 / numFeatures
+            ggPermutProg.value  = num * 100 / numFeatures
+            ggPermutProg.label  = num.toString
           }
           (0 until numFeatures).combinations(num).foreach { indices =>
-            Swing.onEDT(selectCombi(indices))
-            val (abs, rel) = blocking(charlie(indices))
+            Swing.onEDT(selectCombination(indices))
+            val (abs, rel) = blocking(charlie(indices, split = excl))
             if (rel >= best) {
-              val pr    = rel > best || indices.size == bestCombi.size
-              if (rel > best) bestCombi = indices // since num grows, only replace if really better not equal
+              val pr    = rel > best || indices.size == bestComb.size
+              if (rel > best) bestComb = indices // since num grows, only replace if really better not equal
               best      = rel
               bestAbs   = abs
               if (pr) Swing.onEDT {
                 setPercent(rel)
-                if (rel >= 0.5) printCombi(bestAbs, best, indices)
+                if (rel >= 0.5) printCombination(bestAbs, best, indices)
               }
             }
           }
+          num += 1
         }
-        (bestAbs, best, bestCombi)
+        (bestAbs, best, bestComb)
       }
 
       res.foreach { case (bestAbs, best, bestCombi) =>
         Swing.onEDT {
-          selectCombi(bestCombi)
+          selectCombination(bestCombi)
           setPercent(best)
-          printCombi(bestAbs, best, bestCombi)
+          println("---RESULT---")
+          printCombination(bestAbs, best, bestCombi)
         }
       }
 
-      res.onComplete(_ => libsvm.svm.svm_set_print_string_function(null))
+      res.onComplete { _ =>
+        libsvm.svm.svm_set_print_string_function(null)
+        Swing.onEDT(ggRunPermut.enabled = true)
+      }
     }
 
-    def printCombi(abs: Int, rel: Double, indices: Vec[Int]): Unit = {
+    def printCombination(abs: Int, rel: Double, indices: Vec[Int]): Unit = {
       println(indices)
       println(s"$abs out of ${problems.size} (${(rel * 100).toFloat}%)")
     }
@@ -142,8 +180,9 @@ object SVMExplore extends SimpleSwingApplication {
       add(pFeat      , BorderPanel.Position.Center)
       add(ggPercent  , BorderPanel.Position.West  )
       add(new BorderPanel {
-        add(ggRunPermut , BorderPanel.Position.Center)
-        add(ggPermutProg, BorderPanel.Position.South )
+        add(ggExcludeTest, BorderPanel.Position.North )
+        add(ggRunPermut  , BorderPanel.Position.Center)
+        add(ggPermutProg , BorderPanel.Position.South )
       }, BorderPanel.Position.East)
       // add(ggUpdate, BorderPanel.Position.East  )
     }
