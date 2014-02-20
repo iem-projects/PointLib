@@ -155,9 +155,9 @@ object SVMExplore extends SimpleSwingApplication {
     lazy val (gx, gxr) = mkFeatureSel()
     lazy val (gy, gyr) = mkFeatureSel()
 
-    lazy val ggPermutSel: Vec[CheckBox] = Vec.fill(numFeatures)(new CheckBox)
+    lazy val ggPermutationSel: Vec[CheckBox] = Vec.fill(numFeatures)(new CheckBox)
 
-    lazy val ggPermutProg: ProgressBar = new ProgressBar {
+    lazy val ggPermutationProg: ProgressBar = new ProgressBar {
       labelPainted = true
     }
 
@@ -166,7 +166,7 @@ object SVMExplore extends SimpleSwingApplication {
       contents ++= lb
       contents ++= gx.buttons
       contents ++= gy.buttons
-      contents ++= ggPermutSel
+      contents ++= ggPermutationSel
     }
 
     def performUpdate(): Unit = {
@@ -182,41 +182,44 @@ object SVMExplore extends SimpleSwingApplication {
     }
 
     def selectCombination(indices: Vec[Int]): Unit =
-      ggPermutSel.zipWithIndex.foreach { case (gg, i) => gg.selected = indices.contains(i) }
+      ggPermutationSel.zipWithIndex.foreach { case (gg, i) => gg.selected = indices.contains(i) }
 
     val ggExcludeTest: CheckBox = new CheckBox("Split-Test")
 
-    lazy val ggRunPermut: Button = Button("Permut") {
+    lazy val ggRunPermutation: Button = Button("Permutation") {
       import ExecutionContext.Implicits.global
       libsvm.svm.svm_set_print_string_function(new libsvm.svm_print_interface {
         def print(s: String) = () // shut up
       })
-      ggRunPermut.enabled = false
+      ggRunPermutation.enabled = false
       val excl = ggExcludeTest.selected
       val res = Future {
         var best      = 0.0
         var bestAbs   = 0
         var bestComb  = Vec.empty[Int]
+        val bestSync  = new AnyRef
         var num       = 2
         while (num <= numFeatures && best < 1.0) {
           Swing.onEDT {
-            ggPermutProg.value  = num * 100 / numFeatures
-            ggPermutProg.label  = num.toString
+            ggPermutationProg.value  = num * 100 / numFeatures
+            ggPermutationProg.label  = num.toString
           }
+          // val xs = ParRange(0, numFeatures, step = 1, inclusive = false)
           val xs = (0 until numFeatures).combinations(num)
-          xs.foreach { indices =>
+          // ParArray + foreach + synchronized, yay, love it :o)
+          xs.toParArray.foreach { indices =>
             Swing.onEDT(selectCombination(indices))
             val (abs, rel) = blocking(charlie(indices, split = excl))
-            if (rel >= best) {
+            bestSync.synchronized(if (rel >= best) {
               val pr    = rel > best || indices.size == bestComb.size
               if (rel > best) bestComb = indices // since num grows, only replace if really better not equal
               best      = rel
               bestAbs   = abs
               if (pr) Swing.onEDT {
                 setPercent(rel)
-                if (rel >= 0.5) printCombination(bestAbs, best, indices)
+                if (rel >= 0.5) bestSync.synchronized(printCombination(bestAbs, best, indices))
               }
-            }
+            })
           }
           num += 1
         }
@@ -234,7 +237,7 @@ object SVMExplore extends SimpleSwingApplication {
 
       res.onComplete { _ =>
         libsvm.svm.svm_set_print_string_function(null)
-        Swing.onEDT(ggRunPermut.enabled = true)
+        Swing.onEDT(ggRunPermutation.enabled = true)
       }
     }
 
@@ -248,8 +251,8 @@ object SVMExplore extends SimpleSwingApplication {
       add(ggPercent  , BorderPanel.Position.West  )
       add(new BorderPanel {
         add(ggExcludeTest, BorderPanel.Position.North )
-        add(ggRunPermut  , BorderPanel.Position.Center)
-        add(ggPermutProg , BorderPanel.Position.South )
+        add(ggRunPermutation  , BorderPanel.Position.Center)
+        add(ggPermutationProg , BorderPanel.Position.South )
       }, BorderPanel.Position.East)
       // add(ggUpdate, BorderPanel.Position.East  )
     }
