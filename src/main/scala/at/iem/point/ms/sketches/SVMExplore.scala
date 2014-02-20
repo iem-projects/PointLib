@@ -12,13 +12,30 @@ object SVMExplore extends SimpleSwingApplication {
   val numFeatures: Int = problems.head.features.size
   require(numFeatures >= 2)
   val featureNames: Vec[String] = problems.head.features.map(_.name)
+  val labels: Vec[(Int, Int)] = problems.groupBy(_.label).mapValues(_.size).toIndexedSeq.sortBy(_._1)
 
-  println(problems.mkString("\n"))
+  // println(problems.mkString("\n"))
 
-  lazy val applet: SVMVis = new SVMVis()
+  lazy val applet: SVMVis = {
+    val res = new SVMVis()
+    val ws  = weights.map { case (label, c) => f"-w $label $c%1.2f" } .mkString(" ")
+    res.paramText = s"${res.paramText} $ws"
+    res
+  }
 
   val ggPercent: TextField = new TextField(3) {
     editable = false
+  }
+
+  val weights = genWeights(problems)
+  println(s"Weights: $weights")
+
+  def genWeights(p: Vec[SVM.Problem]): Vec[(Int, Double)] = {
+    val freq  = p.groupBy(_.label).mapValues(_.size) // .toIndexedSeq.sortWith(_._1)
+    val sz    = p.size
+    val c0s   = histo.mapValues(num => (sz - num).toDouble / num)
+    val min   = histo.valueIterator.min
+    c0.map { case (label, c0) => label -> c0 / min } (breakOut)
   }
 
   def update(xi: Int, yi: Int): Unit = {
@@ -47,28 +64,39 @@ object SVMExplore extends SimpleSwingApplication {
     *                 In this case, the returned success is the cumulative success of these iterations.
     * @return the absolute and relative success
     */
-  def charlie(indices: Vec[Int], split: Boolean): (Int, Double) = {
+  def charlie(indices: Vec[Int], split: Boolean): (Int, Double, Double) = {
     val numFeat = indices.size
     val param   = applet.parameters(numFeat)
 
-    def woopa(tr: Vec[SVM.Problem], ts: Vec[SVM.Problem]): Int = {
+    def parker(tr: Vec[SVM.Problem], ts: Vec[SVM.Problem]): Map[Int, (Int, Int)] = {
       val trP         = applet.mkProblem(tr)(_.label)(p => indices.map(p.features(_).value))
       val tsP         = applet.mkProblem(ts)(_.label)(p => indices.map(p.features(_).value))
       val model       = applet.train(trP, param)
-      val (_, n, _)   = applet.verify(model, tsP)
-      n
+      // val (_, n, _)   = applet.verify(model, tsP)
+      val pred        = applet.predict(model,tsP)
+      // t1, t2, ...
+      // p1, p2, ...
+
+      val m  = Map.empty[Int, (Int, Int)] withDefaultValue (0, 0)
+      val m2 = (m /: (tsP zip pred)) { case (m1, (target, p)) =>
+        m1 + (target -> { val (total, correct) = m(target); (total + 1, if (target == p) correct + 1 else correct) })
+      }
+      m2
     }
 
     val abs = if (split) {
-      problems.zipWithIndex.count { case (ts, idx) =>
-        woopa(tr = problems.patch(idx, Nil, 1), ts = Vec(ts)) == 1
-      }
+      //      problems.zipWithIndex.count { case (ts, idx) =>
+      //        parker(tr = problems.patch(idx, Nil, 1), ts = Vec(ts)) == 1
+      //      }
+      ???
 
     } else {
-      woopa(problems, problems)
+      val m = parker(problems, problems)
+      val (tot, abs) = m.values.reduce { case ((tot1, corr1), (tot2, corr2)) => (tot1 + tot2) -> (corr1 + corr2) }
+      assert(tot == problems.size)
+      val rel = abs.toDouble / tot
+      (abs, tot)
     }
-    val rel = abs.toDouble / problems.size
-    (abs, rel)
   }
 
   lazy val top: Frame = {
@@ -137,7 +165,8 @@ object SVMExplore extends SimpleSwingApplication {
             ggPermutProg.value  = num * 100 / numFeatures
             ggPermutProg.label  = num.toString
           }
-          (0 until numFeatures).combinations(num).foreach { indices =>
+          val xs = (0 until numFeatures).combinations(num)
+          xs.foreach { indices =>
             Swing.onEDT(selectCombination(indices))
             val (abs, rel) = blocking(charlie(indices, split = excl))
             if (rel >= best) {

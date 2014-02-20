@@ -107,7 +107,8 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
   private def buttonChangeClicked(): Unit =
     currentLabel = (currentLabel + 1) % 3
 
-  def paramText: String = ggInputLine.text
+  def paramText         : String        = ggInputLine.text
+  def paramText_= (value: String): Unit = ggInputLine.text = value
 
   def parameters(numFeatures: Int, args: String = paramText): svm_parameter = {
     val param         = new svm_parameter
@@ -214,11 +215,17 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
   def train(prob: svm_problem, param: svm_parameter): svm_model = svm.svm_train(prob, param)
 
-  def verify(model: svm_model, prob: svm_problem): (Vec[Boolean], Int, Double) = {
-    val pred: Vec[Boolean] = (prob.y zip prob.x).map { case (label, x) =>
+  def predict(model: svm_model, prob: svm_problem): Vec[Int] =
+    (prob.y zip prob.x).map { case (label, x) =>
       val d: Double = svm.svm_predict(model, x)
       val categ = d.toInt
-      categ == label
+      categ // == label
+    } (breakOut)
+
+  def verify(model: svm_model, prob: svm_problem): (Vec[Boolean], Int, Double) = {
+    val pred = predict(model, prob)
+    val vec: Vec[Boolean] = (pred zip prob.y).map { case (p, target) =>
+      p == target
     } (breakOut)
     val abs = pred.count(identity)
     val rel = abs.toDouble / pred.size
