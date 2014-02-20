@@ -203,12 +203,12 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
     prob.y    = in.map(label)(breakOut)
     prob.x    = in.map { x =>
       val vec = features(x)
-      vec.zipWithIndex.map { case (value, idx) =>
+      vec.iterator.zipWithIndex.map { case (value, idx) =>
         val n = new svm_node
         n.index = idx + 1
         n.value = value
         n
-      } (breakOut) : Array[svm_node]
+      } .toArray // (breakOut) : Array[svm_node]
     } (breakOut)
     prob
   }
@@ -216,17 +216,17 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
   def train(prob: svm_problem, param: svm_parameter): svm_model = svm.svm_train(prob, param)
 
   def predict(model: svm_model, prob: svm_problem): Vec[Int] =
-    (prob.y zip prob.x).map { case (label, x) =>
+    (prob.y.iterator zip prob.x.iterator).map { case (label, x) =>
       val d: Double = svm.svm_predict(model, x)
       val categ = d.toInt
       categ // == label
-    } (breakOut)
+    } .toIndexedSeq // (breakOut)
 
   def verify(model: svm_model, prob: svm_problem): (Vec[Boolean], Int, Double) = {
     val pred = predict(model, prob)
-    val vec: Vec[Boolean] = (pred zip prob.y).map { case (p1, target) =>
+    val vec: Vec[Boolean] = (pred.iterator zip prob.y.iterator).map { case (p1, target) =>
       p1 == target
-    } (breakOut)
+    } .toIndexedSeq // (breakOut)
     val abs = vec.count(identity)
     val rel = abs.toDouble / pred.size
     (vec, abs, rel)

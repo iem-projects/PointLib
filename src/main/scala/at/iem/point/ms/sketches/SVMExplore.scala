@@ -79,13 +79,36 @@ object SVMExplore extends SimpleSwingApplication {
       // t1, t2, ...
       // p1, p2, ...
 
-      val m  = Map.empty[Int, (Int, Int)] withDefaultValue (0, 0)
-      val m2 = (m /: (ts.iterator zip pred.iterator)) { case (m1, (target, p)) =>
-        val tl = target.label
-        val (total, correct) = m1(tl)
-        val newValue = (total + 1, if (tl == p) correct + 1 else correct)
-        m1 + (tl -> newValue)
+      val sz = ts.size
+      var mxl = 0
+      var i = 0; while (i < sz) {
+        val tl = ts(i).label
+        if (tl >= mxl) mxl = tl + 1
+        i += 1
       }
+      val tot  = new Array[Int](mxl)
+      val corr = new Array[Int](mxl)
+      i = 0; while (i < sz) {
+        val tl = ts(i).label
+        tot(tl) += 1
+        if (pred(i) == tl) corr(tl) += 1
+        i += 1
+      }
+      val mb = Map.newBuilder[Int, (Int, Int)]
+      i = 0; while (i < mxl) {
+        val t = tot(i)
+        if (t > 0) mb += (i -> (t, corr(i)))
+        i += 1
+      }
+      val m2 = mb.result()
+
+      //      val m  = Map.empty[Int, (Int, Int)] withDefaultValue (0, 0)
+      //      val m2 = (m /: (ts.iterator zip pred.iterator)) { case (m1, (target, p)) =>
+      //        val tl = target.label
+      //        val (total, correct) = m1(tl)
+      //        val newValue = (total + 1, if (tl == p) correct + 1 else correct)
+      //        m1 + (tl -> newValue)
+      //      }
       m2
     }
 
