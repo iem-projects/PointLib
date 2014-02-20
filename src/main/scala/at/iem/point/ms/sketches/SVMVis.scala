@@ -224,12 +224,12 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
   def verify(model: svm_model, prob: svm_problem): (Vec[Boolean], Int, Double) = {
     val pred = predict(model, prob)
-    val vec: Vec[Boolean] = (pred zip prob.y).map { case (p, target) =>
-      p == target
+    val vec: Vec[Boolean] = (pred zip prob.y).map { case (p1, target) =>
+      p1 == target
     } (breakOut)
-    val abs = pred.count(identity)
+    val abs = vec.count(identity)
     val rel = abs.toDouble / pred.size
-    (pred, abs, rel)
+    (vec, abs, rel)
   }
 
   private def analyze(): Unit = {

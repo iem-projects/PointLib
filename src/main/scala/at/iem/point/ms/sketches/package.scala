@@ -12,7 +12,11 @@ package object sketches {
   val  Vec    = collection.immutable.IndexedSeq
   type Vec[A] = collection.immutable.IndexedSeq[A]
 
-  var recPath = userHome / "Desktop" / "IEM" / "POINT" / "composers" / "mattias_skoeld"
+  private val desktop = userHome / "Desktop"
+  private val baseDir = if ((desktop / "IEM").exists) desktop else userHome
+  var recPath = baseDir / "IEM" / "POINT" / "composers" / "mattias_skoeld"
+
+  require(recPath.exists, s"Cannot find base directory '$recPath'")
 
   object Study {
     case class Raw(idx: Int) extends Study {

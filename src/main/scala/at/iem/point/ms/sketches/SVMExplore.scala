@@ -5,6 +5,7 @@ import de.sciss.numbers.Implicits._
 import java.awt.EventQueue
 import scala.swing.event.ButtonClicked
 import scala.concurrent.{blocking, ExecutionContext, Future}
+import scala.collection.breakOut
 
 object SVMExplore extends SimpleSwingApplication {
   val problems: Vec[SVM.Problem] = SVM.normalize(SVM.allProblems)
@@ -13,8 +14,7 @@ object SVMExplore extends SimpleSwingApplication {
   require(numFeatures >= 2)
   val featureNames: Vec[String] = problems.head.features.map(_.name)
   val labels: Vec[(Int, Int)] = problems.groupBy(_.label).mapValues(_.size).toIndexedSeq.sortBy(_._1)
-
-  // println(problems.mkString("\n"))
+  val histo = labels.toMap
 
   lazy val applet: SVMVis = {
     val res = new SVMVis()
@@ -31,11 +31,11 @@ object SVMExplore extends SimpleSwingApplication {
   println(s"Weights: $weights")
 
   def genWeights(p: Vec[SVM.Problem]): Vec[(Int, Double)] = {
-    val freq  = p.groupBy(_.label).mapValues(_.size) // .toIndexedSeq.sortWith(_._1)
+    // val freq  = p.groupBy(_.label).mapValues(_.size) // .toIndexedSeq.sortWith(_._1)
     val sz    = p.size
     val c0s   = histo.mapValues(num => (sz - num).toDouble / num)
-    val min   = histo.valueIterator.min
-    c0.map { case (label, c0) => label -> c0 / min } (breakOut)
+    val min   = c0s.valuesIterator.min
+    c0s.map { case (label, c0) => label -> c0 / min } (breakOut)
   }
 
   def update(xi: Int, yi: Int): Unit = {
@@ -64,10 +64,12 @@ object SVMExplore extends SimpleSwingApplication {
     *                 In this case, the returned success is the cumulative success of these iterations.
     * @return the absolute and relative success
     */
-  def charlie(indices: Vec[Int], split: Boolean): (Int, Double, Double) = {
+  def charlie(indices: Vec[Int], split: Boolean): (Int, Double) = {
     val numFeat = indices.size
     val param   = applet.parameters(numFeat)
 
+    // in: tr trainings set, ts test set
+    // out: map from label to (total-count, correct-count)
     def parker(tr: Vec[SVM.Problem], ts: Vec[SVM.Problem]): Map[Int, (Int, Int)] = {
       val trP         = applet.mkProblem(tr)(_.label)(p => indices.map(p.features(_).value))
       val tsP         = applet.mkProblem(ts)(_.label)(p => indices.map(p.features(_).value))
@@ -78,24 +80,37 @@ object SVMExplore extends SimpleSwingApplication {
       // p1, p2, ...
 
       val m  = Map.empty[Int, (Int, Int)] withDefaultValue (0, 0)
-      val m2 = (m /: (tsP zip pred)) { case (m1, (target, p)) =>
-        m1 + (target -> { val (total, correct) = m(target); (total + 1, if (target == p) correct + 1 else correct) })
+      val m2 = (m /: (ts.iterator zip pred.iterator)) { case (m1, (target, p)) =>
+        val tl = target.label
+        val (total, correct) = m1(tl)
+        val newValue = (total + 1, if (tl == p) correct + 1 else correct)
+        m1 + (tl -> newValue)
       }
       m2
     }
 
-    val abs = if (split) {
-      //      problems.zipWithIndex.count { case (ts, idx) =>
-      //        parker(tr = problems.patch(idx, Nil, 1), ts = Vec(ts)) == 1
-      //      }
-      ???
+    if (split) {
+      val m1 = (Map.empty[Int, (Int, Int)] /: problems.iterator.zipWithIndex) { case (res, (ts, idx)) =>
+        val m = parker(tr = problems.patch(idx, Nil, 1), ts = Vec(ts))
+        (res /: m) { case (res1, (key, value @ (newTot, newCorr))) =>
+          res1 + (key -> res1.get(key).fold(value) { case (oldTot, oldCorr) =>
+            (oldTot + newTot, oldCorr + newCorr)
+          })
+        }
+      }
+      ((0, 1.0) /: m1.valuesIterator) { case ((abs, rel), (tot, corr)) =>
+        val rel1 = corr.toDouble / tot
+        (abs + tot, math.min(rel, rel1))
+      }
 
     } else {
       val m = parker(problems, problems)
-      val (tot, abs) = m.values.reduce { case ((tot1, corr1), (tot2, corr2)) => (tot1 + tot2) -> (corr1 + corr2) }
-      assert(tot == problems.size)
+      val (tot, abs) = m.valuesIterator.reduce[(Int, Int)] { case ((tot1, corr1), (tot2, corr2)) =>
+        (tot1 + tot2) -> (corr1 + corr2)
+      }
+      assert(tot == problems.size, s"tot is $tot, but expected ${problems.size}")
       val rel = abs.toDouble / tot
-      (abs, tot)
+      (abs, rel)
     }
   }
 
