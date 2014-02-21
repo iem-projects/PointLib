@@ -28,7 +28,7 @@ object SVMExplore extends SimpleSwingApplication {
   }
 
   val weights = genWeights(problems)
-  println(s"Weights: $weights")
+  // println(s"Weights: $weights")
 
   def genWeights(p: Vec[SVM.Problem]): Vec[(Int, Double)] = {
     // val freq  = p.groupBy(_.label).mapValues(_.size) // .toIndexedSeq.sortWith(_._1)
@@ -123,7 +123,7 @@ object SVMExplore extends SimpleSwingApplication {
       }
       ((0, 1.0) /: m1.valuesIterator) { case ((abs, rel), (tot, corr)) =>
         val rel1 = corr.toDouble / tot
-        (abs + tot, math.min(rel, rel1))
+        (abs + corr /* tot */, math.min(rel, rel1))
       }
 
     } else {
