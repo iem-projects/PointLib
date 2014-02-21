@@ -6,6 +6,8 @@ import sys.process._
 import de.sciss.{numbers, kollflitz}
 
 object SVM extends App {
+  def horiz       = false   // if `true` look at voice progression, if `false` only consider vertical structures
+
   def svmDir      = userHome / "Documents" / "devel" / "libsvm"
   def svmTrain    = svmDir / "svm-train"
   def svmPredict  = svmDir / "svm-predict"
@@ -79,7 +81,8 @@ object SVM extends App {
     import numbers.Implicits._
     import kollflitz.Ops._
     println(s"Processing '$study'...")
-    lazy val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true)
+    lazy val an  = Kreuztabelle.analyze(study, allIntervals = true, intervalClasses = true, horiz = horiz,
+      chordSize = if (horiz) 4 else -1)
     lazy val x   = kreuzVec(an)
     lazy val no  = norm(x.flatten)
     lazy val (noM, noV) = no.meanVariance
