@@ -1,6 +1,8 @@
+import AssemblyKeys._
+
 name         := "ot-sketches"
 
-version      := "0.3.0"
+version      := "0.4.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
@@ -10,28 +12,28 @@ homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
 licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 
-resolvers ++= Seq(
-  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
-)
+//resolvers ++= Seq(
+//  "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases/"
+//)
 
 // cf. http://stackoverflow.com/questions/20497271/sbt-does-not-resolve-typesafe-repository/20497429#20497429
 resolvers += "Typesafe Simple Repository" at "http://repo.typesafe.com/typesafe/simple/maven-releases/"
 
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.2.+",
-  "de.sciss" %% "pdflitz"             % "1.0.+",
-  "de.sciss" %% "muta"                % "0.3.2+",
-  "de.sciss" %% "audiowidgets-swing"  % "1.3.1+",
+  "de.sciss" %% "pdflitz"             % "1.0.1+",
+  "de.sciss" %% "muta"                % "0.4.+",
+  "de.sciss" %% "audiowidgets-swing"  % "1.4.+",
   "de.sciss" %% "numbers"             % "0.1.+",
   "de.sciss" %  "abc4j"               % "0.6.+",
-  "de.sciss" %% "guiflitz"            % "0.1.1+",
+  // "de.sciss" %% "guiflitz"            % "0.3.+",
   "de.sciss" %% "poirot"              % "0.1.+",
   "de.sciss" %% "kollflitz"           % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
-retrieveManaged := true
+// retrieveManaged := true
 
 initialCommands in console :=
   """import at.iem.point.illism._
@@ -48,13 +50,23 @@ initialCommands in console :=
 
 seq(appbundle.settings: _*)
 
+seq(assemblySettings: _*)
+
 appbundle.mainClass   := Some("at.iem.point.ot.sketches.GeneticApp")
 
 appbundle.javaOptions += "-Xmx1024m"
 
-appbundle.name        := "OT_GeneticAlgorithm"
+appbundle.name        := s"OT_GeneticAlgorithm-${version.value}"
 
 appbundle.target      := baseDirectory.value
 
 appbundle.icon        := Some(file("icon.png"))
+
+test in assembly      := ()
+
+mainClass in assembly := Some("at.iem.point.ot.sketches.GeneticApp")
+
+target  in assembly   := baseDirectory.value
+
+jarName in assembly   := s"OT_GeneticAlgorithm-${version.value}.jar"
 

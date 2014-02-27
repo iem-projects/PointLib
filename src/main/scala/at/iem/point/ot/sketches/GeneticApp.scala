@@ -9,6 +9,9 @@ import de.sciss.midi
 object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   override def rowHeight = 176 // 128 // 64
 
+  // override def useNimbus          = Desktop.isLinux
+  // override def useInternalFrames  = !Desktop.isMac
+
   protected override def init(): Unit = {
     super.init()
     import Menu._
@@ -53,5 +56,6 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
       Transport.Play(frame.selectedNodes.headOption.map(_.chromosome).foreach(play))
     ))
     frame.topPanel.contents += strip
+    // frame.window.size = (800, 800)    // XXX TODO: preferredSize broken
   }
 }
