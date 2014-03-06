@@ -13,7 +13,7 @@ import de.sciss.numbers
 import de.sciss.play.json.AutoFormat
 import collection.breakOut
 import language.implicitConversions
-import de.sciss.poirot.IntVar
+import de.sciss.poirot.{Model, IntVar}
 import de.sciss.kollflitz.Ops._
 import de.sciss.kollflitz.RandomOps._
 
@@ -35,6 +35,54 @@ object Voice {
   implicit val format = AutoFormat[Voice]
 }
 
+sealed trait GlobalConstraint {
+  def apply(chromosome: Vec[Vec[IntVar]])(implicit m: poirot.Model): Unit
+}
+case class FirstChord(pitches: String = "") extends GlobalConstraint with GlobalConstraint.ChordImpl {
+  protected def pickChord(chromosome: Vec[Vec[IntVar]]): Vec[IntVar] = chromosome.head
+}
+case class LastChord (pitches: String = "") extends GlobalConstraint with GlobalConstraint.ChordImpl {
+  protected def pickChord(chromosome: Vec[Vec[IntVar]]): Vec[IntVar] = chromosome.last
+}
+case class GivenVoice(voice: Int = 1, pitches: String = "") extends GlobalConstraint {
+  require(voice >= 1, s"Voice index ($voice) must be >= 1")
+  private val pitchesI = GeneticSystem.stringToIntervals(pitches)
+
+  def apply(chromosome: Vec[Vec[IntVar]])(implicit m: Model): Unit = {
+    require(chromosome.size == pitchesI.size,
+      s"GivenVoice - wrong sequence length (is ${pitchesI.size}, expected ${chromosome.size}")
+    if (chromosome.isEmpty) return
+
+    val numVoices = chromosome.head.size
+    require(numVoices >= voice, s"GivenVoice - index ($voice) must <= numVoices ($numVoices)")
+    val line = chromosome.map(_.apply(numVoices - voice))
+    (line zip pitchesI).foreach { case (p, v) =>
+      p #= v
+    }
+  }
+}
+object GlobalConstraint {
+  trait ChordImpl {
+    private val pitchesI  = GeneticSystem.stringToIntervals(pitches)
+    require(pitchesI.isSorted, s"Chord pitches ($pitchesI) must be given in ascending order")
+    private val pitchesIR = pitchesI.reverse
+
+    protected def pitches: String
+    protected def pickChord(chromosome: Vec[Vec[IntVar]]): Vec[IntVar]
+
+    def apply(chromosome: Vec[Vec[IntVar]])(implicit m: Model): Unit = {
+      val ch = pickChord(chromosome)
+      require(ch.size == pitchesI.size,
+        s"FirstChord constraint has wrong number of voices (${pitchesI.size}, should be ${ch.size})")
+      (ch zip pitchesIR).foreach { case (vr, v) =>
+        vr #= v
+      }
+    }
+  }
+
+  implicit val format = AutoFormat[GlobalConstraint]
+}
+
 /** The global configuration for the generation of chromosomes.
   *
   * @param voices    the number of voices (vertical chord size)
@@ -43,34 +91,39 @@ object Voice {
   */
 case class GlobalImpl(voices  : Vec[Voice] = GeneticSystem.DefaultVoices,
                       vertical: Vec[VerticalConstraint] = Vec(ForbiddenInterval(12)),
+                      global  : Vec[GlobalConstraint] = Vec.empty,
                       length  : Int = 12)
 
 case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), seed: Int = 0)
   extends muta.Generation[GeneticSystem.Chromosome, GlobalImpl] {
   
-  import GeneticSystem.{Chromosome, constrainHoriz, constrainVert, pitchesToChord, varToPitch}
+  import GeneticSystem.{Chromosome, constrainHoriz, constrainVertical, pitchesToChord, varToPitch}
 
   def apply(r: Random): Chromosome = {
     val voices    = global.voices
     val numVoices = voices.size
     val num       = global.length
 
-    import poirot._
+    import poirot.{Vec => _, _} // IntelliJ freaks out when Vec is shadowed with itself
     implicit val model = Model()
     import Implicits._
 
+    // vertical constraints
     val vars = Vec.fill(num) {
       val ch = Vec.fill(numVoices)(IntVar())
-      constrainVert(ch, voices, global.vertical)
+      constrainVertical(ch, voices, global.vertical)
       ch
     }
+    // horizontal constraints
     vars.pairMap { (c1, c2) =>
       constrainHoriz(c1, c2, voices)
     }
+    // global constraints
+    global.global.foreach(_.apply(vars))
 
     require(model.consistency(), s"Constraints model is not consistent")
 
-    def mkChromo(): Chromosome = vars.map { vc =>
+    def mkChromosome(): Chromosome = vars.map { vc =>
       val chord = pitchesToChord(vc)
       (chord, ChordNeutral)
     }
@@ -80,7 +133,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
     timeOut           = 30    // seconds
 
-    def addSolution(): Unit = solutionsB += mkChromo()
+    def addSolution(): Unit = solutionsB += mkChromosome()
 
     val result        = satisfyAll(select, addSolution)
     val solutions     = solutionsB.result()
@@ -183,9 +236,9 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
         if (in._2 == ChordGood) {
           tries -= 1
         } else {
-          val pred  = if (j > 0          ) Some(gj(j - 1)) else None
-          val succ  = if (j < gj.size - 1) Some(gj(j + 1)) else None
-          val m     = mutate(glob, in, pred, succ)(r)
+          // val pred  = if (j > 0          ) Some(gj(j - 1)) else None
+          // val succ  = if (j < gj.size - 1) Some(gj(j + 1)) else None
+          val m     = mutate(glob, gj, j)(r)
           res       = gj.updated(j, m)
           tries     = 0
         }
@@ -211,7 +264,11 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
     rangeRand(min, max)
   }
 
-  def mutate(global: Global, gene: Gene, pred: Option[Gene], succ: Option[Gene])(implicit r: util.Random): Gene = {
+  def mutate(global: Global, gj: Chromosome, j: Int)(implicit r: util.Random): Gene = {
+    val pred  = if (j > 0          ) Some(gj(j - 1)) else None
+    val succ  = if (j < gj.size - 1) Some(gj(j + 1)) else None
+    val gene  = gj(j)
+
     val (chord, _) = gene
     val csz   = chord.size
     require(csz == global.voices.size)
@@ -219,33 +276,45 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
     val num   = numVoices(global)
     val sel   = ((0 until csz) diff excludeVoiceNums).scramble().take(num).toSet
 
-    import poirot._
+    import poirot.{Vec => _, _}
     implicit val model = Model()
     import Implicits._
 
     if (DEBUG_MUTA) println()
 
+    val varsX = Vec.fill(gj.size)(Vec.fill(csz)(IntVar(Int.MinValue, Int.MaxValue)))
+
     val pitchesSel = chordToPitches[Pitch](chord).zipWithIndex // .zip(sel)
-    val vars = pitchesSel.map { case (p, psel) =>
+    val vars = varsX(j)
+    (vars zip pitchesSel).foreach { case (vr, (p, pSel)) =>
       val midi = p.midi
-      if (sel contains psel) {
+      if (sel contains pSel) {
         val lo = midi - interval
         val hi = midi + interval
-        IntVar(lo, hi)
+        // IntVar(lo, hi)
+        vr #>= lo
+        vr #<= hi
+
       } else
-        IntVar(midi, midi)
+        // IntVar(midi, midi)
+        vr #= midi
     }
-    GeneticSystem.constrainVert(vars, global.voices, global.vertical)
+    GeneticSystem.constrainVertical(vars, global.voices, global.vertical)
 
     pred.foreach { case (predC, _) =>
-      val pred = chordToPitches[IntVar](predC)
-      GeneticSystem.constrainHoriz(pred, vars, global.voices)
+      val predI = chordToPitches[Int](predC)(_.midi)
+      val pv    = varsX(j - 1)
+      (pv zip predI).foreach { case (vr, p) => vr #= p }
+      GeneticSystem.constrainHoriz(pv, vars, global.voices)
     }
-    // something with the following is wrong probably:
     succ.foreach { case (succC, _) =>
-      val succ = chordToPitches[IntVar](succC)
-      GeneticSystem.constrainHoriz(vars, succ, global.voices)
+      val succI = chordToPitches[Int](succC)(_.midi)
+      val sv    = varsX(j + 1)
+      (sv zip succI).foreach { case (vr, p) => vr #= p }
+      GeneticSystem.constrainHoriz(vars, sv, global.voices)
     }
+
+    global.global.foreach(_.apply(varsX))
 
     require(model.consistency(), s"Constraints model is not consistent")
 
@@ -307,7 +376,7 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
 
 /** Constraint on the vertical (harmonic) structure. */
 sealed trait VerticalConstraint {
-  // /** Verifies whether the contraint is satisfied (`true`) or not (`false`). */
+  // /** Verifies whether the constraint is satisfied (`true`) or not (`false`). */
   // def apply(chord: Chord): Boolean
 
   def apply(chord: Vec[IntVar])(implicit m: poirot.Model): Unit
@@ -370,19 +439,19 @@ case class FrameIntervalEval(reduce: ReduceFunction =
   extends EvaluationImpl {
 
   override def apply(c: GeneticSystem.Chromosome): Double = {
-    val dseq = c.map(_._1.frameInterval.semitones.toDouble)
-    reduce(dseq)
+    val dSeq = c.map(_._1.frameInterval.semitones.toDouble)
+    reduce(dSeq)
   }
 }
 
 case class VoiceEval(voice: Int = 1, reduce: ReduceFunction =
                     Match(gen = ConstantEnv(60), AbsDif, ComposeReduceUnary(Mean, LinLin(0, 10, 1, 0))))
   extends EvaluationImpl {
-  
+
   import GeneticSystem.{Chromosome, chordToPitches}
 
   override def apply(c: Chromosome): Double = {
-    val seq = c.map { case (chord, _) => chordToPitches[Double](chord)(_.midi.toDouble)(voice) }
+    val seq = c.map { case (chord, _) => chordToPitches[Double](chord)(_.midi.toDouble)(voice - 1) }
     reduce(seq)
   }
 }
@@ -475,10 +544,10 @@ object GeneticSystem extends muta.System {
     val notes = pitches.reverse.map(pitch => OffsetNote(offset = 0, pitch = view(pitch), duration = 1, velocity = 80))
     Chord(notes)
   }
-  
+
   implicit def varToPitch(vr: IntVar): Pitch = vr.value().asPitch
   implicit def pitchToVar(pitch: Pitch)(implicit model: poirot.Model): IntVar = IntVar(pitch.midi, pitch.midi)
-  
+
   val DefaultVoices = Vec(
     Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
     Voice(down = VoiceDirection(limit = 36, step = 6), up = VoiceDirection(limit = 84, step = 6)),
@@ -499,16 +568,17 @@ object GeneticSystem extends muta.System {
     // import Implicits._
 
     val vars = c.map { case (chord, _) => chordToPitches[IntVar](chord) }
-    vars.foreach(constrainVert (_   , global.voices, global.vertical))
-    vars.pairMap(constrainHoriz(_, _, global.voices))
+    vars.foreach(constrainVertical (_   , global.voices, global.vertical))
+    vars.pairMap(constrainHoriz    (_, _, global.voices))
+    global.global.foreach(_.apply(vars))
 
     val select = search(vars.flatten, smallest, indomainMin)
     satisfy(select)
   }
 
-  def constrainVert(cv: Vec[IntVar], voices: Vec[Voice],
-                     vertical: Vec[VerticalConstraint])
-                    (implicit m: poirot.Model): Unit = {
+  def constrainVertical(cv: Vec[IntVar], voices: Vec[Voice],
+                        vertical: Vec[VerticalConstraint])
+                       (implicit m: poirot.Model): Unit = {
     import poirot._
     // voice registers
     (cv zip voices).foreach { case (v, vc) =>
@@ -523,7 +593,7 @@ object GeneticSystem extends muta.System {
     vertical.foreach(_.apply(cv))
   }
 
-  private def stringToIntervals(s: String): Vec[Int] = {
+  def stringToIntervals(s: String): Vec[Int] = {
     val t = s.trim
     if (t.isEmpty) Vec.empty
     else t.split(' ').collect {
