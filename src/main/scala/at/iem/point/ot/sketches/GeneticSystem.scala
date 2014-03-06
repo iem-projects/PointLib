@@ -63,14 +63,15 @@ case class GivenVoice(voice: Int = 1, pitches: String = "") extends GlobalConstr
 }
 object GlobalConstraint {
   trait ChordImpl {
-    private val pitchesI  = GeneticSystem.stringToIntervals(pitches)
-    require(pitchesI.isSorted, s"Chord pitches ($pitchesI) must be given in ascending order")
-    private val pitchesIR = pitchesI.reverse
+    private lazy val pitchesI   = GeneticSystem.stringToIntervals(pitches)
+    private lazy val check      = require(pitchesI.isSorted, s"Chord pitches ($pitchesI) must be given in ascending order")
+    private lazy val pitchesIR  = pitchesI.reverse
 
     protected def pitches: String
     protected def pickChord(chromosome: Vec[Vec[IntVar]]): Vec[IntVar]
 
     def apply(chromosome: Vec[Vec[IntVar]])(implicit m: Model): Unit = {
+      check
       val ch = pickChord(chromosome)
       require(ch.size == pitchesI.size,
         s"FirstChord constraint has wrong number of voices (${pitchesI.size}, should be ${ch.size})")
@@ -138,7 +139,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     val result        = satisfyAll(select, addSolution)
     val solutions     = solutionsB.result()
 
-    require(result, s"Constraints could not be satisfied")
+    require(result, "Constraints could not be satisfied")
     // println(s"num-solutions ${solutions.size}")
 
     solutions.choose()(r)
@@ -265,8 +266,8 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
   }
 
   def mutate(global: Global, gj: Chromosome, j: Int)(implicit r: util.Random): Gene = {
-    val pred  = if (j > 0          ) Some(gj(j - 1)) else None
-    val succ  = if (j < gj.size - 1) Some(gj(j + 1)) else None
+    // val pred  = if (j > 0          ) Some(gj(j - 1)) else None
+    // val succ  = if (j < gj.size - 1) Some(gj(j + 1)) else None
     val gene  = gj(j)
 
     val (chord, _) = gene
@@ -282,41 +283,35 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
 
     if (DEBUG_MUTA) println()
 
-    val varsX = Vec.fill(gj.size)(Vec.fill(csz)(IntVar(Int.MinValue, Int.MaxValue)))
+    // val varsX = Vec.fill(gj.size)(Vec.fill(csz)(IntVar(Int.MinValue, Int.MaxValue)))
+    val varsX = gj.zipWithIndex.map { case ((_chord, _), idx) =>
+      val pitchesSel = chordToPitches[Pitch](_chord).zipWithIndex // .zip(sel)
+      val _vars = pitchesSel.map { case (p, pSel) =>
+        val midi = p.midi
+        if (idx == j && sel.contains(pSel)) {
+          val lo = midi - interval
+          val hi = midi + interval
+          IntVar(lo, hi)
 
-    val pitchesSel = chordToPitches[Pitch](chord).zipWithIndex // .zip(sel)
-    val vars = varsX(j)
-    (vars zip pitchesSel).foreach { case (vr, (p, pSel)) =>
-      val midi = p.midi
-      if (sel contains pSel) {
-        val lo = midi - interval
-        val hi = midi + interval
-        // IntVar(lo, hi)
-        vr #>= lo
-        vr #<= hi
+        } else
+          IntVar(midi, midi)
+      }
 
-      } else
-        // IntVar(midi, midi)
-        vr #= midi
+      // vertical constraints
+      GeneticSystem.constrainVertical(_vars, global.voices, global.vertical)
+      _vars
     }
-    GeneticSystem.constrainVertical(vars, global.voices, global.vertical)
 
-    pred.foreach { case (predC, _) =>
-      val predI = chordToPitches[Int](predC)(_.midi)
-      val pv    = varsX(j - 1)
-      (pv zip predI).foreach { case (vr, p) => vr #= p }
-      GeneticSystem.constrainHoriz(pv, vars, global.voices)
-    }
-    succ.foreach { case (succC, _) =>
-      val succI = chordToPitches[Int](succC)(_.midi)
-      val sv    = varsX(j + 1)
-      (sv zip succI).foreach { case (vr, p) => vr #= p }
-      GeneticSystem.constrainHoriz(vars, sv, global.voices)
+    // horizontal constraints
+    varsX.pairMap { (c1, c2) =>
+      GeneticSystem.constrainHoriz(c1, c2, global.voices)
     }
 
     global.global.foreach(_.apply(varsX))
 
     require(model.consistency(), s"Constraints model is not consistent")
+
+    val vars = varsX(j)
 
     val select        = search(vars, firstFail, indomainRandom(r))
     val solutionsB    = Vec.newBuilder[Chord]
@@ -329,13 +324,23 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
     val solutions     = solutionsB.result()
 
     if (!result) {
-      val thisInfo = pitchesSel.reverse.map { case (p, s) => s"$p${if (sel contains s) "!" else ""}" } .mkString(", ")
-      val predInfo = pred.fold("") { case (c, _) =>
+      //      val thisInfo = pitchesSel.reverse.map { case (p, s) => s"$p${if (sel contains s) "!" else ""}" } .mkString(", ")
+      //      val predInfo = pred.fold("") { case (c, _) =>
+      //        c.pitches.mkString("; pred = ", ", ", "")
+      //      }
+      //      val succInfo = succ.fold("") { case (c, _) =>
+      //        c.pitches.mkString("; succ = ", ", ", "")
+      //      }
+      val thisInfo  = gj(j)
+      val predInfo  = if (j <= 0) "" else {
+        val (c, _) = gj(j - 1)
         c.pitches.mkString("; pred = ", ", ", "")
       }
-      val succInfo = succ.fold("") { case (c, _) =>
+      val succInfo  = if (j >= gj.size) "" else {
+        val (c, _) = gj(j + 1)
         c.pitches.mkString("; succ = ", ", ", "")
       }
+
       if (WARN_MUTA) println(s"Warning: could not mutate $thisInfo$predInfo$succInfo")
       return gene
     }
