@@ -5,12 +5,17 @@ import de.sciss.desktop.{FileDialog, Menu}
 import de.sciss.muta.gui.DocumentFrame
 import de.sciss.audiowidgets.Transport
 import de.sciss.midi
+import de.sciss.swingplus.Spinner
+import javax.swing.SpinnerNumberModel
+import scala.swing.{Swing, Label}
 
 object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   override def rowHeight = 176 // 128 // 64
 
   // override def useNimbus          = Desktop.isLinux
   // override def useInternalFrames  = !Desktop.isMac
+
+  lazy val mTimeOut = new SpinnerNumberModel(30, 1, 600, 10)
 
   protected override def init(): Unit = {
     super.init()
@@ -55,7 +60,12 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
       Transport.Stop(stop()),
       Transport.Play(frame.selectedNodes.headOption.map(_.chromosome).foreach(play))
     ))
-    frame.topPanel.contents += strip
+    val ggTimeOut = new Spinner(mTimeOut)
+    val tp = frame.topPanel
+    tp.contents += strip
+    tp.contents += Swing.HStrut(8)
+    tp.contents += new Label("Timeout [s]:")
+    tp.contents += ggTimeOut
     // frame.window.size = (800, 800)    // XXX TODO: preferredSize broken
   }
 }

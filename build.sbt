@@ -2,7 +2,7 @@ import AssemblyKeys._
 
 name         := "ot-sketches"
 
-version      := "0.4.0"
+version      := "0.5.0"
 
 organization := "at.iem.point"
 
@@ -23,17 +23,17 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.2.+",
   "de.sciss" %% "pdflitz"             % "1.0.1+",
   "de.sciss" %% "muta"                % "0.4.+",
-  "de.sciss" %% "audiowidgets-swing"  % "1.4.+",
+  "de.sciss" %% "audiowidgets-swing"  % "1.5.+",
   "de.sciss" %% "numbers"             % "0.1.+",
   "de.sciss" %  "abc4j"               % "0.6.+",
   // "de.sciss" %% "guiflitz"            % "0.3.+",
-  "de.sciss" %% "poirot"              % "0.1.+",
+  "de.sciss" %% "poirot"              % "0.2.+",
   "de.sciss" %% "kollflitz"           % "0.1.+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
-// retrieveManaged := true
+retrieveManaged := true
 
 initialCommands in console :=
   """import at.iem.point.illism._

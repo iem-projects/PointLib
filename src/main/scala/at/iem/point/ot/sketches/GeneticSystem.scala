@@ -132,7 +132,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
     val select        = search(vars.flatten, firstFail, indomainRandom(r))
     val solutionsB    = Vec.newBuilder[Chromosome]
     maxNumSolutions   = math.max(1, math.min(math.pow(size, 1.5), 16384).toInt)
-    timeOut           = 30    // seconds
+    timeOut           = GeneticApp.mTimeOut.getValue.asInstanceOf[Int] // 30 // 30    // seconds
 
     def addSolution(): Unit = solutionsB += mkChromosome()
 
@@ -387,7 +387,31 @@ sealed trait VerticalConstraint {
   def apply(chord: Vec[IntVar])(implicit m: poirot.Model): Unit
 }
 
-sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
+//sealed trait ForbiddenIntervalLike {
+//  /** Forbidden intervals sorted top to bottom */
+//  protected def intervals: Vec[Int]
+//
+//  def apply(chord: Vec[IntVar])(implicit m: poirot.Model): Unit = {
+//    import poirot.Implicits._
+//
+//    val ivalsForbidden  = intervals
+//    val sz              = ivalsForbidden.size
+//    chord.combinations(sz + 1).foreach { case sub =>
+//      // sub is the filtered chord, having `sz + 1` pitches from hi to lo.
+//      // we calculate the `sz` relative intervals of these pitches.
+//      // then the modulus of these intervals with the forbidden intervals.
+//      // we forbid that all modulus are zero, which is written as
+//      // the sum of the modulus not being zero. (see `TwoIntervalTest.scala`).
+//
+//      val ivalsFound  = sub.pairMap(_ - _)
+//      val mod         = (ivalsFound zip ivalsForbidden).map { case (a, b) => a % b }
+//      val sum         = mod.reduce(_ + _)
+//      sum #!= 0
+//    }
+//  }
+//}
+
+sealed trait ForbiddenIntervalLike {
   /** Forbidden intervals sorted top to bottom */
   protected def intervals: Vec[Int]
 
@@ -413,12 +437,6 @@ sealed trait ForbiddenIntervalLike /* extends VerticalConstraint */ {
 
 /** Constraint which forbids to occurrence of a particular interval */
 case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint with ForbiddenIntervalLike {
-  //  def apply(chord: Chord): Boolean = chord.allIntervals.forall { ival =>
-  //    val i0  = ival.semitones
-  //    val i   = if (i0 <= 12) i0 else (i0 - 12) % 12 + 12 // preserve octave!!
-  //    i != steps
-  //  }
-
   protected val intervals = Vec(steps)
 }
 
@@ -428,9 +446,13 @@ case class ForbiddenInterval(steps: Int = 12) extends VerticalConstraint with Fo
   * @param bottom   the bottom (lower) interval
   */
 case class ForbiddenIntervalPair(top: Int = 3, bottom: Int = 2) extends VerticalConstraint with ForbiddenIntervalLike {
-  // require(!neighbor, s"Neighbor constraint not yet supported")
-
   protected val intervals = Vec(top, bottom)
+}
+
+case class ForbiddenIntervalTriple(top: Int = 4, mid: Int = 3, bottom: Int = 2)
+  extends VerticalConstraint with ForbiddenIntervalLike {
+
+  protected val intervals = Vec(top, mid, bottom)
 }
 
 sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
