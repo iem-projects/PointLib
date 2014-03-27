@@ -136,8 +136,29 @@ object SVM extends App {
       x.zipWithIndex.map { case (v, i) => Feature(s"x$i", v) }
     }
 
+    // weighted best
+    lazy val featCombi1 = {
+      val vSel = Vector(3, 14, 18, 19, 20, 21) // for vertical
+      val hSel = Vector(10, 13, 14, 15, 23, 44) // for horizontal
+      vSel.map(feat2(_)) ++ hSel.map(feat3(_))
+    }
+
+    // absolute best // THIS ONE
+    lazy val featCombi2 = {
+      val vSel = Vector(2, 14, 16, 18, 19, 21) // for vertical
+      val hSel = Vector(10, 13, 15, 33, 47) // for horizontal
+      vSel.map(feat2(_)) ++ hSel.map(feat3(_))
+    }
+
+    // absolute second / third best
+    lazy val featCombi3 = {
+      val vSel = Vector(3, 14, 22, 26, 27) // for vertical
+      val hSel = Vector(10, 13, 14, 40, 44) // for horizontal
+      vSel.map(feat2(_)) ++ hSel.map(feat3(_))
+    }
+
     // val res = svmString(boring = study.isBoring, vec = features)
-    val res = Problem(label = if (study.isBoring) 0 else 1, features = feat3 /* feat1 */ /* feat2 */)
+    val res = Problem(label = if (study.isBoring) 0 else 1, features = featCombi2 /* feat3 */ /* feat1 */ /* feat2 */)
     // println(res)
     res
   }

@@ -110,10 +110,55 @@ val v = z.take(6).map(_._1).sorted  // Vector(10, 13, 14, 15, 23, 44)
 //////////////////////
 // so there are two options, the "weighted" best results
 
+// combi1
 Vector(3, 14, 18, 19, 20, 21)  // for vertical
 Vector(10, 13, 14, 15, 23, 44) // for horizontal
 
 // ... or the absolute best results
 
+// combi2
 Vector(2, 14, 16, 18, 19, 21)  // for vertical
 Vector(10, 13, 15, 33, 47)     // for horizontal
+
+//////////////////////////////////////////////////
+// results for combi1 (-g 1 and split)
+Vector(5, 8)
+32 out of 46 (64.70588%)
+Vector(0, 9)
+32 out of 46 (65.51724%)
+Vector(9, 11)
+36 out of 46 (70.588234%)
+Vector(0, 6, 8)
+34 out of 46 (72.413795%)
+Vector(0, 8, 9)
+38 out of 46 (82.35294%)
+Vector(6, 7, 8, 11)
+40 out of 46 (86.206894%)
+Vector(0, 4, 6, 7, 8, 9, 11)
+41 out of 46 (88.23529%)
+Vector(1, 4, 6, 7, 8, 9, 11)
+42 out of 46 (88.23529%)
+---RESULT---
+Vector(0, 4, 6, 7, 8, 9, 11)
+41 out of 46 (88.23529%)
+
+////////////////////////////////////////
+// results for combi2 (-g 1 and split)
+Vector(6, 8)
+29 out of 46 (58.62069%)
+Vector(1, 8)
+29 out of 46 (58.62069%)
+Vector(6, 8, 10)
+34 out of 46 (65.51724%)
+Vector(7, 8, 10)
+32 out of 46 (68.965515%)
+Vector(0, 6, 8, 10)
+35 out of 46 (75.86207%)
+Vector(6, 7, 8, 9)
+38 out of 46 (82.35294%)
+Vector(6, 7, 8, 9, 10)
+43 out of 46 (93.10345%)
+---RESULT---
+Vector(6, 7, 8, 9, 10)
+43 out of 46 (93.10345%)
+
