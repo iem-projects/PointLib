@@ -6,7 +6,7 @@ import sys.process._
 import de.sciss.{numbers, kollflitz}
 
 object SVM extends App {
-  def horiz       = false   // if `true` look at voice progression, if `false` only consider vertical structures
+  def horiz       = true   // if `true` look at voice progression, if `false` only consider vertical structures
 
   def svmDir      = userHome / "Documents" / "devel" / "libsvm"
   def svmTrain    = svmDir / "svm-train"
@@ -131,8 +131,13 @@ object SVM extends App {
 
     lazy val feat2 = kreuz.zipWithIndex.map { case (v, i) => Feature(s"x$i", v) }
 
+    lazy val feat3 = {
+      val x = OtherFeatures.horizPitchClasses(study)
+      x.zipWithIndex.map { case (v, i) => Feature(s"x$i", v) }
+    }
+
     // val res = svmString(boring = study.isBoring, vec = features)
-    val res = Problem(label = if (study.isBoring) 0 else 1, features = feat2)
+    val res = Problem(label = if (study.isBoring) 0 else 1, features = feat3 /* feat1 */ /* feat2 */)
     // println(res)
     res
   }
