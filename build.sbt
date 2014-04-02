@@ -4,7 +4,7 @@ version      := "0.2.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.10.4"
 
 homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
@@ -14,17 +14,17 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "contextsnake"       % "0.1.1+",
   "de.sciss" %% "pointillism-core"   % "0.2.+",
   "de.sciss" %% "pointillism-views"  % "0.2.+",
-  "de.sciss" %% "audiowidgets-app"   % "1.3.1+",
+  "de.sciss" %% "audiowidgets-app"   % "1.6.+",
   "de.sciss" %% "fileutil"           % "1.1.+",
   "de.sciss" %% "numbers"            % "0.1.+",
   "de.sciss" %% "kollflitz"          % "0.1.+",
-  "com.github.wookietreiber" %% "scala-chart" % "0.3.0",
+  "com.github.wookietreiber" %% "scala-chart" % "0.3.0", // XXX TODO: v0.4.0 - API changed
   "de.sciss" %% "pdflitz"            % "1.0.1+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
 
-retrieveManaged := true
+// retrieveManaged := true
 
 initialCommands in console :=
   """import at.iem.point.eh.sketches._

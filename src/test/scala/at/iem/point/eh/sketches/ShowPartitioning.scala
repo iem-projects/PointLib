@@ -7,9 +7,8 @@ import scala.swing.{Label, Action, BoxPanel, Component, Frame, BorderPanel, Orie
 import Swing._
 import de.sciss.{desktop, midi}
 import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDPanel, Transport, Axis}
-import scala.swing.event.{MouseDragged, MousePressed, ValueChanged}
+import scala.swing.event.{Key, MouseDragged, MousePressed, ValueChanged}
 import desktop.{KeyStrokes, FocusType}
-import java.awt.event.KeyEvent
 import java.awt.{Graphics, Point, Color, RenderingHints, Graphics2D}
 import java.awt.geom.GeneralPath
 import at.iem.point.illism.gui.PianoRoll.NoteDecoration
@@ -151,14 +150,13 @@ trait ShowPartitioning {
 
     import desktop.Implicits._
     import KeyStrokes._
-    import KeyEvent._
 
     def action(stroke: KeyStroke)(body: => Unit) = new Action("Untitled") {
       accelerator = Some(stroke)
       def apply(): Unit = body
     }
 
-    scroll.addAction("zoom-out", action(menu2 + VK_LEFT) {
+    scroll.addAction("zoom-out", action(menu2 + Key.Left) {
       val (start0, stop0) = view.timeRange
       val span0 = stop0 - start0
       val start = math.max(0.0, start0 - span0 * 0.5)
@@ -166,7 +164,7 @@ trait ShowPartitioning {
       setSpan(start, stop)
     }, FocusType.Window)
 
-    scroll.addAction("zoom-in", action(menu2 + VK_RIGHT) {
+    scroll.addAction("zoom-in", action(menu2 + Key.Right) {
       val (start0, stop0) = view.timeRange
       val span0 = stop0 - start0
       if (span0 >= 1.0) {
@@ -176,7 +174,7 @@ trait ShowPartitioning {
       }
     }, FocusType.Window)
 
-    scroll.addAction("zoom-all-out", action(menu1 + VK_LEFT) {
+    scroll.addAction("zoom-all-out", action(menu1 + Key.Left) {
       setSpan(0.0, dur)
     }, FocusType.Window)
 
@@ -217,16 +215,16 @@ trait ShowPartitioning {
     def rtz(): Unit = setPos(0.0)
 
     import Transport._
-    val transp = Transport.makeButtonStrip(GoToBegin(rtz()) :: Play(play()) :: Stop(stop()) :: Nil)
+    val transport = Transport.makeButtonStrip(GoToBegin(rtz()) :: Play(play()) :: Stop(stop()) :: Nil)
 
-    transp.addAction("play-stop", action(plain + VK_SPACE) {
+    transport.addAction("play-stop", action(plain + Key.Space) {
       if (sequencer.isPlaying) stop() else play()
     }, FocusType.Window)
 
     val box3 = new BoxPanel(Orientation.Vertical) {
       contents += new BoxPanel(Orientation.Horizontal) {
         contents += HGlue
-        contents += transp
+        contents += transport
         contents += HStrut(8)
         contents += lcdP
         contents += HStrut(4)
