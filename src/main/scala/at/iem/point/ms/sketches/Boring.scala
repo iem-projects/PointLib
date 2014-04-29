@@ -139,17 +139,17 @@ object Boring extends App {
         val slices0   = NoteUtil2.slidingWindow(segm, size = winSize, step = winStep)(_.minOffset)
         val slices    = slices0.dropRight(winOver*2/3) // last slice is smaller and produces spikes
         val m         = slices.map { slice =>
-            val chordM = slice.flatMap { chord =>
-              chord.allIntervals.map { ival =>
-                val steps = if (ivalClass) ival.`class`.steps else ival.semitones
-                steps.toDouble
-              }
-            }
-            mChord match {
-              case Measure.ChordMean => chordM.meanVariance._1 / slice.size
-              case Measure.ChordVar  => chordM.meanVariance._2 / slice.size
+          val chordM = slice.flatMap { chord =>
+            chord.allIntervals.map { ival =>
+              val steps = if (ivalClass) ival.`class`.steps else ival.semitones
+              steps.toDouble
             }
           }
+          mChord match {
+            case Measure.ChordMean => chordM.meanVariance._1 / slice.size
+            case Measure.ChordVar  => chordM.meanVariance._2 / slice.size
+          }
+        }
         m
 
       case mhoriz: Measure.Horiz =>

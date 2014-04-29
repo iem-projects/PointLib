@@ -19,6 +19,11 @@ package object sketches {
   require(recPath.exists, s"Cannot find base directory '$recPath'")
 
   object Study {
+    def apply(idx: Int, isBoring: Boolean, file: File, isRaw: Boolean = false): Study =
+      Apply(idx, isBoring, file, isRaw)
+
+    private case class Apply(idx: Int, isBoring: Boolean, file: File, isRaw: Boolean) extends Study
+
     case class Raw(idx: Int) extends Study {
       def isRaw     = true
       def isBoring  = false

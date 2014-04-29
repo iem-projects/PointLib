@@ -6,7 +6,8 @@ import sys.process._
 import de.sciss.{numbers, kollflitz}
 
 object SVM extends App {
-  def horiz       = true   // if `true` look at voice progression, if `false` only consider vertical structures
+  def horiz       = false   // if `true` look at voice progression, if `false` only consider vertical structures
+  def withBlind   = true    // if `true`, include formerly blind files
 
   def svmDir      = userHome / "Documents" / "devel" / "libsvm"
   def svmTrain    = svmDir / "svm-train"
@@ -158,7 +159,9 @@ object SVM extends App {
     }
 
     // val res = svmString(boring = study.isBoring, vec = features)
-    featCombi2 /* feat3 */ /* feat1 */ /* feat2 */
+    // featCombi2 /* feat3 */ /* feat1 */ /* feat2 */
+
+    feat2
   }
 
   def process(study: Study): Problem = {
@@ -168,8 +171,34 @@ object SVM extends App {
 
   // javax.sound.midi.MidiSystem.getMidiFileTypes
 
-  def allBoringProblems     = allBoring   .map(process)
-  def allPromisingProblems  = allPromising.map(process)
+  def newBoring = Seq(101, 102, 103, 104, 106, 107, 108, 112, 116, 117,
+    "134A", "134B", "134C", "134D", "134E", "134H", "134I", "134K",
+    "134L", "134M", "134N", "134O", "134P", "134Q", "134S", "134T")
+    .map { idx0 =>
+      val idx = idx0 match {
+        case i: Int => i
+        case _      => 134
+      }
+      val file = recPath / "blind" / s"Study_#${idx0}.mid"
+      Study(idx = idx, isBoring = true, file = file)
+    }
+
+  def newPromising = Seq(111, 113,
+    "134F", "134G", "134J", "134L", "134R", "134U")
+    .map { idx0 =>
+      val idx = idx0 match {
+        case i: Int => i
+        case _      => 134
+      }
+      val file = recPath / "blind" / s"Study_#${idx0}.mid"
+      Study(idx = idx, isBoring = false, file = file)
+    }
+
+  //  def allBoringProblems     = allBoring   .map(process) ++ (if (withBlind) newBoring   .map(process) else Nil)
+  //  def allPromisingProblems  = allPromising.map(process) ++ (if (withBlind) newPromising.map(process) else Nil)
+
+  def allBoringProblems     = newBoring   .map(process) .toIndexedSeq
+  def allPromisingProblems  = newPromising.map(process) .toIndexedSeq
   def allProblems           = allBoringProblems ++ allPromisingProblems
 
   def allBlindFeatures      = allBlind    .map(processBlind)
