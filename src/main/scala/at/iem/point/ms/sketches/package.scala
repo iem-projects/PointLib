@@ -52,15 +52,19 @@ package object sketches {
       def isBoring  = false
       def file      = recPath / "promising" / f"study_#$idx%02d!.mid"
     }
+
+    case class Blind(file: File) extends StudyLike
   }
-  sealed trait Study {
+  trait StudyLike {
     def file    : File
+  }
+  sealed trait Study extends StudyLike {
     def idx     : Int
     def isRaw   : Boolean
     def isBoring: Boolean
   }
 
-  def load(study: Study = Study.Edited(0)): midi.Sequence = try {
+  def load(study: StudyLike = Study.Edited(0)): midi.Sequence = try {
     midi.Sequence.readFile(study.file)
   } catch {
     case NonFatal(e) =>
@@ -80,6 +84,8 @@ package object sketches {
 
   def allBoring     = studyIndices("boring"   , 'u').map(Study.Boring   )
   def allPromising  = studyIndices("promising", '!').map(Study.Promising)
+
+  def allBlind      = (recPath / "blind").children(_.ext == "mid").sortBy(_.name).map(Study.Blind)
 
   def defer(thunk: => Unit) {
     if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})

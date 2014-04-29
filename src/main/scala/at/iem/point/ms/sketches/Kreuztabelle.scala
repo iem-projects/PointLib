@@ -26,7 +26,7 @@ object Kreuztabelle extends App {
     plotData(map, intervalClasses = intervalClasses, title = title)
   }
 
-  def analyze(study: Study, allIntervals: Boolean = false,
+  def analyze(study: StudyLike, allIntervals: Boolean = false,
               intervalClasses: Boolean = false, chordSize: Int = -1, horiz: Boolean = false): M = {
     val f = load(study)
     apply(f, allIntervals = allIntervals, intervalClasses = intervalClasses, chordSize = chordSize, horiz = horiz)

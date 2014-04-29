@@ -76,7 +76,7 @@ object SVM extends App {
     override def toString = svmString(label, features.map(_.value))
   }
 
-  def process(study: Study): Problem = {
+  def processBlind(study: StudyLike): Features = {
     import Boring.Measure._
     import numbers.Implicits._
     import kollflitz.Ops._
@@ -158,9 +158,12 @@ object SVM extends App {
     }
 
     // val res = svmString(boring = study.isBoring, vec = features)
-    val res = Problem(label = if (study.isBoring) 0 else 1, features = featCombi2 /* feat3 */ /* feat1 */ /* feat2 */)
-    // println(res)
-    res
+    featCombi2 /* feat3 */ /* feat1 */ /* feat2 */
+  }
+
+  def process(study: Study): Problem = {
+    val f = processBlind(study)
+    Problem(label = if (study.isBoring) 0 else 1, features = f)
   }
 
   // javax.sound.midi.MidiSystem.getMidiFileTypes
@@ -168,6 +171,8 @@ object SVM extends App {
   def allBoringProblems     = allBoring   .map(process)
   def allPromisingProblems  = allPromising.map(process)
   def allProblems           = allBoringProblems ++ allPromisingProblems
+
+  def allBlindFeatures      = allBlind    .map(processBlind)
 
   def run(): Unit = {
     val (bTrain, bTest) = splitHalf(allBoringProblems   )
@@ -223,19 +228,27 @@ object SVM extends App {
     // (if (scale) f.parent / s"${f.base}.scale" else f).path
 
   def normalize(in: Vec[Problem]): Vec[Problem] = {
+    val newFeat = normalizeFeatures(in.map(_.features))
+    val res = (in zip newFeat).map { case (pOld, fNew) =>
+      pOld.copy(features = fNew)
+    }
+    res
+  }
+
+  def normalizeFeatures(in: Vec[Features]): Vec[Features] = {
     import de.sciss.kollflitz.Ops._
     import de.sciss.numbers.Implicits._
 
-    val t = in.map(_.features.map(_.value)).transpose
+    val t = in.map(_.map(_.value)).transpose
     val n = t.map { col =>
       val (mn, mx) = (col.min, col.max)
       col.map(_.linlin(mn, mx, 0.0, 1.0))
     }
-    val res = (in zip n.transpose).map { case (pOld, vecNew) =>
-      pOld.copy(features = (pOld.features zip vecNew).map { case (fOld, valNew) =>
-        fOld.copy(value = valNew)
-      })
+    (in zip n.transpose).map { case (fOlds, vecNew) =>
+      (fOlds zip vecNew).map {
+        case (fOld, valNew) =>
+          fOld.copy(value = valNew)
+      }
     }
-    res
   }
 }

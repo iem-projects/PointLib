@@ -215,6 +215,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
 
   def train(prob: svm_problem, param: svm_parameter): svm_model = svm.svm_train(prob, param)
 
+  // NOTE: the prob's labels are not used
   def predict(model: svm_model, prob: svm_problem): Vec[Int] =
     (prob.y.iterator zip prob.x.iterator).map { case (label, x) =>
       val d: Double = svm.svm_predict(model, x)

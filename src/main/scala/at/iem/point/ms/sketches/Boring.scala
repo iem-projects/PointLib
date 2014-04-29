@@ -125,7 +125,7 @@ object Boring extends App {
     def name    = toString
   }
 
-  def process(study: Study, measure: Measure, ivalClass: Boolean = false,
+  def process(study: StudyLike, measure: Measure, ivalClass: Boolean = false,
               winSecs: Double = 16.0, winOver: Int = 8): Vec[Double] = {
     val midi      = load(study)
     val winSize   = winSecs
