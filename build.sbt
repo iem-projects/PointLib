@@ -19,7 +19,9 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "numbers"            % "0.1.+",
   "de.sciss" %% "kollflitz"          % "0.1.+",
   "com.github.wookietreiber" %% "scala-chart" % "0.3.0", // XXX TODO: v0.4.0 - API changed
-  "de.sciss" %% "pdflitz"            % "1.0.1+"
+  "de.sciss" %% "pdflitz"            % "1.0.1+",
+  // ---- fuzzy schnuck ----
+  "de.sciss" %% "lucredata-core"     % "2.2.2+"
 )
 
 scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")

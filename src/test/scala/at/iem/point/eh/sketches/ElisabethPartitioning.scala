@@ -7,11 +7,12 @@ import collection.breakOut
 import de.sciss.numbers.Implicits._
 
 object ElisabethPartitioning extends App with ShowPartitioning {
-  Swing.onEDT(run())
+  Swing.onEDT(test1())
   // Swing.onEDT(test2())
 
   def test1(): Unit = {
-    val sn          = loadSnippet(improvSnippets(1))
+    // val sn          = loadSnippet(improvSnippets(1))
+    val sn          = loadFirstTests(s"test-12_1min_7.mid")
     val notes       = sn.notes
     val (m, h)      = NoteUtil.splitMelodicHarmonic(notes)
     val nm          = m.flatMap(_._2)

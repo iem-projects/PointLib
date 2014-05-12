@@ -13,10 +13,11 @@ package object sketches {
   val  Vec    = collection.immutable.IndexedSeq
   type Vec[A] = collection.immutable.IndexedSeq[A]
 
-  var basePath  = file(sys.props("user.home")) / "Desktop" / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
+  var basePath  = file(sys.props("user.home")) /* / "Desktop" */ / "IEM" / "POINT" / "composers" / "elisabeth_harnik"
   def inPath    = basePath / "in"
   def outPath   = basePath / "rec"
   def outPath2  = basePath / "rec_neu"
+  def oldPath   = basePath / "elisabeth-first-tests"
 
   lazy val snippetFiles: Map[Int, File] = {
     val b   = Map.newBuilder[Int, File]
@@ -44,6 +45,12 @@ package object sketches {
     * @param idx  file index from 0 to (including) 4
     */
   def loadDisklavier(idx: Int): midi.Sequence = midi.Sequence.read((outPath2 / s"${disklavierNames(idx)}.mid").getPath)
+
+  def loadFirstTests(name: String): midi.Sequence = {
+    val p = (oldPath / name).getAbsolutePath
+    println(s"Reading $p")
+    midi.Sequence.read(p)
+  }
 
   // maps voices to snippet indices
   lazy val staticChords = Map(
