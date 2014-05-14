@@ -7,7 +7,7 @@ import de.sciss.file._
 object Evolutions3 extends App {
   val NUM         = 200
   val SEED        = 2L      // seed of the random number generator
-  val START       = 2       // start index in the pitch sequence to begin wih
+  val START       = 0       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
   val ENTRY       = true    // model entry offsets
@@ -17,8 +17,13 @@ object Evolutions3 extends App {
   val INNER       = true    // model inner vertical structure of chords (`true`) or just frame intervals (`false`)
   val GRAINS      = true    // model inner horizontal structure of chords (`true`) or just produce monolithic blocks (`false`)
 
-  val snippet   = staticChords(6)(1)  // improvSnippets.last  // staticChords(5).head
-  val sq        = loadSnippet(snippet) // .head
+  val PLAY        = true
+
+  val DISK_IDX    = 1
+
+//  val snippet   = staticChords(6)(1)  // improvSnippets.last  // staticChords(5).head
+//  val sq        = loadSnippet(snippet) // .head
+  val sq        = loadDisklavier(DISK_IDX)
   val notesIn0  = sq.notes
   val (_, h)    = NoteUtil.splitMelodicHarmonic(notesIn0)
   val hh        = h.map(_._2)
@@ -34,12 +39,14 @@ object Evolutions3 extends App {
   val sqOut   = Sequence(Vector(track))
 
   sqOut.writeFile(outPath /
-    (s"Snippet${snippet}_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}" +
+    (s"Disklavier${DISK_IDX}Neu_ChordSeq_${START}_${SEED}${if (INNER) "I" else ""}" +
      s"${if (GRAINS) "G" else ""}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}.mid"))
 
-  val player  = Sequencer.open()
-  player.play(sqOut)
-  Thread.sleep(((track.duration + 1) * 1000).toLong)
-  player.stop()
-  player.close()
+  if (PLAY) {
+    val player = Sequencer.open()
+    player.play(sqOut)
+    Thread.sleep(((track.duration + 1) * 1000).toLong)
+    player.stop()
+    player.close()
+  }
 }
