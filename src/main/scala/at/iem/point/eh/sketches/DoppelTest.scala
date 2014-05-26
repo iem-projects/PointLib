@@ -11,7 +11,6 @@ object DoppelTest extends App {
   val START       = 0       // start index in the pitch sequence to begin wih
   val VELO        = false   // true    // model velocity
   val VELO_COARSE = 4       // velocity rasterisation (in steps)
-  val ENTRY       = true    // true    // model entry offsets
   val ENTRY_COARSE= 0.2     // entry offset rasterisation (relative, in percent 0...1)
   val ENTRY_SCALE = 0.33     // slow down factor if using entry modelling
   val INTERVALS   = false
@@ -28,7 +27,7 @@ object DoppelTest extends App {
 
   val mm: Vec[Vec[OffsetNote]] = {
     // val sqs = (0 to 4).map(loadDisklavier)
-    val sqs = ( /* loadFirstTests("test-12.mid") +: */ (1 to 5).map(i => loadFirstTests(s"test-12_1min_$i.mid")))
+    val sqs = (1 to 5).map(i => loadFirstTests(s"test-12_1min_$i.mid"))
     val res = ((0.0, Vec.empty[OffsetNote]) /: sqs) { case ((offset, _res), sq) =>
         val ns  = sq.notes
         // assert(ns == ns.sortBy(_.offset))
@@ -44,7 +43,7 @@ object DoppelTest extends App {
 
 
   implicit val rnd  = new util.Random(SEED)
-  val gen       = DoppelDance(startIdx = START, modelVelo = VELO, veloCoarse = VELO_COARSE, modelEntry = ENTRY,
+  val gen       = DoppelDance(startIdx = START, modelVelo = VELO, veloCoarse = VELO_COARSE,
   entryCoarse = ENTRY_COARSE, entryScale = ENTRY_SCALE, intervals = INTERVALS, accel = ACCEL, noteSnippets = mm)
   val notesOut  = gen.move(NUM)
 
@@ -53,7 +52,7 @@ object DoppelTest extends App {
   val track   = Track(events)
   val sqOut   = Sequence(Vector(track))
 
-  sqOut.writeFile(outPath / s"test-12-1to5_seed23_Doppel_${START}_${SEED}${if (VELO) "V" else ""}${if (ENTRY) "E" else ""}${if (INTERVALS) "I" else ""}${if (ACCEL) "A" else ""}.mid")
+  sqOut.writeFile(outPath / s"test-12-1to5_seed23_Doppel_${START}_${SEED}${if (VELO) "V" else ""}E${if (INTERVALS) "I" else ""}${if (ACCEL) "A" else ""}.mid")
 
   if (PLAY) {
     val player = Sequencer.open()

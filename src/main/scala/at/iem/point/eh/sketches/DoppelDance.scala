@@ -4,17 +4,31 @@ import at.iem.point.illism._
 import de.sciss.midi.TickRate
 
 object DoppelDance {
-  def apply(startIdx: Int = 0, modelVelo: Boolean = true, veloCoarse: Int = 4, modelEntry: Boolean = true,
+  /** Creates a sequence generator using a context dance based on a combined vector of pitch and speed
+    *
+    * @param startIdx       corpus index of the element to start with
+    * @param modelVelo      if `true`, models note velocity
+    * @param veloCoarse     when modelling note velocity, the quantization of MIDI velocity values (1 = maximally fine)
+    * @param entryCoarse    when modelling entry delays, the quantization of ?
+    * @param entryScale     tempo scaling factor (< 1 faster, > 1 slower)
+    * @param intervals      if `true`, uses intervals for pitch modelling, if `false` uses absolute pitches
+    * @param accel          if `true`, uses acceleration for entry delay modelling, if `false` uses velocity
+    * @param fuzzy          if `true`, uses a fuzzy context tree that increase vector tolerance towards the past
+    * @param noteSnippets   the corpus to use
+    * @param rnd            the random number generator to use
+    * @return the sequence producer
+    */
+  def apply(startIdx: Int = 0, modelVelo: Boolean = true, veloCoarse: Int = 4,
                              entryCoarse: Double = 0.2, entryScale: Double = 1.0, intervals: Boolean = false,
-                             accel: Boolean = false,
+                             accel: Boolean = false, fuzzy: Boolean = false,
                              noteSnippets: Vec[Vec[OffsetNote]])(implicit rnd: util.Random): DoppelDance =
-    new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse, modelEntry = modelEntry,
-             entryCoarse = entryCoarse, entryScale = entryScale, intervals = intervals, accel = accel,
+    new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse,
+             entryCoarse = entryCoarse, entryScale = entryScale, intervals = intervals, accel = accel, fuzzy = fuzzy,
              m = noteSnippets)
 
-  private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
+  private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int,
                            entryCoarse: Double, entryScale: Double, intervals: Boolean, accel: Boolean,
-                           m: Vec[Vec[OffsetNote]])(implicit rnd: util.Random)
+                           fuzzy: Boolean, m: Vec[Vec[OffsetNote]])(implicit rnd: util.Random)
     extends DoppelDance {
 
     private val notesIn   = m.flatten // m.flatMap(_._2)
@@ -24,8 +38,8 @@ object DoppelDance {
       pitchSq0.pairDiff
     } else pitchSq0
 
-    private val veloSq    = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
-    private val recVeloF  = ContextDance(veloSq)(veloSq(startIdx) :: Nil)
+    private lazy val veloSq     = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
+    private lazy val recVeloF   = ContextDance(veloSq)(veloSq(startIdx) :: Nil)
 
     private val entrySq   = if (accel) {
       val firstDur = notesIn(1).offset - notesIn(0).offset
@@ -47,9 +61,30 @@ object DoppelDance {
       }
     }
 
+    private def expand(in: Vec[(Int, Int)]): Iterator[Traversable[(Int, Int)]] = ???
+
+    private def expandLoop(in: Vec[(Int, Int)], bias: (Int, Int)): Iterator[Vec[(Int, Int)]] = in match {
+      case init :+ ((lastPch, lastEntry)) =>
+        val (biasPch, biasEntry) = bias
+        val fuzzyPch    = (biasPch - 1) to (biasPch + 1)
+        val coarse      = (entryCoarse * 1000).toInt
+        val fuzzyEntry  = (biasEntry - coarse) to (biasEntry + coarse) by coarse
+        val fuzzy       = fuzzyPch zip fuzzyEntry
+
+        fuzzy.iterator.flatMap { b =>
+          val newLast = (lastPch + biasPch, lastEntry + biasEntry)
+          expandLoop(init, b).map(_ :+ newLast)
+        }
+      case _ => Iterator(Vec.empty)
+    }
+
 //    private val recEntryF = ContextDance(entrySq :+ entrySq.head)(entrySq(startIdx) :: Nil)
-    val zipped = pitchSq zip entrySq
-    private val recPchEntryF = ContextDance(zipped :+ zipped.head)(zipped(startIdx) :: Nil)
+    private val zipped = pitchSq zip entrySq
+    private val recPchEntryF = if (fuzzy) {
+      FuzzyDance  (zipped :+ zipped.head)(zipped(startIdx) :: Nil)(expand)
+    } else {
+      ContextDance(zipped :+ zipped.head)(zipped(startIdx) :: Nil)
+    }
 
     private var produced  = 0
 
@@ -80,7 +115,6 @@ object DoppelDance {
       }
 
       val notesOut1 = if (modelVelo) {
-        val veloSq  = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
         val recVelo = recVeloF.move(num = num)
         (notesOut0 zip recVelo).map { case (n, v) => n.copy(velocity = v) }
 
