@@ -8,6 +8,7 @@ import language.higherKinds
 import org.jfree.chart.plot.{CategoryPlot, Plot, XYPlot}
 import scalax.chart.Chart
 import org.jfree.chart.renderer.xy.{StandardXYBarPainter, XYBarRenderer}
+import org.jfree.chart.title.TextTitle
 
 package object sketches {
   val  Vec    = collection.immutable.IndexedSeq
@@ -128,14 +129,17 @@ package object sketches {
     }
   }
 
-  private lazy val defaultFontFace = "Helvetica"  // "Arial"
+  private lazy val defaultFontFace  = "Liberation Sans" // "Helvetica"  // "Arial"
+  private lazy val titleFontFace    = defaultFontFace // "Liberation Sans Narrow"
 
   implicit class RichChart[P <: Plot](chart: Chart[P]) {
     /** Adjust the chart with a black-on-white color scheme and
       * fonts that come out properly in PDF export.
       */
     def printableLook(): Unit = {
-      val plot = chart.plot
+      val plot      = chart.plot
+      val titleText = chart.title
+      // chart.peer.setTitle(new TextTitle(titleText, new Font(titleFontFace, Font.BOLD, 22)))
 
       val (xAxis, yAxis) = plot match {  // shitty Plot / Renderer interfaces do not have common super types
         case p: XYPlot       =>
@@ -170,6 +174,7 @@ package object sketches {
       xAxis.setTickLabelFont(fnt2)
       yAxis.setLabelFont(fnt1)
       yAxis.setTickLabelFont(fnt2)
+      // chart.peer.getTitle.setFont(new Font(titleFontFace, Font.BOLD, 22))
     }
   }
 }
