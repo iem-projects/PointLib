@@ -24,7 +24,7 @@ libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "lucredata-core"     % "2.2.2+"
 )
 
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Xfuture")
 
 // retrieveManaged := true
 

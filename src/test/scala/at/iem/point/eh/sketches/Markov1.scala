@@ -3,7 +3,9 @@ package at.iem.point.eh.sketches
 import at.iem.point.illism._
 import de.sciss.kollflitz.Ops._
 
-object Markov1 extends App {
+object Markov1 {
+  def main(args: Array[String]): Unit = printTable()
+
   val (histoAbs0, histoMkv0) = improvSnippets.map { i =>
     val s     = loadSnippet(i)
     val ivals = s.notes.map(_.pitch).pairMap(_ to _).map(_.semitones % 12)
@@ -46,8 +48,16 @@ object Markov1 extends App {
   }
 
   val tableTxt = table.zipWithIndex.map { case (row, rowIdx) =>
-    row.map(c => f"$c%1.2f").mkString(s"$rowIdx & ", " & ", "\\\\")
+    row.map { c =>
+      val cell = f"$c%1.2f"
+      if (c == row.max) raw"\textbf{$cell}" else cell
+    } .mkString(s"$rowIdx & ", " & ", raw"\\%")
   } .mkString("\n")
-  println((0 until 12).mkString("", " & ", "\\\\\\hline"))
-  println(tableTxt)
+
+  def printTable(): Unit = {
+    println(raw"\begin{tabular}{|r|${raw"@{\quad}c" * 12}|}\hline")
+    println((0 until 12).mkString("& ", " & ", raw"\\\hline%"))
+    println(tableTxt)
+    println("\\hline\n\\end{tabular}")
+  }
 }
