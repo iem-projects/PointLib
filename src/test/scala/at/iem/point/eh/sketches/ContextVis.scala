@@ -27,13 +27,27 @@ object ContextVis extends App {
   //  fos.close()
 
   def explore(init: Vector[Int]): String = {
+    val sb = exploreStart()
+    exploreMain(init, drop = 0, sb = sb)
+    exploreStop(sb)
+  }
+
+  def exploreStart(): StringBuffer = {
     val sb = new StringBuffer()
     sb.append("digraph suffixes {\n")
-    sb.append(s"""  node [margin=0.05 fontcolor=black fontsize=16 width=0.125 shape=circle style=filled fillcolor=lightgray];\n""")
+    sb.append( s"""  node [margin=0.05 fontcolor=black fontsize=16 width=0.125 shape=circle style=filled fillcolor=lightgray];\n""")
+    sb
+  }
 
+  def exploreStop(sb: StringBuffer): String = {
+    sb.append("}\n")
+    sb.toString
+  }
+
+  def exploreMain(init: Vector[Int], drop: Int, sb: StringBuffer): Unit = {
     def iter(body: Vector[Int]): Unit = {
-      val snake   = tree.snake(body)
-      val succ    = snake.successors.toVector.histogram
+      val snake   = tree.snake(body.drop(drop))
+      val succ    = snake.successors.toVector.histogram.toVector.sorted
       val isLeaf  = succ.size <= 1
       val id      = body.mkString("_")
       sb.append(s"""  n$id [label="${body.last}"];\n""")
@@ -54,23 +68,38 @@ object ContextVis extends App {
       }
     }
     iter(init)
-
-    sb.append("}\n")
-    sb.toString
   }
 
   val dir = basePath / "new_plots"
   require(dir.isDirectory)
 
   def mkFile(init: Vector[Int]): Unit = {
-    val f = dir / s"improv${inp.mkString("_")}_context${init.mkString("_")}.dot"
+    val f   = dir / s"improv${inp.mkString("_")}_context${init.mkString("_")}.dot"
     val dot = explore(init)
     val fos = new FileOutputStream(f)
     fos.write(dot.getBytes("UTF-8"))
     fos.close()
   }
 
-  mkFile(Vector(3))
-  mkFile(Vector(5, 5))
-  mkFile(Vector(5, 8))
+  // case class Step(body: Vector[Int], drop: Int, fillColor: String, fontColor: String)
+
+  def mkFile1(init: Vector[Int], process: Seq[(Int, Vector[Int])]): Unit = {
+    val f   = dir / s"improv${inp.mkString("_")}_context${init.mkString("_")}p.dot"
+    val sb  = exploreStart()
+    ((init, 0) /: process) { case ((body, drop), (nextDrop, grow)) =>
+      exploreMain(body, drop, sb)
+      val newBody = body ++ grow
+      (newBody, drop + nextDrop)
+    }
+    val dot = exploreStop(sb)
+    val fos = new FileOutputStream(f)
+    fos.write(dot.getBytes("UTF-8"))
+    fos.close()
+  }
+
+  //  mkFile(Vector(3))
+  //  mkFile(Vector(5, 5))
+  //  mkFile(Vector(5, 8))
+
+  mkFile1(Vector(3), Seq(1 -> Vector(5, 5), 2 -> Vector(8)))
 }
