@@ -81,15 +81,15 @@ object ContextVis extends App {
     fos.close()
   }
 
-  // case class Step(body: Vector[Int], drop: Int, fillColor: String, fontColor: String)
+  case class Step(body: Vector[Int], drop: Int, fillColor: String, fontColor: String)
 
-  def mkFile1(init: Vector[Int], process: Seq[(Int, Vector[Int])]): Unit = {
-    val f   = dir / s"improv${inp.mkString("_")}_context${init.mkString("_")}p.dot"
+  def mkFile1(steps: Seq[Step]): Unit = {
+    val f   = dir / s"improv${inp.mkString("_")}_context${steps.head.body.mkString("_")}p.dot"
     val sb  = exploreStart()
-    ((init, 0) /: process) { case ((body, drop), (nextDrop, grow)) =>
-      exploreMain(body, drop, sb)
-      val newBody = body ++ grow
-      (newBody, drop + nextDrop)
+    steps.foreach { step =>
+      sb.append('\n')
+      sb.append(s"""  node [fontcolor=${step.fontColor} fillcolor=${step.fillColor}];\n""")
+      exploreMain(step.body, step.drop, sb)
     }
     val dot = exploreStop(sb)
     val fos = new FileOutputStream(f)
@@ -101,5 +101,9 @@ object ContextVis extends App {
   //  mkFile(Vector(5, 5))
   //  mkFile(Vector(5, 8))
 
-  mkFile1(Vector(3), Seq(1 -> Vector(5, 5), 2 -> Vector(8)))
+  mkFile1(Seq(
+    Step(Vector(3)         , drop = 0, fontColor = "black", fillColor = "gray90"),
+    Step(Vector(3, 5, 5)   , drop = 1, fontColor = "black", fillColor = "gray70"),
+    Step(Vector(3, 5, 5, 8), drop = 2, fontColor = "white", fillColor = "gray30")
+  ))
 }
