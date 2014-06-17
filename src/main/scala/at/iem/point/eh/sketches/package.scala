@@ -1,8 +1,9 @@
 package at.iem.point.eh
 
 import java.awt.{Font, Color, EventQueue}
+import at.iem.point.illism
 import de.sciss.midi
-import at.iem.point.illism.{PitchClass, Pitch, Chord}
+import at.iem.point.illism.{OffsetNote, PitchClass, Pitch, Chord}
 import de.sciss.file._
 import language.higherKinds
 import org.jfree.chart.plot.{CategoryPlot, Plot, XYPlot}
@@ -101,6 +102,19 @@ package object sketches {
     new Pitch(oct * 12 + step)
   }
 
+  def joinSnippets(sqs: Vec[midi.Sequence]): Vec[OffsetNote] = {
+    val res = ((0.0, Vec.empty[OffsetNote]) /: sqs) { case ((offset, _res), sq) =>
+      import illism._
+      val ns        = sq.notes
+      val d         = offset - ns.head.offset
+      val newNotes  = ns.map(n => n.copy(offset = n.offset + d))
+      val newOff    = newNotes.last.stop + newNotes.last.duration
+      (newOff, _res ++ newNotes)
+    } ._2
+    // println(s"Total number of notes: ${res.size}")
+    res
+  }
+
   implicit final class RichPitchClass(/* val */ p: PitchClass) /* extends AnyVal */ {
     def keyColor: KeyColor = p.step match {
       case 1 | 3 | 6 | 8 | 10 => KeyColor.Black
@@ -132,7 +146,7 @@ package object sketches {
   private lazy val defaultFontFace  = "Liberation Sans" // "Helvetica"  // "Arial"
   private lazy val titleFontFace    = defaultFontFace // "Liberation Sans Narrow"
 
-  implicit class RichChart[P <: Plot](chart: Chart[P]) {
+  implicit class RichChart[P <: Plot](chart: Chart) {
     /** Adjust the chart with a black-on-white color scheme and
       * fonts that come out properly in PDF export.
       */

@@ -3,19 +3,19 @@ package at.iem.point.eh.sketches
 import at.iem.point.illism._
 import de.sciss.midi.TickRate
 
-object HorizontalDance {
-  def apply(startIdx: Int = 0, modelVelo: Boolean = true, veloCoarse: Int = 4, modelEntry: Boolean = true,
-                             entryCoarse: Double = 0.2, entryScale: Double = 1.0,
-                             noteSnippets: Vec[Vec[OffsetNote]])(implicit rnd: util.Random): HorizontalDance =
+object BreakDance {
+  def apply(startIdx: Int = 0, modelVelo: Boolean = true, veloCoarse: Int = 6, modelEntry: Boolean = true,
+            entryCoarse: Double = 2, entryScale: Double = 1.0,
+            notesIn: Vec[OffsetNote])(implicit rnd: util.Random): HorizontalDance =
     new Impl(startIdx = startIdx, modelVelo = modelVelo, veloCoarse = veloCoarse, modelEntry = modelEntry,
-             entryCoarse = entryCoarse, entryScale = entryScale, m = noteSnippets)
+      entryCoarse = entryCoarse, entryScale = entryScale, notesIn = notesIn)
 
   private final class Impl(startIdx: Int, modelVelo: Boolean, veloCoarse: Int, modelEntry: Boolean,
                            entryCoarse: Double, entryScale: Double,
-                           m: Vec[Vec[OffsetNote]])(implicit rnd: util.Random)
+                           notesIn: Vec[OffsetNote])(implicit rnd: util.Random)
     extends HorizontalDance {
 
-    private val notesIn   = m.flatten // m.flatMap(_._2)
+    // private val notesIn   = m.flatten // m.flatMap(_._2)
 
     private val pitchSq   = notesIn.map(_.pitch.midi)
     private val recPchF   = ContextDance(pitchSq)(pitchSq(startIdx) :: Nil)
@@ -23,11 +23,15 @@ object HorizontalDance {
     private val veloSq    = notesIn.map { n => val v = n.velocity; v - (v % veloCoarse) }
     private val recVeloF  = ContextDance(veloSq)(veloSq(startIdx) :: Nil)
 
+    private def quantDur(in: Double): Int = (math.log(math.max(1, in/0.010)) / math.log(2) * entryCoarse + 0.5).toInt
+    private def unQuantDur(q: Int): Double = math.exp(math.log(2) * q / entryCoarse) * 0.010
+
     private val entrySq   = notesIn.sliding(2, 1).to[Vector].map { case Seq(a, b) =>
-      val fine    = ((b.offset - a.offset) * 1000 + 0.5).toInt // millis
-      val coarse  = (fine * entryCoarse + 0.5).toInt
-      if (coarse > 0) fine - fine % coarse else fine
-      //      millis * 1000
+      val en  = b.offset - a.offset
+      val du  = a.duration
+      val enQ = quantDur(en)
+      val duQ = quantDur(du)
+      (enQ, duQ)
     }
     private val recEntryF = ContextDance(entrySq :+ entrySq.head)(entrySq(startIdx) :: Nil)
 
@@ -59,9 +63,11 @@ object HorizontalDance {
         val recEntry = recEntryF.move(num = num)
         //    println(recEntry.mkString(", "))
         var off = 0.0
-        (notesOut1 zip recEntry).map { case (n, e) =>
-          val res = n.copy(offset = off)
-          off += e * 0.001 * entryScale
+        (notesOut1 zip recEntry).map { case (n, (duQ, enQ)) =>
+          val en  = unQuantDur(enQ)
+          val du  = unQuantDur(duQ)
+          val res = n.copy(offset = off, duration = du * entryScale)
+          off += en * entryScale
           res
         }
 
@@ -71,7 +77,4 @@ object HorizontalDance {
       notesOut
     }
   }
-}
-trait HorizontalDance {
-  def move(num: Int): Vector[OffsetNote]
 }

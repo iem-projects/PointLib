@@ -18,7 +18,7 @@ import de.sciss.swingplus.ScrollBar
 import de.sciss.numbers.Implicits._
 
 trait ShowPartitioning {
-  def show(notes: Vec[Vec[OffsetNote]], chords: Vec[Vec[Chord]], numGroups: Int = -1)
+  def show(notes: Vec[Vec[OffsetNote]], chords: Vec[Vec[Chord]], numGroups: Int = -1, title: String = "")
           (implicit rate: midi.TickRate): Unit = {
     val notesF      = notes.flatten
     val chordsF     = chords.flatten
@@ -235,7 +235,7 @@ trait ShowPartitioning {
     rtz()
     lcdP.maximumSize = lcdP.preferredSize // = (200, 20)
 
-    new Frame { frame =>
+    val res = new Frame { frame =>
       contents = new BorderPanel {
         add(Component.wrap(view), BorderPanel.Position.Center)
         add(box3, BorderPanel.Position.North)
@@ -249,5 +249,6 @@ trait ShowPartitioning {
 
       open()
     }
+    res.title = title
   }
 }

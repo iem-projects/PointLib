@@ -8,7 +8,7 @@ object Markov1 {
 
   val (histoAbs0, histoMkv0) = improvSnippets.map { i =>
     val s     = loadSnippet(i)
-    val ivals = s.notes.map(_.pitch).pairMap(_ to _).map(_.semitones % 12)
+    val ivals = s.notes.map(_.pitch).mapPairs(_ to _).map(_.semitones % 12)
     val abs   = ivals.histogram
 
     val m0 = Map.empty[Int, Map[Int, Int]] withDefaultValue (Map.empty withDefaultValue 0)

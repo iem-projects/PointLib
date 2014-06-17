@@ -36,7 +36,7 @@ object Evolutions5 extends App {
   }
 
   val pitchSq2  = notesIn.map(n => (n.offset, n.pitch.keyColor, n.pitch.keyPosition))
-  val ivalSq    = pitchSq2.pairMap {
+  val ivalSq    = pitchSq2.mapPairs {
     case ((o1, c1, p1), (o2, c2, p2)) =>
       val fine    = ((o2 - o1) * 1000 + 0.5).toInt // millis
       val coarse  = (fine * ENTRY_COARSE + 0.5).toInt

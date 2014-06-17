@@ -1,10 +1,14 @@
 package at.iem.point.eh.sketches
 
+import de.sciss.desktop.FileDialog
+
 import scala.swing.Swing
 import at.iem.point.illism._
 import scala.annotation.tailrec
 import collection.breakOut
 import de.sciss.numbers.Implicits._
+import de.sciss.midi
+import de.sciss.file._
 
 object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(test1())
@@ -12,14 +16,17 @@ object ElisabethPartitioning extends App with ShowPartitioning {
 
   def test1(): Unit = {
     // val sn          = loadSnippet(improvSnippets(1))
-    val sn          = loadFirstTests(s"test-12_1min_7.mid")
-    val notes       = sn.notes
-    val (m, h)      = NoteUtil.splitMelodicHarmonic(notes)
-    val nm          = m.flatMap(_._2)
-    val nh          = h.flatMap(_._2)
+    FileDialog.open(init = Some(basePath)).show(None).foreach { f =>
+      // val sn = loadFirstTests(s"test-12_1min_7.mid")
+      val sn = midi.Sequence.read(f.path)
+      val notes = sn.notes
+      val (m, h) = NoteUtil.splitMelodicHarmonic(notes)
+      val nm = m.flatMap(_._2)
+      val nh = h.flatMap(_._2)
 
-    implicit val r  = sn.rate
-    show(Vec(nm), Vec(nh))
+      implicit val r = sn.rate
+      show(Vec(nm), Vec(nh), title = f.base)
+    }
   }
 
   def test2(): Unit = {

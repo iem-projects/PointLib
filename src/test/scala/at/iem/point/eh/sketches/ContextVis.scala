@@ -12,7 +12,7 @@ object ContextVis extends App {
   // use only one file to make the tree smaller
   val allIvals = inp.flatMap { i =>
     val s = loadSnippet(i)
-    val ivals = s.notes.map(_.pitch).pairMap(_ to _).map(_.semitones % 12)
+    val ivals = s.notes.map(_.pitch).mapPairs(_ to _).map(_.semitones % 12)
     ivals
   }
 

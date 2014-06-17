@@ -1,6 +1,6 @@
 package at.iem.point.eh.sketches
 
-import scalax.chart.Charting._
+import scalax.chart.api._
 import scala.swing.{MainFrame, Component, GridPanel}
 import org.jfree.chart.{ChartPanel, ChartFactory, StandardChartTheme}
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
@@ -164,8 +164,12 @@ object FrameIntervalExample extends App {
   }
 
   def mkChart(info: Info): /* CategoryChart */ XYChart = {
-    implicit val semitones = (i: Interval) => i.semitones.asInstanceOf[Integer]
-    val fihData = info.histo1.toXYSeriesCollection(s"Freq. of ${if (info.allIntervals) "interval layers" else "frame intervals"}")
+    // implicit val semitones = (i: Interval) => i.semitones.asInstanceOf[Integer]
+    //    implicit object semitones extends Numeric[Interval] {
+    //    }
+
+    val histoI  = info.histo1.map { case (i, f) => (i.semitones, f) }
+    val fihData = histoI.toXYSeriesCollection(s"Freq. of ${if (info.allIntervals) "interval layers" else "frame intervals"}")
     //    implicit val comp: Interval => Comparable[Interval] = `this` => new Comparable[Interval] {
     //      def compareTo(that: Interval): Int = `this`.semitones compareTo that.semitones
     //    }
