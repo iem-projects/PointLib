@@ -63,7 +63,7 @@ object BreakDance {
         val recEntry = recEntryF.move(num = num)
         //    println(recEntry.mkString(", "))
         var off = 0.0
-        (notesOut1 zip recEntry).map { case (n, (duQ, enQ)) =>
+        (notesOut1 zip recEntry).map { case (n, (enQ, duQ)) =>
           val en  = unQuantDur(enQ)
           val du  = unQuantDur(duQ)
           val res = n.copy(offset = off, duration = du * entryScale)

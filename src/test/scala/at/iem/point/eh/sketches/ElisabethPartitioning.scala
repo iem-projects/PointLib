@@ -14,18 +14,24 @@ object ElisabethPartitioning extends App with ShowPartitioning {
   Swing.onEDT(test1())
   // Swing.onEDT(test2())
 
-  def test1(): Unit = {
+  def test1(split: Boolean = false, stretchDur: Double = 1.0): Unit = {
     // val sn          = loadSnippet(improvSnippets(1))
     FileDialog.open(init = Some(basePath)).show(None).foreach { f =>
       // val sn = loadFirstTests(s"test-12_1min_7.mid")
       val sn = midi.Sequence.read(f.path)
-      val notes = sn.notes
-      val (m, h) = NoteUtil.splitMelodicHarmonic(notes)
-      val nm = m.flatMap(_._2)
-      val nh = h.flatMap(_._2)
+      val notes0 = sn.notes
+      val notes  = if (stretchDur == 1.0) notes0 else notes0.map(n => n.copy(duration = n.duration * stretchDur))
+      val (nmm, nhm) = if (split) {
+        val (m, h) = NoteUtil.splitMelodicHarmonic(notes)
+        val nm = m.flatMap(_._2)
+        val nh = h.flatMap(_._2)
+        (Vec(nm), Vec(nh))
+      } else {
+        (Vec(notes), Vec.empty)
+      }
 
       implicit val r = sn.rate
-      show(Vec(nm), Vec(nh), title = f.base)
+      show(nmm, nhm, title = f.base)
     }
   }
 

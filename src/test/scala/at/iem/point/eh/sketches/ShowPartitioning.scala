@@ -3,11 +3,11 @@ package at.iem.point.eh.sketches
 import at.iem.point.illism._
 import at.iem.point.illism.gui.impl.PianoRollImpl
 import javax.swing.{KeyStroke, WindowConstants}
-import scala.swing.{Label, Action, BoxPanel, Component, Frame, BorderPanel, Orientation, Swing}
+import scala.swing.{Menu, CheckMenuItem, MenuBar, Label, Action, BoxPanel, Component, Frame, BorderPanel, Orientation, Swing}
 import Swing._
 import de.sciss.{desktop, midi}
 import de.sciss.audiowidgets.{AxisFormat, LCDColors, LCDPanel, Transport, Axis}
-import scala.swing.event.{Key, MouseDragged, MousePressed, ValueChanged}
+import scala.swing.event.{ButtonClicked, Key, MouseDragged, MousePressed, ValueChanged}
 import desktop.{KeyStrokes, FocusType}
 import java.awt.{Graphics, Point, Color, RenderingHints, Graphics2D}
 import java.awt.geom.GeneralPath
@@ -43,7 +43,8 @@ trait ShowPartitioning {
       override def paintComponent(g: Graphics): Unit = {
         super.paintComponent(g)
         val (start, stop) = timeRange
-        val x = keyWidth + ((position - start) / (stop - start) * (getWidth - keyWidth) + 0.5).toInt
+        val kw  = if (showKeyboard) keyWidth else 0
+        val x = kw + ((position - start) / (stop - start) * (getWidth - kw) + 0.5).toInt
         g.setColor(colr)
         g.drawLine(x, 0, x, getHeight - 1)
       }
@@ -67,6 +68,9 @@ trait ShowPartitioning {
         ns.map(n => n -> decN)(breakOut) // : Map[OffsetNote, NoteDecoration]
       })(breakOut)
       view.decoration = m
+    } else if (chordGroupSz == 0) {
+      val deco = NoteDecoration(Some(Color.black))
+      view.decoration = notes.flatten.map(_ -> deco)(breakOut)
     }
 
     val timeFormat  = AxisFormat.Time(hours = false, millis = true)
@@ -156,7 +160,7 @@ trait ShowPartitioning {
       def apply(): Unit = body
     }
 
-    scroll.addAction("zoom-out", action(menu2 + Key.Left) {
+    scroll.addAction("zoom-out", action(menu3 + Key.Left) {
       val (start0, stop0) = view.timeRange
       val span0 = stop0 - start0
       val start = math.max(0.0, start0 - span0 * 0.5)
@@ -164,7 +168,7 @@ trait ShowPartitioning {
       setSpan(start, stop)
     }, FocusType.Window)
 
-    scroll.addAction("zoom-in", action(menu2 + Key.Right) {
+    scroll.addAction("zoom-in", action(menu3 + Key.Right) {
       val (start0, stop0) = view.timeRange
       val span0 = stop0 - start0
       if (span0 >= 1.0) {
@@ -245,6 +249,20 @@ trait ShowPartitioning {
       centerOnScreen()
       peer.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE)
 
+      menuBar = new MenuBar {
+        // contents += new Menu("File")
+        contents += new Menu("View") {
+          contents += new CheckMenuItem("Plain") {
+            listenTo(this)
+            reactions += {
+              case ButtonClicked(_) =>
+                val full = !selected
+                view.showKeyboard = full
+                view.showLines    = full
+            }
+          }
+        }
+      }
       new pdflitz.SaveAction(view :: Nil).setupMenu(peer)
 
       open()

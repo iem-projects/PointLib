@@ -6,9 +6,9 @@ import de.sciss.file._
 
 object Evolutions6 extends App {
   // with start 0, seeds of 1, 2 creates funny loops; 0 and 3 have many walks, 4 is great because it keeps looping but then escapes
-  val NUM         = 500
-  val SEED        = 333L    // seed of the random number generator
-  val START       = 0       // start index in the pitch sequence to begin wih
+  val NUM         = 1000
+  val SEED        = 332L    // seed of the random number generator
+  val START       = 1       // start index in the pitch sequence to begin wih
   val VELO        = true    // model velocity
   val VELO_COARSE = 6       // velocity rasterisation (in steps)
   val ENTRY       = true    // model entry offsets
@@ -27,18 +27,23 @@ object Evolutions6 extends App {
 
   val sn1  = ((0 to 5) diff Seq(4)).map(loadDisklavier)
   val sn2  = Vec(9, 42, 43, 44, 45, 48).map(loadSnippet)
+  val sn3i = Vec(42)
+  val sn3  = sn3i.map(loadSnippet)
   // val name = "DisklavierMix"
   // val ENTRY_SCALE = 1.5
   // val sn3  = sn1
   // val name = "SnippetMix"
   // val ENTRY_SCALE = 1.1
   // val sn3  = sn2
-  val name = "ImprovMix"
-  val ENTRY_SCALE = 1.5
-  val sn3  = sn1 ++ sn2
+  //  val name = "ImprovMix"
+  //  val ENTRY_SCALE = 1.5
+  //  val snSel  = sn1 ++ sn2
+  val name = s"Snippet${sn3i.mkString("_")}"
+  val ENTRY_SCALE = 1.0 // 1.25
+  val snSel  = sn3
 
   // val sq        = if (DISKLAVIER) loadDisklavier(IDX) else loadSnippet(improvSnippets(IDX))
-  val notesIn: Vec[OffsetNote] = joinSnippets(sn3)
+  val notesIn: Vec[OffsetNote] = joinSnippets(snSel)
 
   implicit val rnd  = new util.Random(SEED)
   val gen       = BreakDance(startIdx = START, modelVelo = VELO, veloCoarse = VELO_COARSE, modelEntry = ENTRY,
