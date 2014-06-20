@@ -23,12 +23,16 @@ object FrameIntervalExample extends App {
     * or a free improvisation. In the case of the improv,
     * whether to filter particular chords or include all.
     */
-  lazy val _mode: Mode = Improvisation(Some(4)) //  Static1(6, 23) // StaticChords(4)
+  lazy val _mode: Mode = StaticChords(3) // Improvisation(Some(4)) //  Static1(6, 23) // StaticChords(4)
+
   /** Whether to just look at the frame intervals (`false`) or to
     * calculate the histogram of all internal intervals (`true`)
     * (these are successive intervals, not all permutations!)
     */
   lazy val _allIntervals  = false
+
+  /** If `true` use interval classes, else use full intervals. */
+  lazy val _classes       = true
   
   lazy val _sumSnippets   = true
 
@@ -39,7 +43,7 @@ object FrameIntervalExample extends App {
   lazy val _relative      = true
 
   def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets,
-          legend: Boolean = _legend, relative: Boolean = _relative): Unit = defer {
+          legend: Boolean = _legend, relative: Boolean = _relative, classes: Boolean = _classes): Unit = defer {
     ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
 
     val snippetSet  = mode match {
@@ -50,14 +54,14 @@ object FrameIntervalExample extends App {
     val numSnippets = if (sumSnippets) 1 else snippetSet.size
     val infos0      = snippetSet.map(idx =>
       frameIntervalHisto(snippetIdx = idx, constrainSize = mode.filter, lowTolerance = mode.isImprov,
-        allIntervals = allIntervals, legend = legend, relative = relative)
+        allIntervals = allIntervals, legend = legend, relative = relative, classes = classes)
     )
     val infos       = if (sumSnippets && infos0.size > 1) infos0.reduce(sumInfos) :: Nil else infos0
     val maxX        = infos.map(_.histo1.keys.map(_.semitones).max).max + 1 // plus one, because otherwise last bar is shown truncated
     val maxY        = infos.map(_.histo1.values.max).max
     val charts      = infos.map(mkChart)
     charts.foreach { c =>
-      setMaxX(c, math.max(if (allIntervals) 12 else 14, maxX))
+      setMaxX(c, math.max(if (allIntervals) 13 /* 12 */ else if (classes) 13 else 14, maxX))
       setMaxY(c, maxY)
     }
     val numCols     = math.ceil(math.sqrt(numSnippets)).toInt
@@ -75,7 +79,8 @@ object FrameIntervalExample extends App {
       } // useBuffer = false for PDF export
     }
 
-    val intervalTitle = if (allIntervals) "Interval Layer" else "Frame Interval"
+    val intervalTitle0 = if (allIntervals) "Interval Layer" else "Frame Interval"
+    val intervalTitle  = if (classes) s"$intervalTitle0 Classes" else intervalTitle0
 
     val chordTitle = mode match {
       case StaticChords(sz)         => s"static chords of size $sz"
@@ -116,6 +121,11 @@ object FrameIntervalExample extends App {
     }
   }
 
+  private def modOctave(in: UndirectedInterval): Interval = {
+    val out0 = in.modOctave
+    if (out0.semitones == 0) new UndirectedInterval(12) else out0
+  }
+
   /** Calculates the histogram of the frame intervals in a chord snippet.
     *
     * @param snippetIdx      index of the snippet to load
@@ -123,7 +133,8 @@ object FrameIntervalExample extends App {
     * @return                the calculated information
     */
   def frameIntervalHisto(snippetIdx: Int, constrainSize: Option[Int], allIntervals: Boolean = false,
-                         lowTolerance: Boolean = false, legend: Boolean, relative: Boolean): Info = {
+                         lowTolerance: Boolean = false, legend: Boolean, relative: Boolean,
+                         classes: Boolean): Info = {
     val notes     = loadSnippet(snippetIdx).notes
     val chords0   = ChordUtil.findChords(notes, offsetTolerance = if (lowTolerance) 0.03 else 0.1,
                                                 stopTolerance   = if (lowTolerance) 0.5 else 10.0)
@@ -134,9 +145,12 @@ object FrameIntervalExample extends App {
     val numChords = chords.size
     //    val fi        = chords.map(_.frameInterval)
     val fi0 = if (allIntervals) {
-      chords.flatMap(_.layeredIntervals.map(_.modOctave))
+      chords.flatMap(_.layeredIntervals.map(modOctave))
     } else {
-      chords.map(_.frameInterval /* .modOctave */)
+      chords.map { c =>
+        val f = c.frameInterval
+        if (classes) modOctave(f) else f
+      }
     }
 
     val fi = if ((constrainSize == Some(3) || constrainSize == Some(4)) && !allIntervals)
