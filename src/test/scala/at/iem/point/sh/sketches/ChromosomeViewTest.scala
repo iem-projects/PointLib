@@ -31,19 +31,19 @@ object ChromosomeViewTest extends SimpleSwingApplication {
 
     val seqCol    = new TreeColumnModel.Column[Node, Int]("Index") {
       def apply     (node: Node): Int = node.index
-      def update    (node: Node, value: Int) {}
+      def update    (node: Node, value: Int) = ()
       def isEditable(node: Node) = false
     }
 
     val chromoCol = new TreeColumnModel.Column[Node, Chromosome]("Chromosome") {
       def apply     (node: Node): Chromosome = node.chromosome
-      def update    (node: Node, value: Chromosome) {}
+      def update    (node: Node, value: Chromosome) = ()
       def isEditable(node: Node) = false
     }
 
     val fitCol    = new TreeColumnModel.Column[Node, Double]("Fitness") {
       def apply     (node: Node): Double = node.fitness
-      def update    (node: Node, value: Double) {}
+      def update    (node: Node, value: Double) = ()
       def isEditable(node: Node) = false
     }
 
@@ -59,7 +59,7 @@ object ChromosomeViewTest extends SimpleSwingApplication {
 
       def isLeaf(node: Node): Boolean = getChildCount(node) == 0
 
-      def valueForPathChanged(path: TreeTable.Path[Node], newValue: Node) {}
+      def valueForPathChanged(path: TreeTable.Path[Node], newValue: Node) = ()
 
       def getIndexOfChild(parent: Node, child: Node): Int = parent.children.indexOf(child)
     }
@@ -81,7 +81,7 @@ object ChromosomeViewTest extends SimpleSwingApplication {
               def getIconWidth  = sz.width
               def getIconHeight = sz.height
 
-              def paintIcon(c: Component, g: Graphics, x: Int, y: Int) {
+              def paintIcon(c: Component, g: Graphics, x: Int, y: Int): Unit = {
                 g.translate(x, y)
                 import Fitness._
                 ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D], getWidth - x, getHeight - y, cn.dur.toDouble)

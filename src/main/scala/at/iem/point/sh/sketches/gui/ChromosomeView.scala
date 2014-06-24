@@ -50,7 +50,7 @@ object ChromosomeView {
     * @param height   the height in pixels
     * @param widthDur the duration (in wholes) corresponding to the nominal `width`
     */
-  def paint(cn: GeneticSystem.Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double) {
+  def paint(cn: GeneticSystem.Chromosome, g: Graphics2D, width: Int, height: Int, widthDur: Double): Unit = {
     val sz    = cn.size
     if (sz == 0) return
 

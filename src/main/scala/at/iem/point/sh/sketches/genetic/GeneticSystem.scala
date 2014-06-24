@@ -50,7 +50,7 @@ object GeneticSystem extends muta.System {
       def getIconWidth  = sz.width
       def getIconHeight = sz.height
 
-      def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int) {
+      def paintIcon(c: java.awt.Component, g: Graphics, x: Int, y: Int): Unit = {
         g.translate(x, y)
         val widthDur: Double = 9 // XXX TODO: need global - duration.toDouble * 1.1
         ChromosomeView.paint(cn, g.asInstanceOf[Graphics2D],

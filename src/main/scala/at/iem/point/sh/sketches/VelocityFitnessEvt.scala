@@ -1,7 +1,7 @@
 package at.iem.point.sh.sketches
 
 import Fitness._
-import spire.syntax._
+import spire.syntax.literals._
 import de.sciss.numbers.Implicits._
 
 object VelocityFitnessEvt extends FitnessLike {

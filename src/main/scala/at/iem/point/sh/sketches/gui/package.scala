@@ -1,8 +1,9 @@
 package at.iem.point.sh.sketches
 
+import de.sciss.swingplus.GroupPanel
+
 import scala.annotation.{tailrec, switch}
 import javax.swing.WindowConstants
-import scalaswingcontrib.group.GroupPanel
 import scala.swing.{Button, BoxPanel, Orientation, Alignment, Label, Component, UIElement, Swing}
 import Swing._
 import language.reflectiveCalls
@@ -18,12 +19,10 @@ package object gui {
       // val numRows = comp.size
       val numCols = comp.headOption.map(_.size).getOrElse(0)
       new GroupPanel {
-        override type InParallel    = InGroup[javax.swing.GroupLayout#ParallelGroup  ]
-        override type InSequential  = InGroup[javax.swing.GroupLayout#SequentialGroup]
-        theHorizontalLayout is Sequential((0 until numCols).map(i =>
-          Parallel(comp.map(_.apply(i): InParallel): _*): InSequential): _*)
-        theVerticalLayout   is Sequential(comp.map(row =>
-          Parallel(Baseline)(row.map(c => c: InParallel): _*): InSequential): _*)
+        horizontal = Seq((0 until numCols).map(i =>
+          Par(comp.map(c => GroupPanel.Element(c(i))): _*)): _*)
+        vertical = Seq(comp.map(row =>
+          Par(Baseline)(row.map(GroupPanel.Element.apply): _*)): _*)
       }
     }
 
@@ -39,7 +38,7 @@ package object gui {
         }
     }
 
-    def debug() {
+    def debug(): Unit = {
       println("--")
     }
   }
@@ -55,11 +54,9 @@ package object gui {
       var comp    = Vector.empty[Vector[Component]]
       var open    = Vector.empty[Component]
 
-      def addComponent(c: Component) {
-        open :+= c
-      }
+      def addComponent(c: Component): Unit = open :+= c
 
-      def addCellPart(s: String) {
+      def addCellPart(s: String): Unit = {
         if (s.isEmpty) return
         val st = s.trim
         val c = if (st.isEmpty) {
@@ -89,14 +86,14 @@ package object gui {
       //      }
       //      col += 1
 
-      def newLine() {
+      def newLine(): Unit = {
         // println("newLine()")
         flushCell()
         row += 1
         col  = 0
       }
 
-      def flushCell() {
+      def flushCell(): Unit = {
         val c = mkCell(open)
         // println(s"flushCell($c)")
         comp = if (row == comp.size) comp :+ Vector(c) else {
@@ -106,7 +103,7 @@ package object gui {
         open = Vector.empty
       }
 
-      def addLinePart(s: String) {
+      def addLinePart(s: String): Unit = {
         // println(s"""addLinePart("$s"""")
         val i = s.indexOf('|')
         if (i < 0) addCellPart(s) else {
@@ -116,7 +113,7 @@ package object gui {
         }
       }
 
-      @tailrec def addPart(s: String) {
+      @tailrec def addPart(s: String): Unit = {
         // println(s"""addPart("$s"""")
         val i = s.indexOf('\n')
         if (i < 0) addLinePart(s) else {
@@ -126,12 +123,11 @@ package object gui {
         }
       }
 
-      def addArg(x: Any) {
+      def addArg(x: Any): Unit =
         x match {
           case c: Component => addComponent(c)
           case _            => throw new IllegalArgumentException(s"$x is not a swing.Component")
         }
-      }
 
       val res = sc.parts match {
         case head +: tail =>

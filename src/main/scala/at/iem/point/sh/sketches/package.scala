@@ -1,10 +1,12 @@
 package at.iem.point.sh
 
-import spire.math.{Rational, compat}
+import spire.math.Rational
 import at.iem.point.illism.rhythm.Cell
 import de.sciss.file._
 import play.api.libs.json.{JsSuccess, JsString, JsError, JsNumber, JsObject, JsResult, JsValue, Format}
 import scala.util.{Failure, Try, Success}
+import spire.syntax.literals._
+import spire.compat
 
 package object sketches {
   type Vec[+A] = collection.immutable.IndexedSeq[A]
@@ -17,7 +19,6 @@ package object sketches {
   val pdfViewer = "open"
 
   import scala.{Vector => v}
-  import spire.syntax._
   val cell = v(
     Cell( 0, v(1, 1, 1), r"1/4"),
     Cell( 1, v(1, 3), r"1/4"),

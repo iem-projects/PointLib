@@ -4,7 +4,7 @@ import spire.math.Rational
 import scala.util.Random
 import scala.annotation.tailrec
 import at.iem.point.illism.rhythm.{Rest, Note, Cell, NoteOrRest}
-import spire.syntax._
+import spire.syntax.literals._
 import at.iem.point.sh.sketches.genetic.GeneticSystem.Global
 
 object Fitness {
@@ -30,9 +30,7 @@ object Fitness {
   /** The normalized corpus is equal to the corpus, but cells are already normalized. */
   val norm  : Vec[Cell] = corpus.map(_.normalized)
 
-  def log(what: => String) {
-    if (showLog) println(s"<ga> $what")
-  }
+  def log(what: => String): Unit = if (showLog) println(s"<ga> $what")
 
   /** Creates a new random number generator with a given `seed` value. */
   def rng(seed: Long = System.currentTimeMillis()) = new Random(seed)

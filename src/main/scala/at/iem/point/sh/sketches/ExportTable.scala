@@ -21,7 +21,7 @@ object ExportTable {
     loop(0)
   }
 
-  def dialog(genome: GenomeVal, parent: Option[Window] = None) {
+  def dialog(genome: GenomeVal, parent: Option[Window] = None): Unit = {
     val dlg = FileDialog.save(init = Some(defaultFile()), title = "Export Selection As PDF Table")
     val res = dlg.show(parent)
     res.foreach { f =>

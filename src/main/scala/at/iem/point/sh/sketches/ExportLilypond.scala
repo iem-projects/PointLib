@@ -5,7 +5,6 @@ import java.io.{FileOutputStream, OutputStreamWriter}
 import Fitness.GenomeVal
 import de.sciss.desktop.{FileDialog, OptionPane, Window}
 import scala.annotation.tailrec
-import de.sciss.guiflitz.{Springs, SpringPanel}
 import at.iem.point.illism.rhythm.LilyTimeSignature
 import de.sciss.muta.HeaderInfo
 
@@ -29,25 +28,8 @@ object ExportLilypond {
     ggMIDI .selected        = true
     ggTime.selection.index  = LilyTimeSignature.Raw.id
 
-    import Springs._
-    val pane    = new SpringPanel {
-      contents ++= Seq(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI, /* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
-      linkHeight(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI,
-                 /* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
-      linkWidth (/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI)
-      // linkWidth (ggTitle, ggSub, ggTime)
-      cons(lbTime /* lbTitle */ ).x = 4
-      cons(lbTime /* lbTitle */ ).y = 4
-      cons(ggTime /* ggTitle */).y = 4
-      vseq(/* lbTitle, lbSub, */ lbTime, lbTuplet, lbMIDI)
-      vseq(/* ggTitle, ggSub, */ ggTime, ggTuplet, ggMIDI)
-      //      cons(ggTitle ).x  = cons(lbTitle ).right  + 4
-      //      cons(ggSub   ).x  = cons(lbSub   ).right  + 4
-      cons(ggTime  ).x  = cons(lbTime  ).right  + 4
-      cons(ggTuplet).x  = cons(lbTuplet).right  + 4
-      cons(ggMIDI  ).x  = cons(lbMIDI  ).right  + 4
-      cons(this).right  = cons(/* ggTitle */ ggTime ).right  + 4
-      cons(this).bottom = cons(ggMIDI  ).bottom + 4
+    val pane = new GridPanel(3, 2) {
+      contents ++= Seq(lbTime, ggTime, lbTuplet, ggTuplet, lbMIDI, ggMIDI)
     }
 
     val opt = OptionPane.apply(
@@ -84,7 +66,7 @@ object ExportLilypond {
     */
   def apply(info: HeaderInfo, genome: GenomeVal, out: File,
             timeSig: LilyTimeSignature = LilyTimeSignature.Raw, tupletBrackets: Boolean = true,
-            midi: Boolean = true) {
+            midi: Boolean = true): Unit = {
 
     import info.{title, subtitle, iterations}
 

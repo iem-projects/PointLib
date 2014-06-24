@@ -2,7 +2,7 @@ package at.iem.point.sh.sketches
 
 import java.awt.Color
 import scalax.chart.XYChart
-import scalax.chart.Charting._
+import scalax.chart.api._
 import org.jfree.chart.ChartPanel
 import scala.swing.{Component, Frame, SimpleSwingApplication}
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer

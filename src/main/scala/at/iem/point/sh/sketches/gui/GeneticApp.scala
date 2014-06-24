@@ -7,6 +7,7 @@ import de.sciss.muta.gui.DocumentFrame
 import de.sciss.desktop.{KeyStrokes, Menu}
 import java.awt.event.KeyEvent
 import scala.swing.Action
+import scala.swing.event.Key
 
 object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   protected override def init(): Unit = {
@@ -18,7 +19,7 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
     root.get("file.export") match {
       case Some(g: Group) =>
         g.add(
-          Item("lily", proxy("Selection As Lilypond Score..." -> (menu1 + shift + VK_S)))
+          Item("lily", proxy("Selection As Lilypond Score..." -> (menu1 + shift + Key.S)))
         )
       case _ =>
     }

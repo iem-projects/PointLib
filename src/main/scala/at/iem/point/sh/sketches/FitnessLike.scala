@@ -1,6 +1,6 @@
 package at.iem.point.sh.sketches
 
-import spire.syntax._
+import spire.syntax.literals._
 import java.io.{FileOutputStream, OutputStreamWriter}
 import de.sciss.file._
 import at.iem.point.illism.rhythm.LilyTimeSignature
@@ -84,7 +84,7 @@ trait FitnessLike extends App {
     }
   }
 
-  def run() {
+  def run(): Unit = {
     val glob    = GlobalImpl(crochets = (duration * 4).toInt)
     val res     = produce(global = glob, pop = pop, iter = iter)(fitness = fitness, selectAndBreed = selectAndBreed)
     val sorted  = res.distinct.sortBy(-_._2)
@@ -164,7 +164,7 @@ trait FitnessLike extends App {
     """.stripMargin }
 
     val lyt = scores.mkString(header, "", "")
-    val lyf = IO.tempFile("point", ".ly", deleteOnExit = false)
+    val lyf = File.createTemp("point", ".ly", deleteOnExit = false)
     val os  = new OutputStreamWriter(new FileOutputStream(lyf), "UTF-8")
     os.write(lyt)
     os.close()
