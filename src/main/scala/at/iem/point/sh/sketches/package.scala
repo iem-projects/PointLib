@@ -1,5 +1,6 @@
 package at.iem.point.sh
 
+import de.sciss.desktop.Desktop
 import spire.math.Rational
 import at.iem.point.illism.rhythm.Cell
 import de.sciss.file._
@@ -15,8 +16,8 @@ package object sketches {
   implicit val rationalNumeric    = compat.numeric   [Rational]
   implicit val rationalFractional = compat.fractional[Rational]
 
-  val lilypond  = (userHome / "bin" / "lilypond").path
-  val pdfViewer = "open"
+  val lilypond  = if (Desktop.isLinux) "lilypond" else (userHome / "bin" / "lilypond").path
+  val pdfViewer = if (Desktop.isLinux) "xdg-open" else "open"
 
   import scala.{Vector => v}
   val cell = v(
