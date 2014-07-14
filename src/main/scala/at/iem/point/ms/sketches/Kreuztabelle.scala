@@ -1,3 +1,16 @@
+/*
+ *  Kreuztabelle.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
 import swing.{Component, Swing}
@@ -52,7 +65,7 @@ object Kreuztabelle extends App {
       }
 
     if (horiz) {
-      nf.pairMap { (ch1, ch2) =>
+      nf.mapPairs { (ch1, ch2) =>
         val p1s = ch1.pitches
         val p2s = ch2.pitches
         assert (p1s.size == p2s.size, s"Pred has ${p1s.size} voices, succ has ${p2s.size} voices")
@@ -84,7 +97,7 @@ object Kreuztabelle extends App {
   }
 
   /** `idx` is zero for the file in `MIDI`, and >1 for those in `MIDI3` */
-  def run(chordSize: Int = -1, intervalClasses: Boolean = false, idx: Int = 0) {
+  def run(chordSize: Int = -1, intervalClasses: Boolean = false, idx: Int = 0): Unit = {
     val rawSeq = if (idx == 0) Seq(false, true) else Seq(true)
     val panes = for {
       raw          <- rawSeq

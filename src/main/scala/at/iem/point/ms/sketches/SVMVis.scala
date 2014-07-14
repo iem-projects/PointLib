@@ -1,3 +1,16 @@
+/*
+ *  SVMVis.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
 import scala.swing.event.{ButtonClicked, MousePressed, EditDone}
@@ -390,7 +403,7 @@ class SVMVis(rows: Int = 400, columns: Int = 400) extends BorderPanel {
     }
   }
 
-  def addPoint(x: Double, y: Double, label: Int) {
+  def addPoint(x: Double, y: Double, label: Int): Unit = {
     val p = Point(x = x, y = y, label = label)
     points :+= p
     withGraphics(drawPoint(_, p))

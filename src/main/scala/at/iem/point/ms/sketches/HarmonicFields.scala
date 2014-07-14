@@ -1,6 +1,19 @@
+/*
+ *  HarmonicFields.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
-import scalax.chart.Charting._
+import scalax.chart.api._
 import swing.{Component, GridPanel, Frame, Swing}
 import Swing._
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
@@ -67,7 +80,7 @@ object HarmonicFields extends App {
     chart
   }
 
-  def run(chordSize: Int = -1, intervalClasses: Boolean = false) {
+  def run(chordSize: Int = -1, intervalClasses: Boolean = false): Unit = {
     ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
 
     val charts = for {

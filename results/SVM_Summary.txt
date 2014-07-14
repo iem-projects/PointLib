@@ -46,3 +46,17 @@ def lookup(in: Seq[Int]) = in.map(tups.apply).sorted
 26: (5,6)
 27: (6,6)
 
+::::::::::::::::::::::::::::::::
+
+def area(r: Double) = r*r*math.Pi
+def radius(a: Double) = math.sqrt(a/math.Pi)
+
+def x = (n: Double) => radius(n) * 2 // 4
+
+
+// def c(in: Double) = in.linlin(55.172413, 76.47059, 0, 1).squared.linlin(0, 1, 20, 60)
+def c1(in: Double) = in.linlin(55.172413, 76.47059, 0, 1).squared.linlin(0, 1, 204, 102)
+
+x(55.172413)
+c1(76.47059)
+

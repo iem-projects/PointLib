@@ -1,6 +1,19 @@
+/*
+ *  Plotting.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
-import scalax.chart.Charting._
+import scalax.chart.api._
 import java.awt.{BasicStroke, Color}
 import de.sciss.pdflitz
 import org.jfree.chart.{ChartFactory, ChartPanel}
@@ -24,7 +37,7 @@ object Plotting {
   }
 
   implicit class Plot1D[A](sq: ISeq[A]) {
-    def plot(legend: String = "", title: String = "Data", ylabel: String = "")(implicit num: A => Number): Plot = {
+    def plot(legend: String = "", title: String = "Data", ylabel: String = "")(implicit num: Numeric[A]): Plot = {
       val series = sq.zipWithIndex.map(_.swap).toXYSeries(name = legend)
       plotXY(series :: Nil, legends = if (legend == "") Nil else legend :: Nil,
         title = title, xlabel = "", ylabel = ylabel)
@@ -33,7 +46,7 @@ object Plotting {
 
   implicit class Plot2D[A, B](it: Iterable[(A, B)]) {
     def plot(legend: String = "", title: String = "Data", xlabel: String = "", ylabel: String = "")
-            (implicit numA: A => Number, numB: B => Number): Plot = {
+            (implicit numA: Numeric[A], numB: Numeric[B]): Plot = {
       val series = it.toXYSeries(name = legend)
       plotXY(series :: Nil, legends = if (legend == "") Nil else legend :: Nil,
         title = title, xlabel = xlabel, ylabel = ylabel)
@@ -41,7 +54,7 @@ object Plotting {
   }
 
   implicit class MultiPlot1D[A](sqs: ISeq[ISeq[A]]) {
-    def plot(legends: ISeq[String] = Nil, title: String = "Data", ylabel: String = "")(implicit num: A => Number): Plot = {
+    def plot(legends: ISeq[String] = Nil, title: String = "Data", ylabel: String = "")(implicit num: Numeric[A]): Plot = {
       val series = (sqs zip legends).map { case (sq, legend) =>
         sq.zipWithIndex.map(_.swap).toXYSeries(name = legend)
       }

@@ -1,3 +1,16 @@
+/*
+ *  Tempo.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
 import spire.math.Rational
@@ -144,7 +157,7 @@ object Tempo {
       var bestCost2 = Double.PositiveInfinity
       var bestT     = 0.0
 
-      def wooopi(t: Double, _divisions: List[Rational]) {
+      def wooopi(t: Double, _divisions: List[Rational]): Unit = {
         val tup   = calcNotes(durations, t, _divisions, doubleDotted = doubleDotted)
         // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
         val (c1s, c2s) = tup._4.map(d => {

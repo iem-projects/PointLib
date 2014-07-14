@@ -1,6 +1,19 @@
+/*
+ *  FrameIntervalExample.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
-import scalax.chart.Charting._
+import scalax.chart.api._
 import java.awt.Color
 import org.jfree.chart.axis.{NumberAxis, NumberTickUnit}
 import scalax.chart.XYChart
@@ -30,7 +43,7 @@ object FrameIntervalExample extends App {
   
   lazy val _sumSnippets   = true
 
-  def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets) {
+  def run(mode: Mode = _mode, allIntervals: Boolean = _allIntervals, sumSnippets: Boolean = _sumSnippets): Unit = {
 //    defer {
 //      ChartFactory.setChartTheme(StandardChartTheme.createLegacyTheme())
 //
@@ -122,19 +135,20 @@ object FrameIntervalExample extends App {
     ???
   }
 
-  def setMaxY(chart: XYChart, i: Int) {
+  def setMaxY(chart: XYChart, i: Int): Unit = {
     val rangeX = chart.plot.getRangeAxis.asInstanceOf[NumberAxis]
     rangeX.setRange(0.0, i.toDouble)
   }
 
-  def setMaxX(chart: XYChart, i: Int) {
+  def setMaxX(chart: XYChart, i: Int): Unit = {
     val rangeY = chart.plot.getDomainAxis.asInstanceOf[NumberAxis]
     rangeY.setRange(0.0, i.toDouble)
   }
 
   def mkChart(info: Info): XYChart = {
-    implicit val semitones = (i: Interval) => i.semitones.asInstanceOf[Integer]
-    val fihData = info.histo.toXYSeriesCollection(s"Freq. of ${if (info.allIntervals) "interval layers" else "frame intervals"}")
+    // implicit val semitones = (i: Interval) => i.semitones.asInstanceOf[Integer]
+    val data = info.histo.map { case (ival, num) => ival.semitones -> num }
+    val fihData = data.toXYSeriesCollection(s"Freq. of ${if (info.allIntervals) "interval layers" else "frame intervals"}")
     val voicesTxt = info.voices match {
       case single :: Nil => single.toString
       case more => more.mkString("(", ",", ")")

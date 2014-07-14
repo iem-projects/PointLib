@@ -1,3 +1,16 @@
+/*
+ *  package.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms
 
 import java.awt.EventQueue
@@ -92,9 +105,8 @@ package object sketches {
 
   def allBlind      = (recPath / "blind").children(_.ext == "mid").sortBy(_.name).map(Study.Blind)
 
-  def defer(thunk: => Unit) {
-    if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run() { thunk }})
-  }
+  def defer(thunk: => Unit): Unit =
+    if (EventQueue.isDispatchThread) thunk else EventQueue.invokeLater(new Runnable { def run(): Unit = thunk })
 
   //  final val german  = Language.German
   //  final val english = Language.English

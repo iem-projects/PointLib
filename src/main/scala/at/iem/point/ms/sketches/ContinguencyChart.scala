@@ -1,3 +1,16 @@
+/*
+ *  ContinguencyChart.scala
+ *  (PointLib - ms)
+ *
+ *  Copyright (c) 2013-2014 IEM Graz / Hanns Holger Rutz. All rights reserved.
+ *
+ *  This software is published under the GNU General Public License v3+
+ *
+ *
+ *  For further information, please contact Hanns Holger Rutz at
+ *  contact@sciss.de
+ */
+
 package at.iem.point.ms.sketches
 
 import org.jfree.data.xy.{MatrixSeries, MatrixSeriesCollection}
@@ -55,7 +68,7 @@ object ContinguencyChart {
     val fnt = new Font("SansSerif", Font.BOLD, 18)
     val panel = new Component {
       override lazy val peer = new ChartPanel(chart, false) with SuperMixin
-      override protected def paintComponent(g: Graphics2D) {
+      override protected def paintComponent(g: Graphics2D): Unit = {
         super.paintComponent(g)
         // g.drawString("Schoko", 10, 30)
         val xoff    = 49
