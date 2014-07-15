@@ -60,3 +60,18 @@ def c1(in: Double) = in.linlin(55.172413, 76.47059, 0, 1).squared.linlin(0, 1, 2
 x(55.172413)
 c1(76.47059)
 
+::::::::::::::::::horiz
+
+def c1(in: Double) = in.linlin(58.82353, 93.10345, 0, 1).squared.linlin(0, 1, 220, 0).toInt
+
+def radius(a: Double) = math.sqrt(a/math.Pi)
+def x = (n: Double) => radius(n) * 2 // 4
+
+def y(n: Double) = f"${c1(n)} -> ${x(n)}%1.3f"
+
+def h(in: Vector[Int]): String = in.map { i =>
+  val vc = i / 12
+  val cl = i % 12
+  f"Vc.${4-vc}: $cl%2d"
+} .mkString(", ")
+

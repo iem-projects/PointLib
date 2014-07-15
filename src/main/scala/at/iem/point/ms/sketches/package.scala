@@ -98,7 +98,7 @@ package object sketches {
     val i  = b.indexOf('#') + 1
     val j  = b.indexOf(delim, i)
     b.substring(i, j).toInt
-  }
+  } .sorted
 
   def allBoring     = studyIndices("boring"   , 'u').map(Study.Boring   )
   def allPromising  = studyIndices("promising", '!').map(Study.Promising)

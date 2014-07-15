@@ -29,7 +29,7 @@ object PianoRollPlot extends SimpleSwingApplication {
     val comp = PianoRoll.j()
     // comp.showLines    = false
     // comp.showKeyboard = false
-    val study = allPromising(7)
+    val study = allPromising(1)
     println(s"study: $study")
     val seq = load(study)
     val notes: Vec[Vec[OffsetNote]] = Vector.tabulate(4)(ch => seq.notes(channel = ch))
@@ -40,7 +40,7 @@ object PianoRollPlot extends SimpleSwingApplication {
     val maxPch  = allPch.max + 1 // (allPch.max + 11) / 12 * 12
     // println(s"min pitch $minPch, max pitch $maxPch")
     comp.pitchRange = (minPch, maxPch)
-    comp.timeRange = comp.timeRange._1 -> (comp.timeRange._2 * 0.5)
+    comp.timeRange = comp.timeRange._1 -> (comp.timeRange._2 /* * 0.5 */)
 
     val colors = Vector(
       Color.red, // Color.lightGray,
