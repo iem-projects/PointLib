@@ -1,12 +1,12 @@
 import AssemblyKeys._
 
-name         := "ot-sketches"
+name         := "ot-darmstadt"
 
-version      := "0.5.0"
+version      := "0.1.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.3"
+scalaVersion := "2.11.2" // "2.10.3"
 
 homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
@@ -20,20 +20,21 @@ licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 resolvers += "Typesafe Simple Repository" at "http://repo.typesafe.com/typesafe/simple/maven-releases/"
 
 libraryDependencies in ThisBuild ++= Seq(
-  "de.sciss" %% "pointillism"         % "0.2.+",
-  "de.sciss" %% "pdflitz"             % "1.0.1+",
-  "de.sciss" %% "muta"                % "0.4.+",
-  "de.sciss" %% "audiowidgets-swing"  % "1.5.+",
-  "de.sciss" %% "numbers"             % "0.1.+",
-  "de.sciss" %  "abc4j"               % "0.6.+",
+  "de.sciss" %% "pointillism"         % "0.3.0",
+  "de.sciss" %% "pdflitz"             % "1.1.0",
+  "de.sciss" %% "muta"                % "0.4.1",
+  "de.sciss" %% "audiowidgets-swing"  % "1.6.2",
+  "de.sciss" %% "numbers"             % "0.1.1",
+  "de.sciss" %  "abc4j"               % "0.6.0",
   // "de.sciss" %% "guiflitz"            % "0.3.+",
-  "de.sciss" %% "poirot"              % "0.2.+",
-  "de.sciss" %% "kollflitz"           % "0.1.+"
+  "de.sciss" %% "poirot"              % "0.2.0",
+  "de.sciss" %% "kollflitz"           % "0.2.0",
+  "de.sciss" %  "weblaf"              % "1.28"
 )
 
-scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature")
+scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Xfuture")
 
-retrieveManaged := true
+// retrieveManaged := true
 
 initialCommands in console :=
   """import at.iem.point.illism._
@@ -56,7 +57,7 @@ appbundle.mainClass   := Some("at.iem.point.ot.sketches.GeneticApp")
 
 appbundle.javaOptions += "-Xmx1024m"
 
-appbundle.name        := s"OT_GeneticAlgorithm-${version.value}"
+appbundle.name        := s"OT_GeneticAlgorithmD-${version.value}"
 
 appbundle.target      := baseDirectory.value
 
@@ -68,5 +69,5 @@ mainClass in assembly := Some("at.iem.point.ot.sketches.GeneticApp")
 
 target  in assembly   := baseDirectory.value
 
-jarName in assembly   := s"OT_GeneticAlgorithm-${version.value}.jar"
+jarName in assembly   := s"OT_GeneticAlgorithmD-${version.value}.jar"
 

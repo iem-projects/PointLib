@@ -116,7 +116,7 @@ case class GenerationImpl(size: Int = 100, global: GlobalImpl = GlobalImpl(), se
       ch
     }
     // horizontal constraints
-    vars.pairMap { (c1, c2) =>
+    vars.mapPairs { (c1, c2) =>
       constrainHoriz(c1, c2, voices)
     }
     // global constraints
@@ -303,7 +303,7 @@ case class Mutation(chordMin: SelectionSize = SelectionNumber(1), chordMax: Sele
     }
 
     // horizontal constraints
-    varsX.pairMap { (c1, c2) =>
+    varsX.mapPairs { (c1, c2) =>
       GeneticSystem.constrainHoriz(c1, c2, global.voices)
     }
 
@@ -427,7 +427,7 @@ sealed trait ForbiddenIntervalLike {
       // we forbid that all modulus are zero, which is written as
       // the sum of the modulus not being zero. (see `TwoIntervalTest.scala`).
 
-      val ivalsFound  = sub.pairMap(_ - _)
+      val ivalsFound  = sub.mapPairs(_ - _)
       val mod         = (ivalsFound zip ivalsForbidden).map { case (a, b) => a % b }
       val sum         = mod.reduce(_ + _)
       sum #!= 0
@@ -595,8 +595,8 @@ object GeneticSystem extends muta.System {
     // import Implicits._
 
     val vars = c.map { case (chord, _) => chordToPitches[IntVar](chord) }
-    vars.foreach(constrainVertical (_   , global.voices, global.vertical))
-    vars.pairMap(constrainHoriz    (_, _, global.voices))
+    vars.foreach (constrainVertical (_   , global.voices, global.vertical))
+    vars.mapPairs(constrainHoriz    (_, _, global.voices))
     global.global.foreach(_.apply(vars))
 
     val select = search(vars.flatten, smallest, indomainMin)
@@ -613,7 +613,7 @@ object GeneticSystem extends muta.System {
       v #<= vc.up  .limit
     }
     // no voices crossing
-    cv.pairMap { case (hi, lo) =>
+    cv.mapPairs { case (hi, lo) =>
       hi #> lo
     }
     // custom vertical constraints

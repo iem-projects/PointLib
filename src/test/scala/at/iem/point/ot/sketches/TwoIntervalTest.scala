@@ -13,7 +13,7 @@ object TwoIntervalTest extends App {
 
   def mkChord(vc: Int = 3, lo: Int = 0, hi: Int = 4): Chord = {
     val c = Vec.fill(vc)(IntVar(lo, hi))
-    c.pairMap((h, l) => l #< h)
+    c.mapPairs((h, l) => l #< h)
     c
   }
 

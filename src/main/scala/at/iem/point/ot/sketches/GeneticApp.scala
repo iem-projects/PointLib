@@ -1,29 +1,64 @@
 package at.iem.point.ot.sketches
 
+import java.awt.{Font, Color, RenderingHints, Toolkit}
+
+import com.alee.laf.WebLookAndFeel
+import de.sciss.desktop.impl.WindowImpl
 import de.sciss.muta
-import de.sciss.desktop.{FileDialog, Menu}
+import de.sciss.desktop.{Window, WindowHandler, FileDialog, Menu}
 import de.sciss.muta.gui.DocumentFrame
 import de.sciss.audiowidgets.Transport
 import de.sciss.midi
 import de.sciss.swingplus.Spinner
 import javax.swing.SpinnerNumberModel
-import scala.swing.{Swing, Label}
+import scala.swing.{Label, Graphics2D, Component, Swing}
+import Swing._
 
 object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
   override def rowHeight = 176 // 128 // 64
 
-  // override def useNimbus          = Desktop.isLinux
-  // override def useInternalFrames  = !Desktop.isMac
+  override def useNimbus          = false
+  override def useInternalFrames  = false
 
   lazy val mTimeOut = new SpinnerNumberModel(30, 1, 600, 10)
 
   protected override def init(): Unit = {
-    super.init()
-    import Menu._
-    val root = menuFactory
-    root.add(Group("extra", "Extra")
-      .add(Item("screenshot")("Save PDF Screenshot...")(saveScreenshot()))
-    )
+    WebLookAndFeel.install()
+
+    // doesn't work with WebLaF:
+    //    super.init()
+    //    import Menu._
+    //    val root = menuFactory
+    //    root.add(Group("extra", "Extra")
+    //      .add(Item("screenshot")("Save PDF Screenshot...")(saveScreenshot()))
+    //    )
+
+    val img = Toolkit.getDefaultToolkit.getImage(GeneticApp.getClass.getResource("icon.png"))
+
+    new WindowImpl {
+      def handler: WindowHandler = GeneticApp.windowHandler
+      title     = "Genetic Algorithm"
+      contents  = new Component {
+        preferredSize = (256, 256)
+        font = new Font(Font.SANS_SERIF, Font.PLAIN, 20)
+
+        override protected def paintComponent(g: Graphics2D): Unit = {
+          g.setRenderingHint(RenderingHints.KEY_RENDERING   , RenderingHints.VALUE_RENDER_QUALITY)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON  )
+          g.drawImage(img, 0, 0, 256, 256, peer)
+          g.setColor(Color.black)
+          g.drawString("PATTERNS", 110f, 101f)
+          g.setColor(Color.gray)
+          g.drawString("OF", 110f, 133f)
+          g.setColor(Color.white)
+          g.drawString("INTUITION", 110f, 165f)
+        }
+      }
+      closeOperation = Window.CloseExit
+      resizable = false
+      pack()
+      front()
+    }
   }
 
   def saveScreenshot(): Unit =

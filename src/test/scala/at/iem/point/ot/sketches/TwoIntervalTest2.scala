@@ -11,7 +11,7 @@ object TwoIntervalTest2 extends App {
 
   def mkChord1(vc: Int = 3, lo: Int = 0, hi: Int = 4)(implicit m: Model): Chord = {
     val c = Vec.tabulate(vc)(i => IntVar(s"p${vc - i}", lo, hi))
-    c.pairMap((h, l) => l #< h)
+    c.mapPairs((h, l) => l #< h)
     c
   }
 
@@ -25,7 +25,7 @@ object TwoIntervalTest2 extends App {
       }
       res
     }
-    c.pairMap((h, l) => l #< h)
+    c.mapPairs((h, l) => l #< h)
     c
   }
 
