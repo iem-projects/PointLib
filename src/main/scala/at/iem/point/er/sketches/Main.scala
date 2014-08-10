@@ -1,13 +1,16 @@
 package at.iem.point.er
 package sketches
 
+import java.awt.{Color, RenderingHints, Font, Toolkit}
 import java.io.File
 import com.alee.laf.WebLookAndFeel
+import de.sciss.desktop.Menu
+import de.sciss.desktop.Window
 import de.sciss.synth
 import synth.io.AudioFile
 import de.sciss.desktop.impl.{WindowImpl, SwingApplicationImpl}
 import de.sciss.desktop._
-import scala.swing.Swing
+import scala.swing._
 import Swing._
 
 import scala.swing.event.Key
@@ -59,14 +62,32 @@ object Main extends SwingApplicationImpl("PointLib") {
   override def init(): Unit = {
     WebLookAndFeel.install()
     boot()
+
     if (!Desktop.isMac) new WindowImpl {
-      closeOperation = Window.CloseExit
-
-      title = "Patterns of Intuition"
-      size  = (160, 160)
-      front()
-
+      private val img = Toolkit.getDefaultToolkit.getImage(Main.getClass.getResource("icon.png"))
       def handler: WindowHandler = Main.windowHandler
+      title     = "Feature Extraction"
+      contents  = new Component {
+        preferredSize = (256, 256)
+        font = new Font(Font.SANS_SERIF, Font.PLAIN, 20)
+
+        override protected def paintComponent(g: Graphics2D): Unit = {
+          g.setRenderingHint(RenderingHints.KEY_RENDERING   , RenderingHints.VALUE_RENDER_QUALITY)
+          g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON  )
+          g.drawImage(img, 0, 0, 256, 256, peer)
+          g.setColor(Color.white)
+          val dx = -32f
+          g.drawString("PATTERNS", 110f + dx, 101f)
+          // g.setColor(Color.gray)
+          g.drawString("OF", 110f + 36f + dx, 133f)
+          // g.setColor(Color.white)
+          g.drawString("INTUITION", 110f + dx, 165f)
+        }
+      }
+      closeOperation = Window.CloseExit
+      resizable = false
+      pack()
+      front()
     }
   }
 
