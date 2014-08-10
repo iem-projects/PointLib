@@ -4,7 +4,7 @@ version       := "0.1.0-SNAPSHOT"
 
 organization  := "at.iem.point"
 
-scalaVersion  := "2.11.1"
+scalaVersion  := "2.11.2"
 
 homepage      := Some(url("https://github.com/iem-projects/PointLib/"))
 
@@ -28,7 +28,7 @@ scalacOptions ++= Seq("-deprecation", "-unchecked", "-feature", "-Xfuture")
 initialCommands in console :=
   """import at.iem.point.ms.sketches._
     |import scalax.chart._
-    |import scalax.chart.Charting._
+    |import scalax.chart.api._
     |import de.sciss.midi
     |import de.sciss.file._
-  """.stripMargin
+    |""".stripMargin

@@ -18,22 +18,24 @@ import java.awt.EventQueue
 import de.sciss.file._
 
 object BlindPrediction extends App {
+  val useWeights = true
   val problems: Vec[SVM.Problem ] = SVM.normalize(SVM.allProblems)
   // val blindInput = allBoring ++ allPromising
   val blindInput = allBlind
   val blindFeat: Vec[SVM.Features] = SVM.normalizeFeatures(blindInput.map(SVM.processBlind))
   // val blind   : Vec[SVM.Features] = SVM.normalizeFeatures(SVM.allBlindFeatures)
 
-  require(problems.size == 46)
+  require(problems.size == 46, s"Problems.size should be 46, but is ${problems.size}")
   val numFeatures: Int = problems.head.features.size
-  require(numFeatures == 11)
+  println(s"\nnumFeatures: $numFeatures\n")
+  // require(numFeatures == 11, s"Num features should be 11, but is $numFeatures")
   val featureNames: Vec[String] = problems.head.features.map(_.name)
   val labels: Vec[(Int, Int)] = problems.groupBy(_.label).mapValues(_.size).toIndexedSeq.sortBy(_._1)
   val histo = labels.toMap
 
   lazy val paramText = {
-    val ws  = weights.map { case (label, c) => f"-w $label $c%1.2f" } .mkString(" ")
-    s"-t 2 -c 100 $ws -g 1"
+    val ws  = if (useWeights) weights.map { case (label, c) => f"-w $label $c%1.2f" } .mkString("", " ", " ") else ""
+    s"-t 2 -c 100 $ws-g 1"
   }
 
   lazy val applet: SVMVis = {

@@ -20,7 +20,7 @@ import de.sciss.{numbers, kollflitz}
 
 object SVM extends App {
   def horiz       = false   // if `true` look at voice progression, if `false` only consider vertical structures
-  def withBlind   = true    // if `true`, include formerly blind files
+  def withBlind   = false   // if `true`, include formerly blind files
 
   def svmDir      = userHome / "Documents" / "devel" / "libsvm"
   def svmTrain    = svmDir / "svm-train"
@@ -171,10 +171,18 @@ object SVM extends App {
       vSel.map(feat2(_)) ++ hSel.map(feat3(_))
     }
 
+    lazy val featCombi4 = {
+      // val vSel = Vector(3, 14, 18, 19, 20) // , 21, 26
+      val vSel = Vector(3, 14, 16, 18, 19, 21) // , 21, 26
+      val hSel = Vector(10, 13, 14, 15, /* 23, 32, 43, */  44)
+      // val hSel = Vector(10, 13, 14, 15, 23, 33, 36, 44, 47)
+      vSel.map(feat2(_)) ++ hSel.map(feat3(_))
+    }
+
     // val res = svmString(boring = study.isBoring, vec = features)
     // featCombi2 /* feat3 */ /* feat1 */ /* feat2 */
 
-    feat2
+    featCombi4
   }
 
   def process(study: Study): Problem = {
@@ -207,11 +215,11 @@ object SVM extends App {
       Study(idx = idx, isBoring = false, file = file)
     }
 
-  //  def allBoringProblems     = allBoring   .map(process) ++ (if (withBlind) newBoring   .map(process) else Nil)
-  //  def allPromisingProblems  = allPromising.map(process) ++ (if (withBlind) newPromising.map(process) else Nil)
+  def allBoringProblems     = allBoring   .map(process) ++ (if (withBlind) newBoring   .map(process) else Nil)
+  def allPromisingProblems  = allPromising.map(process) ++ (if (withBlind) newPromising.map(process) else Nil)
 
-  def allBoringProblems     = newBoring   .map(process) .toIndexedSeq
-  def allPromisingProblems  = newPromising.map(process) .toIndexedSeq
+  //  def allBoringProblems     = newBoring   .map(process) .toIndexedSeq
+  //  def allPromisingProblems  = newPromising.map(process) .toIndexedSeq
   def allProblems           = allBoringProblems ++ allPromisingProblems
 
   def allBlindFeatures      = allBlind    .map(processBlind)
