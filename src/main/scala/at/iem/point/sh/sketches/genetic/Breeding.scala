@@ -64,7 +64,7 @@ case object OnePointCrossover extends BreedingFunction {
     res.result()
   }
 
-  private def cross(e1: Chromosome, e2: Chromosome, global: Global, r: util.Random): Chromosome = {
+  def cross(e1: Chromosome, e2: Chromosome, global: Global, r: util.Random): Chromosome = {
     val dur   = global.duration
     val i     = r.nextInt(e1.size)  // splitting point
     val s1    = e1.take(i)          // left hand side
@@ -72,7 +72,7 @@ case object OnePointCrossover extends BreedingFunction {
     val e2d   = e2.dur
     val fill  = dur - d1       // optimum duration of right-hand side
     val miss  = fill - e2d
-    if (miss > 0) { // s1 (splitted e1) plus full e2 still too short, thus grow s1 and append e2
+    if (miss > 0) { // s1 (split e1) plus full e2 still too short, thus grow s1 and append e2
       val r1  = e1.drop(i).accumDur
       val t1  = r1.takeWhile { case (c, acc) => acc - c.dur < miss }
       val s1b = t1.optimumEnd(miss)(_._2) .drop_2
@@ -81,12 +81,13 @@ case object OnePointCrossover extends BreedingFunction {
     } else if (fill == 0) { // s1 has perfect length
       s1
 
-    } else {  // find s2, the optimium truncation of e2 at its beginning, and prepend s1
+    } else {  // find s2, the optimum truncation of e2 at its beginning, and prepend s1
 
       val e2r   = e2.reverse
       val e2d   = e2r.accumDur
       val s2a   = e2d.takeWhile { case (n, acc) => acc - n.dur < fill }
-      val s2    = s2a.optimumEnd(fill)(_._2) .drop_2.reverse  // optimumEnd on reversed seq is actually an optimum start
+      // optimumEnd on reversed seq is actually an optimum start
+      val s2    = s2a.optimumEnd(fill)(_._2) .drop_2.reverse
       s1 ++ s2
     }
   }

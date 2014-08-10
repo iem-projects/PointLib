@@ -117,26 +117,27 @@ object ChromosomeFunction {
 
 // -----------------------------------------------------
 
-/** A `WindowFunction` produces a sliding window view of a chromosome, by flattening its cells and returning a
-  *  sequence of cell sequences. */
-sealed trait WindowFunction extends (Chromosome => Vec[Slice])
+  /** A `WindowFunction` produces a sliding window view of a chromosome,
+    * by flattening its cells and returning a
+    * sequence of cell sequences. */
+  sealed trait WindowFunction extends (Chromosome => Vec[Slice])
 
-case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
-  require(step >= 1 && size >= step)
+  case class WindowEvents(size: Int = 5, step: Int = 2) extends WindowFunction {
+    require(step >= 1 && size >= step)
 
-  def apply(c: Chromosome): Vec[Slice] = {
-    val slices    = slideByEvents(size, step)(c)
-    val zipped    = flatWithAccum(c)
-    val w1        = math.max(1, zipped.size - size)
-    // require(w1 > 0, s"For $seq w1 is $w1")
-    val w2        = w1.toDouble
-    val m         = slices.map { case (off, idx, slice) =>
-      val w       = math.min(1.0, idx.toDouble / w2)
-      Slice(slice, idx, off, w)
+    def apply(c: Chromosome): Vec[Slice] = {
+      val slices    = slideByEvents(size, step)(c)
+      val zipped    = flatWithAccum(c)
+      val w1        = math.max(1, zipped.size - size)
+      // require(w1 > 0, s"For $seq w1 is $w1")
+      val w2        = w1.toDouble
+      val m         = slices.map { case (off, idx, slice) =>
+        val w       = math.min(1.0, idx.toDouble / w2)
+        Slice(slice, idx, off, w)
+      }
+      m
     }
-    m
   }
-}
 
 case class WindowCells(normalize: Boolean = false) extends WindowFunction {
   def apply(c: Chromosome): Vec[Slice] = {
@@ -181,7 +182,7 @@ case object LadmaEntropy extends LocalFunction {
 case object GeomMean extends LocalFunction {
   def apply(win: Slice): Double = {
     if (win.size == 1) return win.sq.head.dur.toDouble
-    val seq1    = win.sq.map(_.dur) // win.sq.bindTrailingRests // note: we can do this through serial function now
+    val seq1    = win.sq.map(_.dur) // bindTrailingRests: we can do this through serial function now
     // the geometric average is n-th root of the product of the durations
     val prod    = seq1.product
     val e       = math.pow(prod.toDouble, 1.0/seq1.size)
@@ -238,7 +239,6 @@ case class AutoCorrelation(restsDistinct: Boolean = true, aggr: AggregateFunctio
       b.result()
     }
     val res = aggr(v)
-    // println(f"Mean $mean%1.3f, std $std%1.3f, res $res%1.3f")
     res
   }
 }
