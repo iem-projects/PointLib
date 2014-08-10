@@ -4,14 +4,14 @@ version      := "0.2.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.10.4"
+scalaVersion := "2.11.2" // "2.10.4"
 
 homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
 licenses     := Seq("GPL v3+" -> url("http://www.gnu.org/licenses/gpl-3.0.txt"))
 
 libraryDependencies in ThisBuild ++= Seq(
-  "de.sciss" %% "contextsnake"       % "0.1.1",
+  "de.sciss" %% "contextsnake"       % "0.2.0",
   "de.sciss" %% "pointillism"        % "0.3.0",
   "de.sciss" %% "audiowidgets-app"   % "1.6.2",
   "de.sciss" %% "fileutil"           % "1.1.1",
