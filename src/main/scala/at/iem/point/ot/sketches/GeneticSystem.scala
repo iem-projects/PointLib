@@ -558,7 +558,7 @@ object ReduceFunction {
 }
 
 object GeneticSystem extends muta.System {
-  def manual = true
+  def manual = false // true
 
   //  val DefaultVoices = Vec(
   //    Voice(lowest = 48, highest = 96, maxUp = 6, maxDown = 6),

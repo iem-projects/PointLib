@@ -5,7 +5,7 @@ import java.awt.{Font, Color, RenderingHints, Toolkit}
 import com.alee.laf.WebLookAndFeel
 import de.sciss.desktop.impl.WindowImpl
 import de.sciss.muta
-import de.sciss.desktop.{Window, WindowHandler, FileDialog, Menu}
+import de.sciss.desktop.{Desktop, Window, WindowHandler, FileDialog, Menu}
 import de.sciss.muta.gui.DocumentFrame
 import de.sciss.audiowidgets.Transport
 import de.sciss.midi
@@ -33,9 +33,8 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
     //      .add(Item("screenshot")("Save PDF Screenshot...")(saveScreenshot()))
     //    )
 
-    val img = Toolkit.getDefaultToolkit.getImage(GeneticApp.getClass.getResource("icon.png"))
-
-    new WindowImpl {
+    if (!Desktop.isMac) new WindowImpl {
+      private val img = Toolkit.getDefaultToolkit.getImage(GeneticApp.getClass.getResource("icon.png"))
       def handler: WindowHandler = GeneticApp.windowHandler
       title     = "Genetic Algorithm"
       contents  = new Component {
