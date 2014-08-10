@@ -60,6 +60,7 @@ object Main extends SwingApplicationImpl("PointLib") {
     WebLookAndFeel.install()
     boot()
     if (!Desktop.isMac) new WindowImpl {
+      closeOperation = Window.CloseExit
 
       title = "Patterns of Intuition"
       size  = (160, 160)

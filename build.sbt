@@ -1,3 +1,5 @@
+import AssemblyKeys._
+
 name         := "er_sketches"
 
 version      := "0.3.0-SNAPSHOT"
@@ -51,9 +53,19 @@ initialCommands in console :=
 
 seq(appbundle.settings: _*)
 
+seq(assemblySettings: _*)
+
 appbundle.name   := "ER_FeatureExtraction"
 
 appbundle.icon   := Some(file("icon.png"))
 
 appbundle.target := baseDirectory.value
+
+test in assembly      := ()
+
+// mainClass in assembly := Some("at.iem.point.ot.sketches.GeneticApp")
+
+target  in assembly   := baseDirectory.value
+
+jarName in assembly   := s"ER_FeatureExtraction-${version.value}.jar"
 
