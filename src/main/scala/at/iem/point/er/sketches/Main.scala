@@ -2,11 +2,15 @@ package at.iem.point.er
 package sketches
 
 import java.io.File
+import com.alee.laf.WebLookAndFeel
 import de.sciss.synth
 import synth.io.AudioFile
-import de.sciss.desktop.impl.SwingApplicationImpl
-import de.sciss.desktop.{RecentFiles, KeyStrokes, Menu}
-import java.awt.event.KeyEvent
+import de.sciss.desktop.impl.{WindowImpl, SwingApplicationImpl}
+import de.sciss.desktop._
+import scala.swing.Swing
+import Swing._
+
+import scala.swing.event.Key
 
 object Main extends SwingApplicationImpl("PointLib") {
   type Document = sketches.Document
@@ -20,10 +24,9 @@ object Main extends SwingApplicationImpl("PointLib") {
   lazy val menuFactory: Menu.Root = {
     import Menu._
     import KeyStrokes._
-    import KeyEvent._
     Root().add(
       Group("file", "File").add(
-        Item("open")("Open..." -> (menu1 + VK_O)) {
+        Item("open")("Open..." -> (menu1 + Key.O)) {
           openDialog()
         }
       ).add(recent.menu).addLine().add(
@@ -31,9 +34,9 @@ object Main extends SwingApplicationImpl("PointLib") {
           Item("onsets", "Onsets Settings...")
         )).add(
         Group("export", "Export").add(
-          Item("audiofile", proxy("Audio File..." -> (menu1 + VK_S)))
+          Item("audiofile", proxy("Audio File..." -> (menu1 + Key.S)))
         ).add(
-          Item("score", proxy("Score..." -> (menu1 + shift + VK_S)))
+          Item("score", proxy("Score..." -> (menu1 + shift + Key.S)))
         ).add(
           Item("screenshot", "Screenshot As PDF...")
         ).addLine().add(
@@ -42,18 +45,29 @@ object Main extends SwingApplicationImpl("PointLib") {
       )
     ).add(
       Group("tools", "Tools").add(
-        Item("mixer", proxy("Mixer" -> (menu1 + VK_M)))
+        Item("mixer", proxy("Mixer" -> (menu1 + Key.M)))
       ).add(
-        Item("pitch", proxy("Pitch Analysis" -> (menu1 + VK_P)))
+        Item("pitch", proxy("Pitch Analysis" -> (menu1 + Key.P)))
       ).add(
-        Item("onsets", proxy("Onsets Detection" -> (menu1 + VK_D)))
+        Item("onsets", proxy("Onsets Detection" -> (menu1 + Key.D)))
       ).addLine().add(
         Item("onsets-unify", "Onsets Unification")
       )
     )
   }
 
-  override def init(): Unit = boot()
+  override def init(): Unit = {
+    WebLookAndFeel.install()
+    boot()
+    if (!Desktop.isMac) new WindowImpl {
+
+      title = "Patterns of Intuition"
+      size  = (160, 160)
+      front()
+
+      def handler: WindowHandler = Main.windowHandler
+    }
+  }
 
   def openDialog(): Unit = GUI.openAudioFileDialog().foreach(open)
 

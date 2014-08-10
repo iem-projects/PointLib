@@ -15,7 +15,7 @@ class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with 
   import doc.{file => in}
 
   def handler = Main.windowHandler
-  def style   = Window.Palette
+  override def style   = Window.Palette
 
   // private val fileSpec  = AudioFile.readSpec(in)
   private val oCfg      = new OnsetsAnalysis.ConfigBuilder
@@ -30,7 +30,7 @@ class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with 
   }
 
   def product: Product = listView.items
-  def product_=(value: Product) {
+  def product_=(value: Product): Unit = {
     listView.items = value
     value.headOption.foreach(setView() = _)
   }
@@ -42,14 +42,14 @@ class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with 
   }
 
   private lazy val jsonFormat: Format[Product] = {
-    import Formats.{FileFormat, VecFormat, Tuple2Format}
+    import Formats.{FileFormat, VecFormat, Tuple2Format}  // note: FileFormat _is_ used
     import OnsetsAnalysis.{Function, Config, ConfigAndProduct}
     implicit val fmtFunc: Format[Function] = AutoFormat[Function]
     implicit val fmtCfg : Format[Config  ] = AutoFormat[Config  ]
     Format.GenericFormat[Vec[ConfigAndProduct]]
   }
 
-  def save() {
+  def save(): Unit = {
     val p   = product
     if (p.isEmpty) return
 
@@ -68,7 +68,7 @@ class OnsetsAnalysisWindowImpl(doc: Document) extends OnsetsAnalysisWindow with 
     }
   }
 
-  def load() {
+  def load(): Unit = {
     val dlg = FileDialog.open(init = Some(defaultConfigFile), title = "Import Onsets Settings")
     dlg.filter = Some(_.ext.toLowerCase == "json")
     dlg.show(Some(this)).foreach { f =>

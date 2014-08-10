@@ -25,7 +25,7 @@ class Document(val file: File, val fileSpec: AudioFileSpec) extends ModelImpl[Do
 
   private var _pitches: PitchAnalysis.Product = Vector.empty
   def pitches = _pitches
-  def pitches_=(seq: PitchAnalysis.Product) {
+  def pitches_=(seq: PitchAnalysis.Product): Unit = {
     val old = _pitches
     _pitches = seq
     // sono.pitchOverlay = seq
@@ -36,7 +36,7 @@ class Document(val file: File, val fileSpec: AudioFileSpec) extends ModelImpl[Do
 
   private var _onsets = MultiResOnsets.empty
   def onsets = _onsets
-  def onsets_=(seq: MultiResOnsets) {
+  def onsets_=(seq: MultiResOnsets): Unit = {
     val old = _onsets
     _onsets = seq
     // sono.onsetsOverlay = seq

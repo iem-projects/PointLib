@@ -17,7 +17,7 @@ class KeyboardView(model0: Keyboard = new Keyboard) extends Component {
   }
 
   def model = _keyboard
-  def model_=(kb: Keyboard) {
+  def model_=(kb: Keyboard): Unit = {
     _keyboard.removeListener(listener)
     _keyboard = model
     _keyboard.addListener(listener)

@@ -28,7 +28,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
     val pitchView = new PitchAnalysisSettingsView(doc, init = pchCfg)
     new WindowImpl {
       def handler = Main.windowHandler
-      def style = Window.Palette
+      override def style = Window.Palette
       title = "Pitch Analysis Settings"
       // peer.getRootPane.putClientProperty("Window.style", "small")
       closeOperation = Window.CloseHide
@@ -42,7 +42,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
 
   private lazy val mixFrame = new WindowImpl {
     def handler = Main.windowHandler
-    def style = Window.Palette
+    override def style = Window.Palette
     title = "Mixer"
     // peer.getRootPane.putClientProperty("Window.style", "small")
     closeOperation = Window.CloseHide
@@ -53,7 +53,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
     front()
   }
 
-  def exportAsAudioFile() {
+  def exportAsAudioFile(): Unit = {
     val tag0  = if (doc.pitches.nonEmpty) "Pitch" else ""
     val tag   = if (doc.onsets .nonEmpty) tag0 + "Onsets" else tag0
     val init  = Some(doc.createOutputPath(doc.file, tag = tag, extension = "aif"))
@@ -62,7 +62,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
     }
   }
 
-  def exportAsScore() {
+  def exportAsScore(): Unit = {
     if (doc.onsets.isEmpty) return
     val init  = Some(doc.createOutputPath(doc.file, tag = "Onsets", extension = "pdf"))
     GUI.saveFileDialog(tpe = "PDF Score", init = init).foreach { f =>
@@ -70,9 +70,7 @@ class DocumentFrame(doc: Document) extends WindowImpl {
     }
   }
 
-  def exportScreenshot() {
-    Main.pdfFun(this)
-  }
+  def exportScreenshot(): Unit = Main.pdfFun(this)
 
   bindMenus(
     "file.import.onsets"      -> Action(null) { onsetsSettingsFrame.load()  },
@@ -100,6 +98,4 @@ class DocumentFrame(doc: Document) extends WindowImpl {
   front()
 
   def handler = Main.windowHandler
-
-  protected def style = Window.Regular
 }

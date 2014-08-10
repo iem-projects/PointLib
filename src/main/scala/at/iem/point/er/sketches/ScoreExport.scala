@@ -42,7 +42,7 @@ object ScoreExport {
   private val divisions3 = divisions2.init
 
   def apply(file: File, onsets: Vec[Long], sampleRate: Double, autoBeamOff: Boolean = false, subtitle: String = "",
-            doubleDotted: Boolean = false) {
+            doubleDotted: Boolean = false): Unit = {
     require(onsets.size >= 2, s"Must have at least two onsets (number is ${onsets.size})")
 
     val dir       = if (debug) new File(sys.props("user.home"), "Desktop") else null
@@ -154,7 +154,7 @@ object ScoreExport {
       var bestCost2 = Double.PositiveInfinity
       var bestT     = 0.0
 
-      def wooopi(t: Double, _divisions: List[Rational]) {
+      def wooopi(t: Double, _divisions: List[Rational]): Unit = {
         val tup   = calcNotes(t, _divisions)
         // val cost  = tup._3.map(_.toSet.size).sum  // try to minimise the number of different note values
         val (c1s, c2s) = tup._3.map(d => {

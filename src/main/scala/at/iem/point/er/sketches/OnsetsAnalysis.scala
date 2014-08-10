@@ -132,51 +132,51 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
     private var _inputGain      = 1f
 
     def thresh: Float = _thresh
-    def thresh_=(value: Float) {
+    def thresh_=(value: Float): Unit = {
       require(value >= 0f /* && value <= 1f */, "Requires thresh >= 0")
       _thresh = value
     }
 
     def fftOverlap: Int = _fftOverlap
-    def fftOverlap_=(value: Int) {
+    def fftOverlap_=(value: Int): Unit = {
       require(value > 0 && value <= 65536 && value.isPowerOfTwo,
         "Requires 0 < fftOverlap <= 65536, and stepSize being a power of two")
       _fftOverlap = value
     }
 
     def fftSize: Int = _fftSize
-    def fftSize_=(value: Int) {
+    def fftSize_=(value: Int): Unit = {
       require(value >= 16 && value <= 65536 && value.isPowerOfTwo,
         "Requires 16 <= fftSize <= 65536, and fftSize being a power of two")
       _fftSize = value
     }
 
     def median: Int = _median
-    def median_=(value: Int) {
+    def median_=(value: Int): Unit = {
       require (value >= 0 && value <= 8192, "Requires 0 <= median <= 8192")
       _median = value
     }
 
     def minGap: Int = _minGap
-    def minGap_=(value: Int) {
+    def minGap_=(value: Int): Unit = {
       require (value >= 0 && value <= 8192, "Requires 0 <= minGap <= 8192")
       _minGap = value
     }
 
     def decay: Float = _decay
-    def decay_=(value: Float) {
+    def decay_=(value: Float): Unit = {
       require(value >= 0f, "Requires decay >= 0")
       _decay = value
     }
 
     def noiseFloor: Float = _noiseFloor
-    def noiseFloor_=(value: Float) {
+    def noiseFloor_=(value: Float): Unit = {
       require(value >= 0f, "Requires noiseFloor >= 0")
       _noiseFloor = value
     }
 
     def inputGain: Float = _inputGain
-    def inputGain_=(value: Float) {
+    def inputGain_=(value: Float): Unit = {
       require(value > 0f, "Requires inputGain > 0")
       _inputGain = value
     }
@@ -186,7 +186,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
       decay = _decay, noiseFloor = _noiseFloor, minGap = _minGap, median = _median, inputGain = _inputGain
     )
 
-    def read(config: Config) {
+    def read(config: Config): Unit = {
       input           = config.input
       _thresh         = config.thresh
       function        = config.function
@@ -243,7 +243,7 @@ object OnsetsAnalysis extends ProcessorFactory.WithDefaults {
         numFeatures   = 1,  // onsets
         stepSize      = stepSize,
         buffers       = fftBuf :: Nil,
-        progress      = progress,
+        progress      = progress_=(_),
         checkAborted  = () => checkAborted()
       )
 

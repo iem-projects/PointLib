@@ -2,7 +2,7 @@ package at.iem.point.er.sketches
 
 import de.sciss.file._
 import de.sciss.synth.io.AudioFile
-import scalax.chart.{ChartFactories, Charting}
+import scalax.chart.api._
 import scala.swing.Swing
 import ChartSupport._
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer
@@ -54,7 +54,6 @@ object CrossSimilarityPlot extends App {
 
       val timeOff   = if (useOffset) crossLen/2 else 0.0
 
-      import Charting._
       val norm = smp.map { case (f, i) =>
         // import de.sciss.numbers.Implicits._
         val t = i / sr + timeOff
@@ -92,7 +91,7 @@ object CrossSimilarityPlot extends App {
     val tMin    = scoreTimes(timeIdx)
     val tMax    = scoreTimes(timeIdx + 1)
 
-    val chart = ChartFactories.XYLineChart(coll, legend = false)
+    val chart = XYLineChart(coll, legend = false)
     val plot  = chart.plot
     val yAxis = plot.getRangeAxis
     val xAxis = plot.getDomainAxis

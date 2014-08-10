@@ -101,12 +101,11 @@ class Keyboard extends ModelImpl[Keyboard.Update] {
 
   /** The color of the black keys */
   def blackKeysColor = _blackKeysColor
-  def blackKeysColor_=(value: Color) {
+  def blackKeysColor_=(value: Color): Unit =
     if (_blackKeysColor != value) {
       _blackKeysColor = value
       dispatch(ColorsChanged(this))
     }
-  }
 
   /** The color of the `C` keys. */
   def cKeysColor = _cKeysColor

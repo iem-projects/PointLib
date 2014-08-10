@@ -1,17 +1,18 @@
 package at.iem.point.er.sketches
 
-import org.jfree.chart.plot.{CategoryPlot, XYPlot, Plot}
+import org.jfree.chart.ChartPanel
+import org.jfree.chart.plot.{CategoryPlot, XYPlot}
 import scalax.chart.Chart
 import java.awt.{Rectangle, Font, Color}
 import org.jfree.chart.renderer.xy.{StandardXYBarPainter, XYBarRenderer}
-import scala.swing.{Frame, Swing}
+import scala.swing.{Component, Frame, Swing}
 import scala.swing.event.WindowClosing
 import de.sciss.pdflitz.Generate.QuickDraw
 import de.sciss.pdflitz
 import Swing._
 
 object ChartSupport {
-  implicit class RichChart[P <: Plot](chart: Chart[P]) {
+  implicit class RichChart(chart: Chart) {
     /** Adjust the chart with a black-on-white color scheme and
       * fonts that come out properly in PDF export.
       */
@@ -54,16 +55,18 @@ object ChartSupport {
     }
   }
 
-  def drawAction(chart: Chart[_], w: Int, h: Int) = QuickDraw(w -> h) { g =>
+  def drawAction(chart: Chart, w: Int, h: Int) = QuickDraw(w -> h) { g =>
     // g.setColor(Color.red)
     // g.fillRect(0, 0, w, h)
 
     chart.peer.draw(g, new Rectangle(0, 0, w, h))
   }
 
-  def showChart(chart: Chart[_], w: Int, h: Int, frameTitle: String = ""): Unit = {
-    val p = chart.toPanel
-    p.peer.asInstanceOf[org.jfree.chart.ChartPanel].setMouseWheelEnabled(true) // SO #19281374
+  def showChart(chart: Chart, w: Int, h: Int, frameTitle: String = ""): Unit = {
+    // val p = chart.toPanel
+    val pp = new ChartPanel(chart.peer)
+    val p  = Component.wrap(pp)
+    pp.setMouseWheelEnabled(true) // SO #19281374
     val f = new Frame {
       contents = p
         if (frameTitle.nonEmpty) title = frameTitle

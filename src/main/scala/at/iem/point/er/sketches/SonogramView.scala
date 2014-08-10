@@ -73,7 +73,7 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
   }
 
   private object mouse extends MouseInputAdapter {
-    private def process(e: MouseEvent) {
+    private def process(e: MouseEvent): Unit = {
       mousePt = Some(e.getPoint)
       sono.foreach { ovr =>
         val sr    = canvas.timelineModel.sampleRate
@@ -84,22 +84,14 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
       repaint()
     }
 
-    override def mouseEntered(e: MouseEvent) {
-      process(e)
-    }
-
-    override def mouseExited(e: MouseEvent) {
+    override def mouseExited(e: MouseEvent): Unit = {
       mousePt = None
       repaint()
     }
 
-    override def mouseDragged(e: MouseEvent) {
-      process(e)
-    }
-
-    override def mouseMoved(e: MouseEvent) {
-      process(e)
-    }
+    override def mouseEntered(e: MouseEvent): Unit = process(e)
+    override def mouseDragged(e: MouseEvent): Unit = process(e)
+    override def mouseMoved  (e: MouseEvent): Unit = process(e)
   }
 
   addMouseListener(mouse)
@@ -120,7 +112,7 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
   private val shpRect = new Rectangle2D.Float()
   private val shpPath = new GeneralPath()
 
-  override def paintComponent(g: Graphics) {
+  override def paintComponent(g: Graphics): Unit = {
     // super.paintComponent(g)
     val g2 = g.asInstanceOf[Graphics2D]
     g2.setRenderingHint(RenderingHints.KEY_INTERPOLATION,  RenderingHints.VALUE_INTERPOLATION_BILINEAR)

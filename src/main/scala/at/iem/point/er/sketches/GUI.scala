@@ -2,11 +2,11 @@ package at.iem.point.er.sketches
 
 import java.awt.FileDialog
 import java.io.{File, FilenameFilter}
+import de.sciss.swingplus.GroupPanel
 import de.sciss.synth.io.{AudioFileType, AudioFile}
 import de.sciss.synth.Optional
 import scala.swing.{ComboBox, Swing, Panel, TextField, Alignment, Label, Component}
 import scala.swing.event.{SelectionChanged, EditDone}
-import scalaswingcontrib.group.GroupPanel
 import Swing._
 import de.sciss.desktop.Window
 
@@ -59,22 +59,14 @@ object GUI {
       import language.reflectiveCalls
       import language.implicitConversions
       if (list.nonEmpty) {
-//        implicit def mkSet(seq: Seq[Group]): Seq[GroupInSequential]     = seq.map(c => c: InSequential)
-
-        // XXX TODO... what a crap. Misdesign in GroupPanel
-        type InSequential = InGroup[javax.swing.GroupLayout#SequentialGroup]
-        type InParallel   = InGroup[javax.swing.GroupLayout#ParallelGroup]
-        implicit def mkPar[A <% InParallel]  (seq: Seq[A]): Seq[InParallel]     = seq.map(c => c: InParallel)
-        implicit def mkSer[A <% InSequential](seq: Seq[A]): Seq[InSequential]   = seq.map(c => c: InSequential)
-
-        theHorizontalLayout is Sequential(
-          Parallel(Trailing)(list.map(_.label): _*),
-          Parallel(list.map(_.input): _*),
-          Parallel(list.flatMap(_.unit): _*)
+        horizontal = Seq(
+          Par(Trailing)(list.map(set => set.label: GroupPanel.Element): _*),
+          Par(list.map(set => set.input: GroupPanel.Element): _*),
+          Par(list.flatMap(set => set.unit.map(GroupPanel.Element.apply)): _*)
         )
-        theVerticalLayout is Sequential(list.map { set =>
-          val u = set.unit.toList
-          Parallel(Baseline)(set.label :: set.input :: u: _*)
+        vertical = Seq(list.map { set =>
+          val u = set.label :: set.input :: set.unit.toList
+          Par(Baseline)(u.map(GroupPanel.Element.apply): _*)
         }: _*)
       }
     }
@@ -95,15 +87,17 @@ object GUI {
 
       def unit = None
 
-      def reset() {
+      def reset(): Unit =
         input.selection.item = getter()
-      }
 
       label.peer.putClientProperty("JComponent.sizeVariant", "small")
       input.peer.putClientProperty("JComponent.sizeVariant", "small")
 
       def value: A = input.selection.item
-      def value_=(a: A) { input.selection.item = a; setter(a) }
+      def value_=(a: A): Unit = {
+        input.selection.item = a
+        setter(a)
+      }
     }
 
     private final class NumericImpl[A](name: String, unitName: Option[String],
@@ -113,9 +107,8 @@ object GUI {
       val input = new TextField(8)
       val unit  = unitName.map(new Label(_))
 
-      def reset() {
+      def reset(): Unit =
         input.text = getter().toString
-      }
 
       reset()
       input.listenTo(input)
@@ -132,7 +125,7 @@ object GUI {
       }
 
       def value: A = convert(input.text)
-      def value_=(v: A) { input.text = v.toString; setter(value) }
+      def value_=(v: A): Unit = { input.text = v.toString; setter(value) }
     }
   }
   sealed trait Setting[A] {
@@ -150,12 +143,11 @@ object GUI {
 
   object Implicits {
     implicit final class RichWindow(val w: Window) extends AnyVal {
-      def placeLeftOf(that: Window) {
+      def placeLeftOf(that: Window): Unit =
         w.location = (that.location.x - w.size.width) -> that.location.y
-      }
-      def placeRightOf(that: Window) {
+
+      def placeRightOf(that: Window): Unit =
         w.location = (that.location.x + that.size.width) -> that.location.y
-      }
     }
   }
 }

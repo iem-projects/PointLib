@@ -108,7 +108,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
     private var _trajMaxGap     = 5f
 
     def minFreq: Float = _minFreq
-    def minFreq_=(value: Float) {
+    def minFreq_=(value: Float): Unit = {
       require(value >= 0f && value <= 48000f, "Requires 0 <= minFreq <= 48000")
       if (value > _maxFreq) {
         _minFreq  = _maxFreq
@@ -119,7 +119,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
     }
 
     def maxFreq: Float = _maxFreq
-    def maxFreq_=(value: Float) {
+    def maxFreq_=(value: Float): Unit = {
       require(value >= 0f && value <= 48000f, "Requires 0 <= maxFreq <= 48000")
       if (value < _minFreq) {
         _maxFreq  = _minFreq
@@ -130,68 +130,68 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
     }
 
     def stepSize: Int = _stepSize
-    def stepSize_=(value: Int) {
+    def stepSize_=(value: Int): Unit = {
       require(value > 0 && value <= 65536 && value.isPowerOfTwo,
         "Requires 0 < stepSize <= 65536, and stepSize being a power of two")
       _stepSize = value
     }
 
     def binsPerOct: Int = _binsPerOct
-    def binsPerOct_=(value: Int) {
+    def binsPerOct_=(value: Int): Unit = {
       require(value > 0 && value <= 192, "Requires 0 < binsPerOct <= 192")
       _binsPerOct = value
     }
 
     def median: Int = _median
-    def median_=(value: Int) {
+    def median_=(value: Int): Unit = {
       require (value >= 0 && value <= 8192, "Requires 0 <= median <= 8192")
       _median = value
     }
 
     def ampThresh: Float = _ampThresh
-    def ampThresh_=(value: Float) {
+    def ampThresh_=(value: Float): Unit = {
       require(value >= 0f, "Requires ampThresh >= 0")
       _ampThresh = value
     }
 
     def peakThresh: Float = _peakThresh
-    def peakThresh_=(value: Float) {
+    def peakThresh_=(value: Float): Unit = {
       require(value >= 0f, "Requires peakThresh >= 0")
       _peakThresh = value
     }
 
     def inputGain: Float = _inputGain
-    def inputGain_=(value: Float) {
+    def inputGain_=(value: Float): Unit = {
       require(value > 0f, "Requires inputGain > 0")
       _inputGain = value
     }
 
     def maxFreqSpread: Float = _maxFreqSpread
-    def maxFreqSpread_=(value: Float) {
+    def maxFreqSpread_=(value: Float): Unit = {
       require(value >= 1f, "Requires maxFreqSpread >= 1")
       _maxFreqSpread = value
     }
 
     def maxFreqSlope: Float = _maxFreqSlope
-    def maxFreqSlope_=(value: Float) {
+    def maxFreqSlope_=(value: Float): Unit = {
       require(value >= 1f, "Requires maxFreqSlope >= 1")
       _maxFreqSlope = value
     }
 
     def trajFitOrder: Int = _trajFitOrder
-    def trajFitOrder(value: Int) {
+    def trajFitOrder(value: Int): Unit = {
       require(value >= 0 && value <= 2, "Requires trajFitOrder to be either 0, 1, or 2")
       _trajFitOrder = value
     }
 
     def trajMinDur: Float = _trajMinDur
-    def trajMinDur_=(value: Float) {
+    def trajMinDur_=(value: Float): Unit = {
       require(value >= 0f && value <= 60000f, "Requires 0 <= trajMinDur <= 60000")
       _trajMinDur = value
     }
 
     def trajMaxGap: Float = _trajMaxGap
-    def trajMaxGap_=(value: Float) {
+    def trajMaxGap_=(value: Float): Unit = {
       require(value >= 0f && value <= 10000f, "Requires 0 <= trajMaxGap <= 10000")
       _trajMaxGap = value
     }
@@ -203,7 +203,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
       trajMinDur = _trajMinDur, trajMaxGap = _trajMaxGap
     )
 
-    def read(config: Config) {
+    def read(config: Config): Unit = {
       input           = config.input
       _minFreq        = config.minFreq
       _maxFreq        = config.maxFreq
@@ -263,7 +263,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
         numFeatures   = 2,  // (freq, clarity)
         stepSize      = config.stepSize,
 //        blockSize = 64,
-        progress      = progress(_),
+        progress      = progress_=(_),
         checkAborted  = () => checkAborted()
       )
 
@@ -315,7 +315,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
         println(f"spread = ${config.maxFreqSpread}%1.3f, slope = ${config.maxFreqSlope}%1.3f")
       }
 
-      def endTraj() {
+      def endTraj(): Unit = {
         if (trajActive) {
           val start     = trajStart * stepSize
           val stop      = (trajLast + 1) * stepSize
@@ -349,7 +349,7 @@ object PitchAnalysis extends ProcessorFactory.WithDefaults {
           val clarity = buf(1)(i)
           val hasFreq = clarity > 0f
 
-          def beginTraj() {
+          def beginTraj(): Unit = {
             trajActive  = true
             trajStart   = off     // control rate
             trajLast    = off

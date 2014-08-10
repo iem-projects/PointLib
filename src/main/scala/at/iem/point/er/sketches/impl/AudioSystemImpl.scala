@@ -20,14 +20,13 @@ object AudioSystemImpl {
 
     def server: Option[synth.ServerLike] = sync.synchronized(_server)
 
-    private def stopped() {
+    private def stopped(): Unit =
       sync.synchronized {
         _server = None
         dispatch(AudioSystem.Stopped)
       }
-    }
 
-    private def started(server: synth.Server) {
+    private def started(server: synth.Server): Unit =
       sync.synchronized {
         _server = Some(server)
         dispatch(AudioSystem.Started(server))
@@ -35,7 +34,6 @@ object AudioSystemImpl {
           case synth.Server.Offline => stopped()
         }
       }
-    }
 
     def start(config: synth.Server.Config): this.type = sync.synchronized {
       require(_server.isEmpty, _server.get match {

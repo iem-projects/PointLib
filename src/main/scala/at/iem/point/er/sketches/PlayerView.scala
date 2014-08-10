@@ -27,7 +27,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   private var _diskAmp  = 1.0f
 
   def diskAmp: Float = _diskAmp
-  def diskAmp_=(value: Float) {
+  def diskAmp_=(value: Float): Unit = {
     _diskAmp = value
     playing.foreach(_.synth.set("diskAmp" -> value))
   }
@@ -35,13 +35,13 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
   private var _resynthAmp = 1.0f
 
   def resynthAmp: Float = _resynthAmp
-  def resynthAmp_=(value: Float) {
+  def resynthAmp_=(value: Float): Unit = {
     _resynthAmp = value
     playing.foreach(_.synth.set("resynthAmp" -> value))
   }
 
   private def position = _position
-  private def position_=(frame: Long) {
+  private def position_=(frame: Long): Unit = {
     _position = frame
     timelineModel.modifiableOption.foreach(_.position = frame)
   }
@@ -126,7 +126,7 @@ class PlayerView(doc: Document, timelineModel: TimelineModel) {
     seqB += 0f  // initial frequency
     seqB += 0f  // initial clarity
 
-    def add(smp: PitchAnalysis.Sample) {
+    def add(smp: PitchAnalysis.Sample): Unit = {
       val start     = if (smp.start <= lastStop) lastStop + 1 else smp.start
       val stop      = math.max(start + 1, smp.stop)
       val gapFrames = start - 1 - lastStop
@@ -186,13 +186,13 @@ posIdx = 0  // XXX TODO
     if (posIdx == 0) seq0 else seq0.drop(posIdx * 4) ++ seq0.take(posIdx * 4)  // "rotate"
   }
 
-  def goToBegin() {
+  def goToBegin(): Unit = {
     stop()
     position = 0L
     // axis.repaint()
   }
 
-  def stop() {
+  def stop(): Unit = {
     if (sys.isRunning) {
       playing.foreach { p =>
         p.synth.free()
@@ -204,7 +204,7 @@ posIdx = 0  // XXX TODO
     updateStopPlay()
   }
 
-  def play() {
+  def play(): Unit = {
     stop()
     sys.server match {
       case Some(s: Server) =>
@@ -215,7 +215,7 @@ posIdx = 0  // XXX TODO
     updateStopPlay()
   }
 
-  def capture(f: File) {
+  def capture(f: File): Unit = {
     stop()
     goToBegin()
     sys.server match {
@@ -346,7 +346,7 @@ posIdx = 0  // XXX TODO
     Out.ar(0, sig)
   }
 
-  private def updateStopPlay() {
+  private def updateStopPlay(): Unit = {
     val b = isPlaying
     transportStrip.button(Transport.Stop).foreach(_.selected = !b)
     transportStrip.button(Transport.Play).foreach(_.selected =  b)
@@ -370,7 +370,7 @@ posIdx = 0  // XXX TODO
     res.addAction("play-stop", new swing.Action(null) {
       accelerator = Some(KeyStroke.getKeyStroke(' '))
 
-      def apply() {
+      def apply(): Unit = {
         val b = if (isPlaying) ggStop else ggStart
         b.doClick()
       }

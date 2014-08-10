@@ -17,26 +17,26 @@ class PitchAnalysisSettingsView(doc: Document,
   private def timeRes: Float = {
     (b.stepSize / inputSpec.sampleRate * 1000).toFloat
   }
-  private def timeRes_=(value: Float) {
+  private def timeRes_=(value: Float): Unit = {
     b.stepSize = (value * inputSpec.sampleRate / 1000 + 0.5).toInt.nextPowerOfTwo
     val t = timeRes
     if (math.abs(t - timeRes) > 1) setTimeRes.value = t
   }
 
   private def ampThresh: Float = b.ampThresh.ampdb
-  private def ampThresh_=(value: Float) { b.ampThresh = value.dbamp }
+  private def ampThresh_=(value: Float): Unit = b.ampThresh = value.dbamp
 
   private def peakThresh: Float = b.peakThresh.ampdb
-  private def peakThresh_=(value: Float) { b.peakThresh = value.dbamp }
+  private def peakThresh_=(value: Float): Unit = b.peakThresh = value.dbamp
 
   private def inputGain: Float = b.inputGain.ampdb
-  private def inputGain_=(value: Float) { b.inputGain = value.dbamp }
+  private def inputGain_=(value: Float): Unit = b.inputGain = value.dbamp
 
   private def maxSpread: Float = b.maxFreqSpread * 100
-  private def maxSpread_=(value: Float) { b.maxFreqSpread = value / 100 }
+  private def maxSpread_=(value: Float): Unit = b.maxFreqSpread = value / 100
 
   private def maxSlope: Float = b.maxFreqSlope * 100
-  private def maxSlope_=(value: Float) { b.maxFreqSlope = value / 100 }
+  private def maxSlope_=(value: Float): Unit = b.maxFreqSlope = value / 100
 
   private val setTimeRes = GUI.Setting.float("Time resolution:", "ms")(timeRes _)(timeRes = _)
 

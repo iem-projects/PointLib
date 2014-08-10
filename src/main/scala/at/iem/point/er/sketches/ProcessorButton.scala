@@ -54,13 +54,13 @@ class ProcessorButton[Product, Repr]
     dim1
   }
 
-  private def setProgressContent() {
+  private def setProgressContent(): Unit = {
     text            = "\u2716"  // 'X'
     progIcon.value  = 0
     icon            = progIcon
   }
 
-  private def setNormalContent() {
+  private def setNormalContent(): Unit = {
     icon  = EmptyIcon
     text  = text0
   }

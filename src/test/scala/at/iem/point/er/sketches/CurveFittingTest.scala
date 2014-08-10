@@ -2,7 +2,7 @@ package at.iem.point.er.sketches
 
 import swing.Swing
 import scalax.chart._
-import Charting._
+import api._
 import java.awt.Color
 import org.jfree.chart.renderer.xy.StandardXYItemRenderer
 
