@@ -14,7 +14,11 @@ import javax.swing.SpinnerNumberModel
 import scala.swing.{Label, Graphics2D, Component, Swing}
 import Swing._
 
-object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
+object GeneticApp extends GeneticApp(ManualGeneticSystem) {
+
+}
+
+abstract class GeneticApp[A](system: A) extends muta.gui.GeneticApp(system) {
   override def rowHeight = 176 // 128 // 64
 
   override def useNimbus          = false
@@ -89,7 +93,7 @@ object GeneticApp extends muta.gui.GeneticApp(GeneticSystem) {
     sequencer.play(seq)
   }
 
-  override protected def configureDocumentFrame(frame: DocumentFrame[GeneticSystem.type]): Unit = {
+  override protected def configureDocumentFrame(frame: DocumentFrame[ManualGeneticSystem.type]): Unit = {
     val strip = Transport.makeButtonStrip(Seq(
       Transport.Stop(stop()),
       Transport.Play(frame.selectedNodes.headOption.map(_.chromosome).foreach(play))

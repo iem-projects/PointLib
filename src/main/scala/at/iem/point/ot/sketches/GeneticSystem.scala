@@ -557,30 +557,10 @@ object ReduceFunction {
   }
 }
 
-object GeneticSystem extends muta.System {
-  def manual = false // true
-
-  //  val DefaultVoices = Vec(
-  //    Voice(lowest = 48, highest = 96, maxUp = 6, maxDown = 6),
-  //    Voice(lowest = 36, highest = 84, maxUp = 6, maxDown = 6),
-  //    Voice(lowest = 24, highest = 72, maxUp = 6, maxDown = 6)
-  //  )
-
-  def chordToPitches[A](chord: Chord)(implicit view: Pitch => A): Vec[A] = chord.pitches.reverse.map(view)
-  def pitchesToChord[A](pitches: Vec[A])(implicit view: A => Pitch): Chord = {
-    val notes = pitches.reverse.map(pitch => OffsetNote(offset = 0, pitch = view(pitch), duration = 1, velocity = 80))
-    Chord(notes)
-  }
-
-  implicit def varToPitch(vr: IntVar): Pitch = vr.value().asPitch
-  implicit def pitchToVar(pitch: Pitch)(implicit model: poirot.Model): IntVar = IntVar(pitch.midi, pitch.midi)
-
-  val DefaultVoices = Vec(
-    Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
-    Voice(down = VoiceDirection(limit = 36, step = 6), up = VoiceDirection(limit = 84, step = 6)),
-    Voice(down = VoiceDirection(limit = 24, step = 6), up = VoiceDirection(limit = 72, step = 6))
-  )
-
+object ManualGeneticSystem extends GeneticSystem {
+  def manual = true
+}
+object GeneticSystem {
   type Global     = GlobalImpl
   type Gene       = (Chord, ChordEval)
   type Chromosome = Vec[Gene]
@@ -588,6 +568,14 @@ object GeneticSystem extends muta.System {
   type Evaluation = EvaluationImpl
   type Selection  = SelectionImpl
   type Breeding   = BreedingImpl
+
+  type Genome     = Vec[Chromosome]
+
+  def chordToPitches[A](chord: Chord)(implicit view: Pitch => A): Vec[A] = chord.pitches.reverse.map(view)
+  def pitchesToChord[A](pitches: Vec[A])(implicit view: A => Pitch): Chord = {
+    val notes = pitches.reverse.map(pitch => OffsetNote(offset = 0, pitch = view(pitch), duration = 1, velocity = 80))
+    Chord(notes)
+  }
 
   def accept(c: Chromosome, global: Global): Boolean = {
     import poirot._
@@ -653,6 +641,26 @@ object GeneticSystem extends muta.System {
     }
   }
 
+  val DefaultVoices = Vec(
+    Voice(down = VoiceDirection(limit = 48, step = 6), up = VoiceDirection(limit = 96, step = 6)),
+    Voice(down = VoiceDirection(limit = 36, step = 6), up = VoiceDirection(limit = 84, step = 6)),
+    Voice(down = VoiceDirection(limit = 24, step = 6), up = VoiceDirection(limit = 72, step = 6))
+  )
+
+  implicit def varToPitch(vr: IntVar): Pitch = vr.value().asPitch
+  implicit def pitchToVar(pitch: Pitch)(implicit model: poirot.Model): IntVar = IntVar(pitch.midi, pitch.midi)
+}
+trait GeneticSystem extends muta.System {
+  def manual: Boolean
+
+  type Global     = GeneticSystem.Global
+  type Gene       = GeneticSystem.Gene
+  type Chromosome = GeneticSystem.Chromosome
+  type Generation = GeneticSystem.Generation
+  type Evaluation = GeneticSystem.Evaluation
+  type Selection  = GeneticSystem.Selection
+  type Breeding   = GeneticSystem.Breeding
+
   def defaultGeneration: Generation = GenerationImpl()
   def defaultEvaluation: Evaluation = FrameIntervalEval()
   def defaultSelection : Selection  = SelectionRoulette()
@@ -666,7 +674,7 @@ object GeneticSystem extends muta.System {
   def breedingView  (init: Breeding  , config: Config) = AutoView(init, config)
 
   // Option[(Evaluation, AutoView.Config) => AutoView[Evaluation]]
-  def evaluationViewOption = if (manual) None else Some(evaluationView)
+  def evaluationViewOption = if (manual) None else Some(evaluationView _)
 
   private val chordSeqView  = new ChordSeqView
   private val chordSeqView2 = new ChordSeqView
