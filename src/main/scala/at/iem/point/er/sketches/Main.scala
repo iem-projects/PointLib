@@ -6,6 +6,7 @@ import java.io.File
 import com.alee.laf.WebLookAndFeel
 import de.sciss.desktop.Menu
 import de.sciss.desktop.Window
+import de.sciss.sonogram.Overview
 import de.sciss.synth
 import synth.io.AudioFile
 import de.sciss.desktop.impl.{WindowImpl, SwingApplicationImpl}
@@ -23,6 +24,8 @@ object Main extends SwingApplicationImpl("PointLib") {
   private lazy val recent = RecentFiles(userPrefs[List[File]]("recent-files"))(open)
 
   var pdfFun = (_: DocumentFrame) => ()
+
+  var palette: Overview.Palette = Overview.Palette.Intensity
 
   lazy val menuFactory: Menu.Root = {
     import Menu._

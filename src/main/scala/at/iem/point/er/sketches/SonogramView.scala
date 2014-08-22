@@ -3,6 +3,7 @@ package at.iem.point.er.sketches
 import de.sciss.sonogram
 import java.awt.event.MouseEvent
 import javax.swing.event.MouseInputAdapter
+import de.sciss.sonogram.Overview
 import de.sciss.synth
 import java.awt.geom.{GeneralPath, Rectangle2D}
 import java.awt.{RenderingHints, Graphics, Graphics2D, Point, BasicStroke, Color}
@@ -59,11 +60,16 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
   //    frame.toDouble.linlin(0, spec.numFrames, 0, w).toFloat
   //  }
 
+  override def sono_=(newSono: Option[Overview]): Unit = {
+    super.sono_=(newSono)
+    newSono.foreach(_.palette = Main.palette)
+  }
+
   private def screenToFreq(screen: Float, ovr: sonogram.Overview): Float = {
     import synth._
     val spec  = ovr.config.sonogram
     val h     = getHeight
-    screen.linexp(h - 1, 0, spec.minFreq, spec.maxFreq).toFloat
+    screen.linexp(h - 1, 0, spec.minFreq, spec.maxFreq)
   }
 
   private def freqToScreen(freq: Float, ovr: sonogram.Overview): Float = {
@@ -194,5 +200,5 @@ final class SonogramView(doc: Document, canvas: TimelineCanvas) extends sonogram
     }
   }
 
-  setPreferredSize((600, 400))
+  setPreferredSize((1200, 500))
 }

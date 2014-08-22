@@ -22,7 +22,7 @@ resolvers += "Typesafe Releases" at "https://repo.typesafe.com/typesafe/releases
 
 libraryDependencies ++= Seq(
   "de.sciss" %% "scalacollider"            % "1.12.0",
-  "de.sciss" %% "sonogramoverview"         % "1.7.1",                       // Sonogram View
+  "de.sciss" %% "sonogramoverview"         % "1.8.0-SNAPSHOT",              // Sonogram View
   "de.sciss" %% "strugatzki"               % "2.4.1",                       // Offline Feature Extraction
   "de.sciss" %% "audiowidgets-app"         % "1.6.2",                       // Timeline components
   "de.sciss" %% "fileutil"                 % "1.1.1",                       // Easy file navigation
