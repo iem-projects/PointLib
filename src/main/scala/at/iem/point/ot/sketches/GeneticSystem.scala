@@ -455,17 +455,18 @@ case class ForbiddenIntervalTriple(top: Int = 4, mid: Int = 3, bottom: Int = 2)
   protected val intervals = Vec(top, mid, bottom)
 }
 
-sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome]
+sealed trait EvaluationImpl extends muta.Evaluation[GeneticSystem.Chromosome, GeneticSystem.Global]
 
 case class ParallelEval(funs: Vec[EvaluationImpl], aggr: ReduceFunction = Mean) extends EvaluationImpl {
-  override def apply(c: GeneticSystem.Chromosome): Double = aggr(funs.map(_.apply(c)))
+  override def apply(c: GeneticSystem.Chromosome, global: GeneticSystem.Global): Double =
+    aggr(funs.map(_.apply(c, global)))
 }
 
 case class FrameIntervalEval(reduce: ReduceFunction =
                              Match(gen = ConstantEnv(13), AbsDif, ComposeReduceUnary(Mean, LinLin(0, 10, 1, 0))))
   extends EvaluationImpl {
 
-  override def apply(c: GeneticSystem.Chromosome): Double = {
+  override def apply(c: GeneticSystem.Chromosome, global: GeneticSystem.Global): Double = {
     val dSeq = c.map(_._1.frameInterval.semitones.toDouble)
     reduce(dSeq)
   }
@@ -477,7 +478,7 @@ case class VoiceEval(voice: Int = 1, reduce: ReduceFunction =
 
   import GeneticSystem.{Chromosome, chordToPitches}
 
-  override def apply(c: Chromosome): Double = {
+  override def apply(c: Chromosome, global: GeneticSystem.Global): Double = {
     val seq = c.map { case (chord, _) => chordToPitches[Double](chord)(_.midi.toDouble)(voice - 1) }
     reduce(seq)
   }

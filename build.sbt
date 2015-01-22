@@ -6,7 +6,7 @@ version      := "0.1.0-SNAPSHOT"
 
 organization := "at.iem.point"
 
-scalaVersion := "2.11.2" // "2.10.3"
+scalaVersion := "2.11.5" // "2.10.3"
 
 homepage     := Some(url("https://github.com/iem-projects/PointLib/"))
 
@@ -21,9 +21,9 @@ resolvers += "Typesafe Simple Repository" at "http://repo.typesafe.com/typesafe/
 
 libraryDependencies in ThisBuild ++= Seq(
   "de.sciss" %% "pointillism"         % "0.3.0",
-  "de.sciss" %% "pdflitz"             % "1.1.0",
-  "de.sciss" %% "muta"                % "0.4.1",
-  "de.sciss" %% "audiowidgets-swing"  % "1.6.2",
+  "de.sciss" %% "pdflitz"             % "1.2.0",
+  "de.sciss" %% "muta"                % "0.5.0",
+  "de.sciss" %% "audiowidgets-swing"  % "1.8.0",
   "de.sciss" %% "numbers"             % "0.1.1",
   "de.sciss" %  "abc4j"               % "0.6.0",
   // "de.sciss" %% "guiflitz"            % "0.3.+",

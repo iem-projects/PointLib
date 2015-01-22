@@ -1,24 +1,22 @@
 package at.iem.point.ot.sketches
 
-import java.awt.{Font, Color, RenderingHints, Toolkit}
+import java.awt.{Color, Font, RenderingHints, Toolkit}
+import javax.swing.SpinnerNumberModel
 
 import com.alee.laf.WebLookAndFeel
-import de.sciss.desktop.impl.WindowImpl
-import de.sciss.muta
-import de.sciss.desktop.{Desktop, Window, WindowHandler, FileDialog, Menu}
-import de.sciss.muta.gui.DocumentFrame
 import de.sciss.audiowidgets.Transport
-import de.sciss.midi
+import de.sciss.desktop.impl.WindowImpl
+import de.sciss.desktop.{Desktop, FileDialog, Window, WindowHandler}
+import de.sciss.{midi, muta}
+import de.sciss.muta.gui.DocumentFrame
 import de.sciss.swingplus.Spinner
-import javax.swing.SpinnerNumberModel
-import scala.swing.{Label, Graphics2D, Component, Swing}
-import Swing._
 
-object GeneticApp extends GeneticApp(ManualGeneticSystem) {
+import scala.swing.Swing._
+import scala.swing.{Component, Graphics2D, Label, Swing}
 
-}
+object GeneticApp extends GeneticAppLike(ManualGeneticSystem)
 
-abstract class GeneticApp[A](system: A) extends muta.gui.GeneticApp(system) {
+abstract class GeneticAppLike[A <: GeneticSystem](system: A) extends muta.gui.GeneticApp(system) {
   override def rowHeight = 176 // 128 // 64
 
   override def useNimbus          = false
@@ -93,7 +91,7 @@ abstract class GeneticApp[A](system: A) extends muta.gui.GeneticApp(system) {
     sequencer.play(seq)
   }
 
-  override protected def configureDocumentFrame(frame: DocumentFrame[ManualGeneticSystem.type]): Unit = {
+  override protected def configureDocumentFrame(frame: DocumentFrame[A]): Unit = {
     val strip = Transport.makeButtonStrip(Seq(
       Transport.Stop(stop()),
       Transport.Play(frame.selectedNodes.headOption.map(_.chromosome).foreach(play))
