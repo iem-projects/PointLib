@@ -4,7 +4,7 @@ version       := "0.1.0-SNAPSHOT"
 
 organization  := "at.iem.point"
 
-scalaVersion  := "2.11.2"
+scalaVersion  := "2.11.6"
 
 homepage      := Some(url("https://github.com/iem-projects/PointLib/"))
 
